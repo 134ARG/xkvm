@@ -49,6 +49,18 @@ func initUsbGadget() {
 	}
 }
 
+func closeUsbGadget() {
+	if gadget != nil {
+		err := gadget.Close()
+		if err != nil {
+			usbLogger.Error().Err(err).Msg("failed to close USB gadget")
+			return
+		}
+		usbLogger.Info().Msg("USB gadget closed successfully")
+		gadget = nil
+	}
+}
+
 func rpcKeyboardReport(modifier byte, keys []byte) error {
 	return gadget.KeyboardReport(modifier, keys)
 }
@@ -101,6 +113,6 @@ func checkUSBState() {
 	usbLogger.Info().Str("from", usbState).Str("to", newState).Msg("USB state changed")
 	usbState = newState
 
-	requestDisplayUpdate(true)
+	// requestDisplayUpdate(true)
 	triggerUSBStateUpdate()
 }

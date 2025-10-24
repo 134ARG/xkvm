@@ -30,8 +30,8 @@ func Main() {
 		Interface("app_version", appVersionLocal).
 		Msg("starting JetKVM")
 
-	go runWatchdog()
-	go confirmCurrentSystem()
+	// go runWatchdog()
+	// go confirmCurrentSystem()
 
 	http.DefaultClient.Timeout = 1 * time.Minute
 
@@ -45,13 +45,13 @@ func Main() {
 
 	// Initialize network
 	if err := initNetwork(); err != nil {
-		logger.Error().Err(err).Msg("failed to initialize network")
-		os.Exit(1)
-	}
+	// logger.Error().Err(err).Msg("failed to initialize network")
+	// os.Exit(1)
+	// }
 
 	// Initialize time sync
 	initTimeSync()
-	timeSync.Start()
+	// timeSync.Start()
 
 	// Initialize mDNS
 	if err := initMdns(); err != nil {
@@ -65,7 +65,14 @@ func Main() {
 	// Initialize native video socket server
 	StartNativeVideoSocketServer()
 
-	initPrometheus()
+	// initPrometheus()
+
+	go func() {
+		err = ExtractEmptyImg()
+		if err != nil {
+			logger.Warn().Err(err).Msg("failed to extract empty img")
+		}
+	}()
 
 	go func() {
 		err = ExtractAndRunNativeBin()
@@ -84,40 +91,40 @@ func Main() {
 	if err := initImagesFolder(); err != nil {
 		logger.Warn().Err(err).Msg("failed to init images folder")
 	}
-	initJiggler()
+	// initJiggler()
 
 	// initialize display
-	initDisplay()
+	// initDisplay()
 
-	go func() {
-		time.Sleep(15 * time.Minute)
-		for {
-			logger.Debug().Bool("auto_update_enabled", config.AutoUpdateEnabled).Msg("UPDATING")
-			if !config.AutoUpdateEnabled {
-				return
-			}
+	// go func() {
+	// 	time.Sleep(15 * time.Minute)
+	// 	for {
+	// 		logger.Debug().Bool("auto_update_enabled", config.AutoUpdateEnabled).Msg("UPDATING")
+	// 		if !config.AutoUpdateEnabled {
+	// 			return
+	// 		}
 
-			if isTimeSyncNeeded() || !timeSync.IsSyncSuccess() {
-				logger.Debug().Msg("system time is not synced, will retry in 30 seconds")
-				time.Sleep(30 * time.Second)
-				continue
-			}
+	// 		if isTimeSyncNeeded() || !timeSync.IsSyncSuccess() {
+	// 			logger.Debug().Msg("system time is not synced, will retry in 30 seconds")
+	// 			time.Sleep(30 * time.Second)
+	// 			continue
+	// 		}
 
-			if currentSession != nil {
-				logger.Debug().Msg("skipping update since a session is active")
-				time.Sleep(1 * time.Minute)
-				continue
-			}
+	// 		if currentSession != nil {
+	// 			logger.Debug().Msg("skipping update since a session is active")
+	// 			time.Sleep(1 * time.Minute)
+	// 			continue
+	// 		}
 
-			includePreRelease := config.IncludePreRelease
-			err = TryUpdate(context.Background(), GetDeviceID(), includePreRelease)
-			if err != nil {
-				logger.Warn().Err(err).Msg("failed to auto update")
-			}
+	// 		includePreRelease := config.IncludePreRelease
+	// 		err = TryUpdate(context.Background(), GetDeviceID(), includePreRelease)
+	// 		if err != nil {
+	// 			logger.Warn().Err(err).Msg("failed to auto update")
+	// 		}
 
-			time.Sleep(1 * time.Hour)
-		}
-	}()
+	// 		time.Sleep(1 * time.Hour)
+	// 	}
+	// }()
 	//go RunFuseServer()
 	go RunWebServer()
 
@@ -135,6 +142,7 @@ func Main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	<-sigs
 	logger.Info().Msg("JetKVM Shutting Down")
+	closeUsbGadget()
 	//if fuseServer != nil {
 	//	err := setMassStorageImage(" ")
 	//	if err != nil {

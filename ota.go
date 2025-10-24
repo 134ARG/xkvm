@@ -60,7 +60,7 @@ func GetLocalVersion() (systemVersion *semver.Version, appVersion *semver.Versio
 		return nil, nil, fmt.Errorf("invalid built-in app version: %w", err)
 	}
 
-	systemVersionBytes, err := os.ReadFile("/version")
+	systemVersionBytes, err := os.ReadFile("./version")
 	if err != nil {
 		return nil, appVersion, fmt.Errorf("error reading system version: %w", err)
 	}

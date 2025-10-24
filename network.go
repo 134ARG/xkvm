@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	NetIfName = "eth0"
+	NetIfName = "end0"
 )
 
 var (

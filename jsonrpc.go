@@ -213,6 +213,101 @@ func rpcSetStreamQualityFactor(factor float64) error {
 	return nil
 }
 
+var streamEncoder = 0.0
+var codec =  webrtc.MimeTypeH264
+
+func rpcGetStreamEncoder() (float64, error) {
+	return streamEncoder, nil
+}
+
+func rpcSetStreamStreamEncoder(encoder float64) error {
+	logger.Info().Float64("encoder", encoder).Msg("Setting stream encoder")
+
+	var enc int32 = int32(encoder)
+	// Determine codec
+	// var codec string
+	switch enc {
+	case 0:
+		codec = webrtc.MimeTypeH264
+	case 1:
+		codec = webrtc.MimeTypeH265
+	default:
+		// panic("ha!")
+		return fmt.Errorf("unsupported encoder value: %v", enc)
+	}
+
+	// Get current session
+	oldSession, _ := GetCurrentSession()
+	if oldSession == nil {
+		return fmt.Errorf("no active WebRTC session")
+	}
+
+	// config := currentSessionConfig
+	// config.Codec = codec
+
+	// // Reuse the signaling websocket
+	// ws := oldSession.config.ws
+	// if ws == nil {
+	//     return errors.New("no websocket signaling channel available")
+	// }
+
+	// Create a new session using same SDP/connection context
+	// _, _, err := createOrReplaceSession(sd, config)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to create new session with new codec: %w", err)
+	// }
+
+	// SetCurrentSession(newSession, sd, config)
+	// if err := oldSession.rtpSender.ReplaceTrack(nil); err != nil {
+	// 	// oldSession.scopedLogger.Error().Err(err).Msg("Failed to detach old track")
+	// 	return fmt.Errorf("failed to detach old track: %w", err)
+	// }
+
+	newTrack, err := webrtc.NewTrackLocalStaticSample(
+		webrtc.RTPCodecCapability{MimeType: codec},
+		"video", "kvm",
+	)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to create new video track: %w", err)
+	// }
+
+	if err := oldSession.rtpSender.ReplaceTrack(newTrack); err != nil {
+		return fmt.Errorf("failed to attach new track: %w", err)
+	}
+
+	// ---------------
+
+	// ---------------
+	// offer, err := oldSession.peerConnection.CreateOffer(nil)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to create offer: %w", err)
+	// }
+
+	// if err := oldSession.peerConnection.SetLocalDescription(offer); err != nil {
+	// 	return fmt.Errorf("failed to set local description: %w", err)
+	// }
+	// oldSession.so
+
+	// 	if oldSession.ws != nil {
+	// 	err = wsjson.Write(context.Background(), oldSession.config.ws, gin.H{
+	// 		"type": "offer",
+	// 		"data": offer,
+	// 	})
+	// 	if err != nil {
+	// 		session.scopedLogger.Warn().Err(err).Msg("Failed to send renegotiation offer to client")
+	// 		return fmt.Errorf("failed to send renegotiation offer: %w", err)
+	// 	}
+	// } else {
+	// 	session.scopedLogger.Warn().Msg("No websocket connection found; cannot renegotiate")
+	// }
+	_, err = CallCtrlAction("set_video_encoder", map[string]any{"encoder": int32(encoder)})
+	if err != nil {
+		return fmt.Errorf("failed to talk to native for setting encoder: %w", err)
+	}
+	streamEncoder = encoder
+	return nil
+}
+
 func rpcGetAutoUpdateState() (bool, error) {
 	return config.AutoUpdateEnabled, nil
 }
@@ -1167,89 +1262,95 @@ func rpcDoExecuteKeyboardMacro(ctx context.Context, macro []hidrpc.KeyboardMacro
 	return nil
 }
 
-var rpcHandlers = map[string]RPCHandler{
-	"ping":                   {Func: rpcPing},
-	"reboot":                 {Func: rpcReboot, Params: []string{"force"}},
-	"getDeviceID":            {Func: rpcGetDeviceID},
-	"deregisterDevice":       {Func: rpcDeregisterDevice},
-	"getCloudState":          {Func: rpcGetCloudState},
-	"getNetworkState":        {Func: rpcGetNetworkState},
-	"getNetworkSettings":     {Func: rpcGetNetworkSettings},
-	"setNetworkSettings":     {Func: rpcSetNetworkSettings, Params: []string{"settings"}},
-	"renewDHCPLease":         {Func: rpcRenewDHCPLease},
-	"getKeyboardLedState":    {Func: rpcGetKeyboardLedState},
-	"getKeyDownState":        {Func: rpcGetKeysDownState},
-	"keyboardReport":         {Func: rpcKeyboardReport, Params: []string{"modifier", "keys"}},
-	"keypressReport":         {Func: rpcKeypressReport, Params: []string{"key", "press"}},
-	"absMouseReport":         {Func: rpcAbsMouseReport, Params: []string{"x", "y", "buttons"}},
-	"relMouseReport":         {Func: rpcRelMouseReport, Params: []string{"dx", "dy", "buttons"}},
-	"wheelReport":            {Func: rpcWheelReport, Params: []string{"wheelY"}},
-	"getVideoState":          {Func: rpcGetVideoState},
-	"getUSBState":            {Func: rpcGetUSBState},
-	"unmountImage":           {Func: rpcUnmountImage},
-	"rpcMountBuiltInImage":   {Func: rpcMountBuiltInImage, Params: []string{"filename"}},
-	"setJigglerState":        {Func: rpcSetJigglerState, Params: []string{"enabled"}},
-	"getJigglerState":        {Func: rpcGetJigglerState},
-	"setJigglerConfig":       {Func: rpcSetJigglerConfig, Params: []string{"jigglerConfig"}},
-	"getJigglerConfig":       {Func: rpcGetJigglerConfig},
-	"getTimezones":           {Func: rpcGetTimezones},
-	"sendWOLMagicPacket":     {Func: rpcSendWOLMagicPacket, Params: []string{"macAddress"}},
-	"getStreamQualityFactor": {Func: rpcGetStreamQualityFactor},
-	"setStreamQualityFactor": {Func: rpcSetStreamQualityFactor, Params: []string{"factor"}},
-	"getAutoUpdateState":     {Func: rpcGetAutoUpdateState},
-	"setAutoUpdateState":     {Func: rpcSetAutoUpdateState, Params: []string{"enabled"}},
-	"getEDID":                {Func: rpcGetEDID},
-	"setEDID":                {Func: rpcSetEDID, Params: []string{"edid"}},
-	"getDevChannelState":     {Func: rpcGetDevChannelState},
-	"setDevChannelState":     {Func: rpcSetDevChannelState, Params: []string{"enabled"}},
-	"getLocalVersion":        {Func: rpcGetLocalVersion},
-	"getUpdateStatus":        {Func: rpcGetUpdateStatus},
-	"tryUpdate":              {Func: rpcTryUpdate},
-	"getDevModeState":        {Func: rpcGetDevModeState},
-	"setDevModeState":        {Func: rpcSetDevModeState, Params: []string{"enabled"}},
-	"getSSHKeyState":         {Func: rpcGetSSHKeyState},
-	"setSSHKeyState":         {Func: rpcSetSSHKeyState, Params: []string{"sshKey"}},
-	"getTLSState":            {Func: rpcGetTLSState},
-	"setTLSState":            {Func: rpcSetTLSState, Params: []string{"state"}},
-	"setMassStorageMode":     {Func: rpcSetMassStorageMode, Params: []string{"mode"}},
-	"getMassStorageMode":     {Func: rpcGetMassStorageMode},
-	"isUpdatePending":        {Func: rpcIsUpdatePending},
-	"getUsbEmulationState":   {Func: rpcGetUsbEmulationState},
-	"setUsbEmulationState":   {Func: rpcSetUsbEmulationState, Params: []string{"enabled"}},
-	"getUsbConfig":           {Func: rpcGetUsbConfig},
-	"setUsbConfig":           {Func: rpcSetUsbConfig, Params: []string{"usbConfig"}},
-	"checkMountUrl":          {Func: rpcCheckMountUrl, Params: []string{"url"}},
-	"getVirtualMediaState":   {Func: rpcGetVirtualMediaState},
-	"getStorageSpace":        {Func: rpcGetStorageSpace},
-	"mountWithHTTP":          {Func: rpcMountWithHTTP, Params: []string{"url", "mode"}},
-	"mountWithStorage":       {Func: rpcMountWithStorage, Params: []string{"filename", "mode"}},
-	"listStorageFiles":       {Func: rpcListStorageFiles},
-	"deleteStorageFile":      {Func: rpcDeleteStorageFile, Params: []string{"filename"}},
-	"startStorageFileUpload": {Func: rpcStartStorageFileUpload, Params: []string{"filename", "size"}},
-	"getWakeOnLanDevices":    {Func: rpcGetWakeOnLanDevices},
-	"setWakeOnLanDevices":    {Func: rpcSetWakeOnLanDevices, Params: []string{"params"}},
-	"resetConfig":            {Func: rpcResetConfig},
-	"setDisplayRotation":     {Func: rpcSetDisplayRotation, Params: []string{"params"}},
-	"getDisplayRotation":     {Func: rpcGetDisplayRotation},
-	"setBacklightSettings":   {Func: rpcSetBacklightSettings, Params: []string{"params"}},
-	"getBacklightSettings":   {Func: rpcGetBacklightSettings},
-	"getDCPowerState":        {Func: rpcGetDCPowerState},
-	"setDCPowerState":        {Func: rpcSetDCPowerState, Params: []string{"enabled"}},
-	"setDCRestoreState":      {Func: rpcSetDCRestoreState, Params: []string{"state"}},
-	"getActiveExtension":     {Func: rpcGetActiveExtension},
-	"setActiveExtension":     {Func: rpcSetActiveExtension, Params: []string{"extensionId"}},
-	"getATXState":            {Func: rpcGetATXState},
-	"setATXPowerAction":      {Func: rpcSetATXPowerAction, Params: []string{"action"}},
-	"getSerialSettings":      {Func: rpcGetSerialSettings},
-	"setSerialSettings":      {Func: rpcSetSerialSettings, Params: []string{"settings"}},
-	"getUsbDevices":          {Func: rpcGetUsbDevices},
-	"setUsbDevices":          {Func: rpcSetUsbDevices, Params: []string{"devices"}},
-	"setUsbDeviceState":      {Func: rpcSetUsbDeviceState, Params: []string{"device", "enabled"}},
-	"setCloudUrl":            {Func: rpcSetCloudUrl, Params: []string{"apiUrl", "appUrl"}},
-	"getKeyboardLayout":      {Func: rpcGetKeyboardLayout},
-	"setKeyboardLayout":      {Func: rpcSetKeyboardLayout, Params: []string{"layout"}},
-	"getKeyboardMacros":      {Func: getKeyboardMacros},
-	"setKeyboardMacros":      {Func: setKeyboardMacros, Params: []string{"params"}},
-	"getLocalLoopbackOnly":   {Func: rpcGetLocalLoopbackOnly},
-	"setLocalLoopbackOnly":   {Func: rpcSetLocalLoopbackOnly, Params: []string{"enabled"}},
+var rpcHandlers = map[string]RPCHandler{}
+
+func init() {
+	rpcHandlers = map[string]RPCHandler{
+		"ping":                   {Func: rpcPing},
+		"reboot":                 {Func: rpcReboot, Params: []string{"force"}},
+		"getDeviceID":            {Func: rpcGetDeviceID},
+		"deregisterDevice":       {Func: rpcDeregisterDevice},
+		"getCloudState":          {Func: rpcGetCloudState},
+		"getNetworkState":        {Func: rpcGetNetworkState},
+		"getNetworkSettings":     {Func: rpcGetNetworkSettings},
+		"setNetworkSettings":     {Func: rpcSetNetworkSettings, Params: []string{"settings"}},
+		"renewDHCPLease":         {Func: rpcRenewDHCPLease},
+		"getKeyboardLedState":    {Func: rpcGetKeyboardLedState},
+		"getKeyDownState":        {Func: rpcGetKeysDownState},
+		"keyboardReport":         {Func: rpcKeyboardReport, Params: []string{"modifier", "keys"}},
+		"keypressReport":         {Func: rpcKeypressReport, Params: []string{"key", "press"}},
+		"absMouseReport":         {Func: rpcAbsMouseReport, Params: []string{"x", "y", "buttons"}},
+		"relMouseReport":         {Func: rpcRelMouseReport, Params: []string{"dx", "dy", "buttons"}},
+		"wheelReport":            {Func: rpcWheelReport, Params: []string{"wheelY"}},
+		"getVideoState":          {Func: rpcGetVideoState},
+		"getUSBState":            {Func: rpcGetUSBState},
+		"unmountImage":           {Func: rpcUnmountImage},
+		"rpcMountBuiltInImage":   {Func: rpcMountBuiltInImage, Params: []string{"filename"}},
+		"setJigglerState":        {Func: rpcSetJigglerState, Params: []string{"enabled"}},
+		"getJigglerState":        {Func: rpcGetJigglerState},
+		"setJigglerConfig":       {Func: rpcSetJigglerConfig, Params: []string{"jigglerConfig"}},
+		"getJigglerConfig":       {Func: rpcGetJigglerConfig},
+		"getTimezones":           {Func: rpcGetTimezones},
+		"sendWOLMagicPacket":     {Func: rpcSendWOLMagicPacket, Params: []string{"macAddress"}},
+		"getStreamQualityFactor": {Func: rpcGetStreamQualityFactor},
+		"setStreamQualityFactor": {Func: rpcSetStreamQualityFactor, Params: []string{"factor"}},
+		"getStreamEncoder":       {Func: rpcGetStreamEncoder},
+		"setStreamEncoder":       {Func: rpcSetStreamStreamEncoder, Params: []string{"encoder"}},
+		"getAutoUpdateState":     {Func: rpcGetAutoUpdateState},
+		"setAutoUpdateState":     {Func: rpcSetAutoUpdateState, Params: []string{"enabled"}},
+		"getEDID":                {Func: rpcGetEDID},
+		"setEDID":                {Func: rpcSetEDID, Params: []string{"edid"}},
+		"getDevChannelState":     {Func: rpcGetDevChannelState},
+		"setDevChannelState":     {Func: rpcSetDevChannelState, Params: []string{"enabled"}},
+		"getLocalVersion":        {Func: rpcGetLocalVersion},
+		"getUpdateStatus":        {Func: rpcGetUpdateStatus},
+		"tryUpdate":              {Func: rpcTryUpdate},
+		"getDevModeState":        {Func: rpcGetDevModeState},
+		"setDevModeState":        {Func: rpcSetDevModeState, Params: []string{"enabled"}},
+		"getSSHKeyState":         {Func: rpcGetSSHKeyState},
+		"setSSHKeyState":         {Func: rpcSetSSHKeyState, Params: []string{"sshKey"}},
+		"getTLSState":            {Func: rpcGetTLSState},
+		"setTLSState":            {Func: rpcSetTLSState, Params: []string{"state"}},
+		"setMassStorageMode":     {Func: rpcSetMassStorageMode, Params: []string{"mode"}},
+		"getMassStorageMode":     {Func: rpcGetMassStorageMode},
+		"isUpdatePending":        {Func: rpcIsUpdatePending},
+		"getUsbEmulationState":   {Func: rpcGetUsbEmulationState},
+		"setUsbEmulationState":   {Func: rpcSetUsbEmulationState, Params: []string{"enabled"}},
+		"getUsbConfig":           {Func: rpcGetUsbConfig},
+		"setUsbConfig":           {Func: rpcSetUsbConfig, Params: []string{"usbConfig"}},
+		"checkMountUrl":          {Func: rpcCheckMountUrl, Params: []string{"url"}},
+		"getVirtualMediaState":   {Func: rpcGetVirtualMediaState},
+		"getStorageSpace":        {Func: rpcGetStorageSpace},
+		"mountWithHTTP":          {Func: rpcMountWithHTTP, Params: []string{"url", "mode"}},
+		"mountWithStorage":       {Func: rpcMountWithStorage, Params: []string{"filename", "mode"}},
+		"listStorageFiles":       {Func: rpcListStorageFiles},
+		"deleteStorageFile":      {Func: rpcDeleteStorageFile, Params: []string{"filename"}},
+		"startStorageFileUpload": {Func: rpcStartStorageFileUpload, Params: []string{"filename", "size"}},
+		"getWakeOnLanDevices":    {Func: rpcGetWakeOnLanDevices},
+		"setWakeOnLanDevices":    {Func: rpcSetWakeOnLanDevices, Params: []string{"params"}},
+		"resetConfig":            {Func: rpcResetConfig},
+		"setDisplayRotation":     {Func: rpcSetDisplayRotation, Params: []string{"params"}},
+		"getDisplayRotation":     {Func: rpcGetDisplayRotation},
+		"setBacklightSettings":   {Func: rpcSetBacklightSettings, Params: []string{"params"}},
+		"getBacklightSettings":   {Func: rpcGetBacklightSettings},
+		"getDCPowerState":        {Func: rpcGetDCPowerState},
+		"setDCPowerState":        {Func: rpcSetDCPowerState, Params: []string{"enabled"}},
+		"setDCRestoreState":      {Func: rpcSetDCRestoreState, Params: []string{"state"}},
+		"getActiveExtension":     {Func: rpcGetActiveExtension},
+		"setActiveExtension":     {Func: rpcSetActiveExtension, Params: []string{"extensionId"}},
+		"getATXState":            {Func: rpcGetATXState},
+		"setATXPowerAction":      {Func: rpcSetATXPowerAction, Params: []string{"action"}},
+		"getSerialSettings":      {Func: rpcGetSerialSettings},
+		"setSerialSettings":      {Func: rpcSetSerialSettings, Params: []string{"settings"}},
+		"getUsbDevices":          {Func: rpcGetUsbDevices},
+		"setUsbDevices":          {Func: rpcSetUsbDevices, Params: []string{"devices"}},
+		"setUsbDeviceState":      {Func: rpcSetUsbDeviceState, Params: []string{"device", "enabled"}},
+		"setCloudUrl":            {Func: rpcSetCloudUrl, Params: []string{"apiUrl", "appUrl"}},
+		"getKeyboardLayout":      {Func: rpcGetKeyboardLayout},
+		"setKeyboardLayout":      {Func: rpcSetKeyboardLayout, Params: []string{"layout"}},
+		"getKeyboardMacros":      {Func: getKeyboardMacros},
+		"setKeyboardMacros":      {Func: setKeyboardMacros, Params: []string{"params"}},
+		"getLocalLoopbackOnly":   {Func: rpcGetLocalLoopbackOnly},
+		"setLocalLoopbackOnly":   {Func: rpcSetLocalLoopbackOnly, Params: []string{"enabled"}},
+	}
 }

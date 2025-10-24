@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/jetkvm/kvm/resource"
-
 	"github.com/pion/webrtc/v4/pkg/media"
 )
 
@@ -162,12 +161,12 @@ func StartNativeSocketServer(socketPath string, handleClient func(net.Conn), isC
 }
 
 func StartNativeCtrlSocketServer() {
-	nativeCtrlSocketListener = StartNativeSocketServer("/var/run/jetkvm_ctrl.sock", handleCtrlClient, true)
+	nativeCtrlSocketListener = StartNativeSocketServer("./jetkvm_ctrl.sock", handleCtrlClient, true)
 	nativeLogger.Debug().Msg("native app ctrl sock started")
 }
 
 func StartNativeVideoSocketServer() {
-	nativeVideoSocketListener = StartNativeSocketServer("/var/run/jetkvm_video.sock", handleVideoClient, false)
+	nativeVideoSocketListener = StartNativeSocketServer("./jetkvm_video.sock", handleVideoClient, false)
 	nativeLogger.Debug().Msg("native app video sock started")
 }
 
@@ -250,6 +249,33 @@ func handleVideoClient(conn net.Conn) {
 			}
 		}
 	}
+	// for {
+	// 	select {
+	// 	case <-vs.ctx.Done():
+	// 		return
+	// 	case <-ticker.C:
+	// 		nal, err := h264Reader.NextNAL()
+	// 		if err != nil {
+	// 			log.Printf("Error reading NAL: %v", err)
+	// 			continue
+	// 		}
+
+	// 		if nal == nil {
+	// 			continue
+	// 		}
+
+	// 		// Send to WebRTC track
+	// 		sample := media.Sample{
+	// 			Data:     nal.Data,
+	// 			Duration: time.Millisecond * 33,
+	// 		}
+
+	// 		if err := vs.videoTrack.WriteSample(sample); err != nil {
+	// 			log.Printf("Error writing sample: %v", err)
+	// 		}
+	// 	}
+	// }
+
 }
 
 func startNativeBinaryWithLock(binaryPath string) (*exec.Cmd, error) {
@@ -304,8 +330,29 @@ func superviseNativeBinary(binaryPath string) error {
 	return restartNativeBinary(binaryPath)
 }
 
+func ExtractEmptyImg() error {
+	srcFile, err := resource.ResourceFS.Open("empty.img")
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	destFile, err := os.OpenFile("./empty.img", os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, srcFile)
+	if err != nil {
+		nativeLogger.Warn().Err(err).Msg("failed to copy empty.img")
+	}
+	nativeLogger.Info().Msg("empty.img extracted")
+	return nil
+}
+
 func ExtractAndRunNativeBin() error {
-	binaryPath := "/userdata/jetkvm/bin/jetkvm_native"
+	binaryPath := "./jetkvm_native"
 	if err := ensureBinaryUpdated(binaryPath); err != nil {
 		return fmt.Errorf("failed to extract binary: %w", err)
 	}

@@ -14,7 +14,7 @@ var massStorageLun0Config = gadgetConfigItem{
 	order: 3001,
 	path:  []string{"functions", "mass_storage.usb0", "lun.0"},
 	attrs: gadgetAttributes{
-		"cdrom":     "1",
+		"cdrom":     "0",
 		"ro":        "1",
 		"removable": "1",
 		"file":      "\n",

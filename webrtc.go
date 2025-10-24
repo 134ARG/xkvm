@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net"
 	"strings"
 	"sync"
@@ -37,6 +38,8 @@ type Session struct {
 	hidQueue                 []chan hidQueueMessage
 
 	keysDownStateQueue chan usbgadget.KeysDownState
+
+	rtpSender *webrtc.RTPSender
 }
 
 func (s *Session) resetKeepAliveTime() {
@@ -57,6 +60,7 @@ type SessionConfig struct {
 	IsCloud    bool
 	ws         *websocket.Conn
 	Logger     *zerolog.Logger
+	Codec      string
 }
 
 func (s *Session) ExchangeOffer(offerStr string) (string, error) {
@@ -92,6 +96,28 @@ func (s *Session) ExchangeOffer(offerStr string) (string, error) {
 
 	return base64.StdEncoding.EncodeToString(localDescription), nil
 }
+
+func (s *Session) ExchangeAnswer(answerStr string) error {
+	// Decode the base64 answer from client
+	b, err := base64.StdEncoding.DecodeString(answerStr)
+	if err != nil {
+		return fmt.Errorf("failed to decode answer: %w", err)
+	}
+
+	answer := webrtc.SessionDescription{}
+	if err = json.Unmarshal(b, &answer); err != nil {
+		return fmt.Errorf("failed to unmarshal answer: %w", err)
+	}
+
+	// Set the remote description (answer from client)
+	if err = s.peerConnection.SetRemoteDescription(answer); err != nil {
+		return fmt.Errorf("failed to set remote description: %w", err)
+	}
+
+	logger.Info().Msg("Successfully applied answer from client")
+	return nil
+}
+
 
 func (s *Session) initQueues() {
 	s.hidQueueLock.Lock()
@@ -272,7 +298,7 @@ func newSession(config SessionConfig) (*Session, error) {
 		}
 	})
 
-	session.VideoTrack, err = webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, "video", "kvm")
+	session.VideoTrack, err = webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: config.Codec}, "video", "kvm")
 	if err != nil {
 		scopedLogger.Warn().Err(err).Msg("Failed to create VideoTrack")
 		return nil, err
@@ -283,6 +309,7 @@ func newSession(config SessionConfig) (*Session, error) {
 		scopedLogger.Warn().Err(err).Msg("Failed to add VideoTrack to PeerConnection")
 		return nil, err
 	}
+	session.rtpSender = rtpSender
 
 	// Read incoming RTCP packets
 	// Before these packets are returned they are processed by interceptors. For things

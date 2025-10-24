@@ -46,9 +46,16 @@ const streamQualityOptions = [
   { value: "0.1", label: "Low" },
 ];
 
+const streamEncoderOptions = [
+  { value: "0", label: "H264" },
+  { value: "1", label: "H265" },
+  // { value: "2", label: "MJPEG" },
+];
+
 export default function SettingsVideoRoute() {
   const { send } = useJsonRpc();
   const [streamQuality, setStreamQuality] = useState("1");
+  const [streamEncoder, setStreamEncoder] = useState("0");
   const [customEdidValue, setCustomEdidValue] = useState<string | null>(null);
   const [edid, setEdid] = useState<string | null>(null);
   const [edidLoading, setEdidLoading] = useState(false);
@@ -68,6 +75,11 @@ export default function SettingsVideoRoute() {
     send("getStreamQualityFactor", {}, (resp: JsonRpcResponse) => {
       if ("error" in resp) return;
       setStreamQuality(String(resp.result));
+    });
+
+    send("getStreamEncoder", {}, (resp: JsonRpcResponse) => {
+      if ("error" in resp) return;
+      setStreamEncoder(String(resp.result));
     });
 
     send("getEDID", {}, (resp: JsonRpcResponse) => {
@@ -115,6 +127,27 @@ export default function SettingsVideoRoute() {
     );
   };
 
+  const handleStreamEncoderChange = (encoder: string) => {
+    send(
+      "setStreamEncoder",
+      { encoder: Number(encoder) },
+      (resp: JsonRpcResponse) => {
+        if ("error" in resp) {
+          notifications.error(
+            `Failed to set stream encoder: ${resp.error.data || "Unknown error"}`,
+          );
+          return;
+        }
+
+        notifications.success(
+          `Stream encoder set to ${streamEncoderOptions.find(x => x.value === encoder)?.label}`,
+        );
+        setStreamEncoder(encoder);
+      },
+    );
+  };
+
+
   const handleEDIDChange = (newEdid: string) => {
     setEdidLoading(true);
     send("setEDID", { edid: newEdid }, (resp: JsonRpcResponse) => {
@@ -152,6 +185,19 @@ export default function SettingsVideoRoute() {
                 value={streamQuality}
                 options={streamQualityOptions}
                 onChange={e => handleStreamQualityChange(e.target.value)}
+              />
+            </SettingsItem>
+
+            <SettingsItem
+              title="Stream Encoder Type"
+              description="Adjust the encoder type of the video stream"
+            >
+              <SelectMenuBasic
+                size="SM"
+                label=""
+                value={streamEncoder}
+                options={streamEncoderOptions}
+                onChange={e => handleStreamEncoderChange(e.target.value)}
               />
             </SettingsItem>
 

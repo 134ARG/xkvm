@@ -453,6 +453,7 @@ func handleSessionRequest(
 		LocalIP:    req.IP,
 		ICEServers: req.ICEServers,
 		Logger:     scopedLogger,
+		Codec:      codec,
 	})
 	if err != nil {
 		_ = wsjson.Write(context.Background(), c, gin.H{"error": err})

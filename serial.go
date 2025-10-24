@@ -11,7 +11,7 @@ import (
 	"go.bug.st/serial"
 )
 
-const serialPortPath = "/dev/ttyS3"
+const serialPortPath = "/dev/ttyS1"
 
 var port serial.Port
 
@@ -291,6 +291,10 @@ func handleSerialChannel(d *webrtc.DataChannel) {
 	d.OnOpen(func() {
 		go func() {
 			buf := make([]byte, 1024)
+			if port == nil {
+				scopedLogger.Warn().Msg("Serial port not available")
+				return
+			}
 			for {
 				n, err := port.Read(buf)
 				if err != nil {

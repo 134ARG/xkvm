@@ -105,7 +105,7 @@ type Config struct {
 	DefaultLogLevel      string                 `json:"default_log_level"`
 }
 
-const configPath = "/userdata/kvm_config.json"
+const configPath = "./kvm_config.json"
 
 var defaultConfig = &Config{
 	CloudURL:             "https://api.jetkvm.com",

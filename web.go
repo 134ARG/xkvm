@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/coder/websocket"
@@ -199,7 +200,60 @@ func setupRouter() *gin.Engine {
 }
 
 // TODO: support multiple sessions?
-var currentSession *Session
+var (
+	currentSessionMu sync.RWMutex
+	currentSession   *Session
+	currentSD        string
+	currentSessionConfig SessionConfig
+)
+
+func GetCurrentSession() (*Session, string) {
+	currentSessionMu.RLock()
+	defer currentSessionMu.RUnlock()
+	return currentSession, currentSD
+}
+
+func SetCurrentSession(s *Session, sd string, config SessionConfig) {
+	currentSessionMu.Lock()
+	defer currentSessionMu.Unlock()
+	currentSession = s
+	currentSD = sd
+	currentSessionConfig = config
+}
+
+func createOrReplaceSession(sd string, config SessionConfig) (*Session, string, error) {
+	// Pass codec as part of SessionConfig
+	logger.Warn().Msgf("beginning of creation: %s\n", sd)
+	session, err := newSession(config)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to create new session: %w", err)
+	}
+
+	// Exchange SDP (offer/answer)
+
+	answer, err := session.ExchangeOffer(sd)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to exchange offer: %w, %s", err, sd)
+	}
+	logger.Warn().Msgf("after exchageoffer: %s\n", sd)
+
+	// If there's an old session, close it after 1s
+	if old, _ := GetCurrentSession(); old != nil {
+		writeJSONRPCEvent("otherSessionConnected", nil, old)
+		go func(pc *webrtc.PeerConnection) {
+			time.Sleep(time.Second)
+			_ = pc.Close()
+		}(old.peerConnection)
+	}
+
+	// Cancel keyboard macros etc
+	cancelKeyboardMacro()
+
+	// Set this session as current
+	SetCurrentSession(session, sd, config)
+
+	return session, answer, nil
+}
 
 func handleWebRTCSession(c *gin.Context) {
 	var req WebRTCSessionRequest
@@ -209,7 +263,9 @@ func handleWebRTCSession(c *gin.Context) {
 		return
 	}
 
-	session, err := newSession(SessionConfig{})
+	session, err := newSession(SessionConfig{
+		Codec: webrtc.MimeTypeH264,
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
@@ -233,6 +289,13 @@ func handleWebRTCSession(c *gin.Context) {
 	cancelKeyboardMacro()
 
 	currentSession = session
+	// session, sd, err := createOrReplaceSession(req.Sd, webrtc.MimeTypeH264)
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err})
+	// 	return
+	// }
+	// SetCurrentSession(session, req.Sd)
+
 	c.JSON(http.StatusOK, gin.H{"sd": sd})
 }
 
@@ -567,10 +630,13 @@ func RunWebServer() {
 
 	// Determine the binding address based on the config
 	var bindAddress string
-	listenPort := 80 // default port
+	listenPort := 8088 // default port
 	useIPv4 := config.NetworkConfig.IPv4Mode.String != "disabled"
 	useIPv6 := config.NetworkConfig.IPv6Mode.String != "disabled"
 
+	useIPv4 = true
+	useIPv6 = false
+	config.LocalLoopbackOnly = false
 	if config.LocalLoopbackOnly {
 		if useIPv4 && useIPv6 {
 			bindAddress = fmt.Sprintf("localhost:%d", listenPort)
