@@ -2,9 +2,12 @@ package usbgadget
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"sort"
+	"strings"
+	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -346,4 +349,53 @@ func (tx *UsbGadgetTransaction) RebindUsb(ignoreUnbindError bool) {
 		Description:     "bind UDC",
 		DependsOn:       []string{path.Join(tx.dwc3Path, "unbind")},
 	})
+}
+
+func (tx *UsbGadgetTransaction) waitForHIDDevices() error {
+	// Discover which HID devices should exist
+	functionsPath := path.Join(tx.kvmGadgetPath, "functions")
+	entries, err := os.ReadDir(functionsPath)
+	if err != nil {
+		return err
+	}
+
+	var expectedDevices []string
+	for _, entry := range entries {
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), "hid.") {
+			devNum := len(expectedDevices)
+			expectedDevices = append(expectedDevices, fmt.Sprintf("/dev/hidg%d", devNum))
+		}
+	}
+
+	if len(expectedDevices) == 0 {
+		return nil // No HID devices to wait for
+	}
+
+	// Poll until all devices are ready
+	timeout := time.After(2 * time.Second)
+	tick := time.NewTicker(50 * time.Millisecond)
+	defer tick.Stop()
+
+	for {
+		select {
+		case <-timeout:
+			return fmt.Errorf("timeout waiting for HID devices: %v", expectedDevices)
+
+		case <-tick.C:
+			allReady := true
+
+			for _, devPath := range expectedDevices {
+				f, err := os.OpenFile(devPath, os.O_RDWR, 0)
+				if err != nil {
+					allReady = false
+					break
+				}
+				f.Close()
+			}
+
+			if allReady {
+				return nil
+			}
+		}
+	}
 }

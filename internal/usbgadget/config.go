@@ -177,7 +177,7 @@ func (u *UsbGadget) Init() error {
 
 	u.udc = udcs[0]
 
-	err := u.configureUsbGadget(false)
+	err := u.configureUsbGadget(true)
 	if err != nil {
 		return u.logError("unable to initialize USB stack", err)
 	}
@@ -206,6 +206,11 @@ func (u *UsbGadget) configureUsbGadget(resetUsb bool) error {
 		u.tx.WriteGadgetConfig()
 		if resetUsb {
 			u.tx.RebindUsb(true)
+		}
+		
+		u.logWarn("start waiting for HID devices", nil)
+		if err := u.tx.waitForHIDDevices(); err != nil {
+			u.logError("error waiting HID", err)
 		}
 		return nil
 	})
