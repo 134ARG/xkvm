@@ -6,13 +6,12 @@ import (
 	"sync"
 
 	"github.com/jetkvm/kvm/internal/confparser"
-	"github.com/jetkvm/kvm/internal/logging"
-	"github.com/jetkvm/kvm/internal/udhcpc"
 	"github.com/rs/zerolog"
-
 	"github.com/vishvananda/netlink"
 )
 
+// NetworkInterfaceState now acts as a read-only observer
+// Renamed fields removed: dhcpClient, cbConfigChange, onInitialCheck, checked, defaultHostname
 type NetworkInterfaceState struct {
 	interfaceName string
 	interfaceUp   bool
@@ -25,41 +24,30 @@ type NetworkInterfaceState struct {
 	macAddr       *net.HardwareAddr
 
 	l         *zerolog.Logger
-	stateLock sync.Mutex
+	stateLock sync.RWMutex // Changed to RWMutex for better concurrency
 
-	config     *NetworkConfig
-	dhcpClient *udhcpc.DHCPClient
+	config *NetworkConfig
 
-	defaultHostname string
 	currentHostname string
 	currentFqdn     string
 
-	onStateChange  func(state *NetworkInterfaceState)
-	onInitialCheck func(state *NetworkInterfaceState)
-	cbConfigChange func(config *NetworkConfig)
+	onStateChange func(state *NetworkInterfaceState)
 
-	checked bool
+	// Channel to stop monitoring
+	stopChan chan struct{}
+	stopped  bool
 }
 
 type NetworkInterfaceOptions struct {
-	InterfaceName     string
-	DhcpPidFile       string
-	Logger            *zerolog.Logger
-	DefaultHostname   string
-	OnStateChange     func(state *NetworkInterfaceState)
-	OnInitialCheck    func(state *NetworkInterfaceState)
-	OnDhcpLeaseChange func(lease *udhcpc.Lease, state *NetworkInterfaceState)
-	OnConfigChange    func(config *NetworkConfig)
-	NetworkConfig     *NetworkConfig
+	InterfaceName string
+	Logger        *zerolog.Logger
+	OnStateChange func(state *NetworkInterfaceState)
+	NetworkConfig *NetworkConfig
 }
 
 func NewNetworkInterfaceState(opts *NetworkInterfaceOptions) (*NetworkInterfaceState, error) {
 	if opts.NetworkConfig == nil {
-		return nil, fmt.Errorf("NetworkConfig can not be nil")
-	}
-
-	if opts.DefaultHostname == "" {
-		opts.DefaultHostname = "jetkvm"
+		return nil, fmt.Errorf("NetworkConfig cannot be nil")
 	}
 
 	err := confparser.SetDefaultsAndValidate(opts.NetworkConfig)
@@ -67,47 +55,28 @@ func NewNetworkInterfaceState(opts *NetworkInterfaceOptions) (*NetworkInterfaceS
 		return nil, err
 	}
 
-	l := opts.Logger
 	s := &NetworkInterfaceState{
-		interfaceName:   opts.InterfaceName,
-		defaultHostname: opts.DefaultHostname,
-		stateLock:       sync.Mutex{},
-		l:               l,
-		onStateChange:   opts.OnStateChange,
-		onInitialCheck:  opts.OnInitialCheck,
-		cbConfigChange:  opts.OnConfigChange,
-		config:          opts.NetworkConfig,
-		ntpAddresses:    make([]*net.IP, 0),
+		interfaceName: opts.InterfaceName,
+		l:             opts.Logger,
+		onStateChange: opts.OnStateChange,
+		config:        opts.NetworkConfig,
+		ntpAddresses:  make([]*net.IP, 0),
+		stopChan:      make(chan struct{}),
 	}
-
-	// create the dhcp client
-	dhcpClient := udhcpc.NewDHCPClient(&udhcpc.DHCPClientOptions{
-		InterfaceName: opts.InterfaceName,
-		PidFile:       opts.DhcpPidFile,
-		Logger:        l,
-		OnLeaseChange: func(lease *udhcpc.Lease) {
-			_, err := s.update()
-			if err != nil {
-				opts.Logger.Error().Err(err).Msg("failed to update network state")
-				return
-			}
-			_ = s.updateNtpServersFromLease(lease)
-			_ = s.setHostnameIfNotSame()
-
-			opts.OnDhcpLeaseChange(lease, s)
-		},
-	})
-
-	s.dhcpClient = dhcpClient
 
 	return s, nil
 }
 
+// Getter methods (unchanged)
 func (s *NetworkInterfaceState) IsUp() bool {
+	// s.stateLock.RLock()
+	// defer s.stateLock.RUnlock()
 	return s.interfaceUp
 }
 
 func (s *NetworkInterfaceState) HasIPAssigned() bool {
+	// s.stateLock.RLock()
+	// defer s.stateLock.RUnlock()
 	return s.ipv4Addr != nil || s.ipv6Addr != nil
 }
 
@@ -116,78 +85,94 @@ func (s *NetworkInterfaceState) IsOnline() bool {
 }
 
 func (s *NetworkInterfaceState) IPv4() *net.IP {
+	// s.stateLock.RLock()
+	// defer s.stateLock.RUnlock()
 	return s.ipv4Addr
 }
 
 func (s *NetworkInterfaceState) IPv4String() string {
-	if s.ipv4Addr == nil {
-		return "..."
+	if ip := s.IPv4(); ip != nil {
+		return ip.String()
 	}
-	return s.ipv4Addr.String()
+	return "..."
 }
 
 func (s *NetworkInterfaceState) IPv6() *net.IP {
+	// s.stateLock.RLock()
+	// defer s.stateLock.RUnlock()
 	return s.ipv6Addr
 }
 
 func (s *NetworkInterfaceState) IPv6String() string {
-	if s.ipv6Addr == nil {
-		return "..."
+	if ip := s.IPv6(); ip != nil {
+		return ip.String()
 	}
-	return s.ipv6Addr.String()
+	return "..."
 }
 
 func (s *NetworkInterfaceState) NtpAddresses() []*net.IP {
+	// s.stateLock.RLock()
+	// defer s.stateLock.RUnlock()
 	return s.ntpAddresses
 }
 
 func (s *NetworkInterfaceState) NtpAddressesString() []string {
+	// s.stateLock.RLock()
+	// defer s.stateLock.RUnlock()
+
 	ntpServers := []string{}
-
-	if s != nil {
-		s.l.Debug().Any("s", s).Msg("getting NTP address strings")
-
-		if len(s.ntpAddresses) > 0 {
-			for _, server := range s.ntpAddresses {
-				s.l.Debug().IPAddr("server", *server).Msg("converting NTP address")
-				ntpServers = append(ntpServers, server.String())
-			}
+	if len(s.ntpAddresses) > 0 {
+		for _, server := range s.ntpAddresses {
+			s.l.Debug().IPAddr("server", *server).Msg("converting NTP address")
+			ntpServers = append(ntpServers, server.String())
 		}
 	}
-
 	return ntpServers
 }
 
 func (s *NetworkInterfaceState) MAC() *net.HardwareAddr {
+	// s.stateLock.RLock()
+	// defer s.stateLock.RUnlock()
 	return s.macAddr
 }
 
 func (s *NetworkInterfaceState) MACString() string {
-	if s.macAddr == nil {
-		return ""
+	if mac := s.MAC(); mac != nil {
+		return mac.String()
 	}
-	return s.macAddr.String()
+	return ""
 }
 
-func (s *NetworkInterfaceState) update() (DhcpTargetState, error) {
-	s.stateLock.Lock()
-	defer s.stateLock.Unlock()
+func (s *NetworkInterfaceState) GetHostname() string {
+	// s.stateLock.RLock()
+	// defer s.stateLock.RUnlock()
+	return s.currentHostname
+}
 
-	dhcpTargetState := DhcpTargetStateDoNothing
+func (s *NetworkInterfaceState) GetFQDN() string {
+	// s.stateLock.RLock()
+	// defer s.stateLock.RUnlock()
+	return s.currentFqdn
+}
+
+// update reads current state from system (read-only, no writes)
+func (s *NetworkInterfaceState) update() error {
+	// s.stateLock.Lock()
+	// defer s.stateLock.Unlock()
 
 	iface, err := netlink.LinkByName(s.interfaceName)
 	if err != nil {
 		s.l.Error().Err(err).Msg("failed to get interface")
-		return dhcpTargetState, err
+		return err
 	}
 
-	// detect if the interface status changed
+	// Detect if the interface status changed
 	var changed bool
 	attrs := iface.Attrs()
 	state := attrs.OperState
 	newInterfaceUp := state == netlink.OperUp
 
-	// check if the interface is coming up
+	// Check if the interface is coming up/down
 	interfaceGoingUp := !s.interfaceUp && newInterfaceUp
 	interfaceGoingDown := s.interfaceUp && !newInterfaceUp
 
@@ -196,46 +181,32 @@ func (s *NetworkInterfaceState) update() (DhcpTargetState, error) {
 		changed = true
 	}
 
-	if changed {
-		if interfaceGoingUp {
-			s.l.Info().Msg("interface state transitioned to up")
-			dhcpTargetState = DhcpTargetStateRenew
-		} else if interfaceGoingDown {
-			s.l.Info().Msg("interface state transitioned to down")
-		}
+	if interfaceGoingUp {
+		s.l.Info().Msg("interface state transitioned to up")
+	} else if interfaceGoingDown {
+		s.l.Info().Msg("interface state transitioned to down")
 	}
 
-	// set the mac address
+	// Set the MAC address
 	s.macAddr = &attrs.HardwareAddr
 
-	// get the ip addresses
+	// Get the IP addresses
 	addrs, err := netlinkAddrs(iface)
 	if err != nil {
-		return dhcpTargetState, logging.ErrorfL(s.l, "failed to get ip addresses", err)
+		s.l.Error().Err(err).Msg("failed to get ip addresses")
+		return err
 	}
 
 	var (
 		ipv4Addresses       = make([]net.IP, 0)
 		ipv4AddressesString = make([]string, 0)
 		ipv6Addresses       = make([]IPv6Address, 0)
-		// ipv6AddressesString = make([]string, 0)
-		ipv6LinkLocal *net.IP
+		ipv6LinkLocal       *net.IP
 	)
 
 	for _, addr := range addrs {
 		if addr.IP.To4() != nil {
-			scopedLogger := s.l.With().Str("ipv4", addr.IP.String()).Logger()
-			if interfaceGoingDown {
-				// remove all IPv4 addresses from the interface.
-				scopedLogger.Info().Msg("state transitioned to down, removing IPv4 address")
-				err := netlink.AddrDel(iface, &addr)
-				if err != nil {
-					scopedLogger.Warn().Err(err).Msg("failed to delete address")
-				}
-				// notify the DHCP client to release the lease
-				dhcpTargetState = DhcpTargetStateRelease
-				continue
-			}
+			// IPv4 - just read, don't delete
 			ipv4Addresses = append(ipv4Addresses, addr.IP)
 			ipv4AddressesString = append(ipv4AddressesString, addr.IPNet.String())
 		} else if addr.IP.To16() != nil {
@@ -243,26 +214,17 @@ func (s *NetworkInterfaceState) update() (DhcpTargetState, error) {
 				continue
 			}
 
-			scopedLogger := s.l.With().Str("ipv6", addr.IP.String()).Logger()
-			// check if it's a link local address
+			// Check if it's a link local address
 			if addr.IP.IsLinkLocalUnicast() {
 				ipv6LinkLocal = &addr.IP
 				continue
 			}
 
 			if !addr.IP.IsGlobalUnicast() {
-				scopedLogger.Trace().Msg("not a global unicast address, skipping")
+				s.l.Trace().Str("ipv6", addr.IP.String()).Msg("not a global unicast address, skipping")
 				continue
 			}
 
-			if interfaceGoingDown {
-				scopedLogger.Info().Msg("state transitioned to down, removing IPv6 address")
-				err := netlink.AddrDel(iface, &addr)
-				if err != nil {
-					scopedLogger.Warn().Err(err).Msg("failed to delete address")
-				}
-				continue
-			}
 			ipv6Addresses = append(ipv6Addresses, IPv6Address{
 				Address:           addr.IP,
 				Prefix:            *addr.IPNet,
@@ -270,12 +232,11 @@ func (s *NetworkInterfaceState) update() (DhcpTargetState, error) {
 				PreferredLifetime: lifetimeToTime(addr.PreferedLft),
 				Scope:             addr.Scope,
 			})
-			// ipv6AddressesString = append(ipv6AddressesString, addr.IPNet.String())
 		}
 	}
 
+	// Update IPv4
 	if len(ipv4Addresses) > 0 {
-		// compare the addresses to see if there's a change
 		if s.ipv4Addr == nil || s.ipv4Addr.String() != ipv4Addresses[0].String() {
 			scopedLogger := s.l.With().Str("ipv4", ipv4Addresses[0].String()).Logger()
 			if s.ipv4Addr != nil {
@@ -288,9 +249,15 @@ func (s *NetworkInterfaceState) update() (DhcpTargetState, error) {
 			s.ipv4Addr = &ipv4Addresses[0]
 			changed = true
 		}
+	} else if s.ipv4Addr != nil {
+		// IP was removed
+		s.l.Info().Str("old_ipv4", s.ipv4Addr.String()).Msg("IPv4 address removed")
+		s.ipv4Addr = nil
+		changed = true
 	}
 	s.ipv4Addresses = ipv4AddressesString
 
+	// Update IPv6
 	if s.config.IPv6Mode.String != "disabled" {
 		if ipv6LinkLocal != nil {
 			if s.ipv6LinkLocal == nil || s.ipv6LinkLocal.String() != ipv6LinkLocal.String() {
@@ -309,7 +276,6 @@ func (s *NetworkInterfaceState) update() (DhcpTargetState, error) {
 		s.ipv6Addresses = ipv6Addresses
 
 		if len(ipv6Addresses) > 0 {
-			// compare the addresses to see if there's a change
 			if s.ipv6Addr == nil || s.ipv6Addr.String() != ipv6Addresses[0].Address.String() {
 				scopedLogger := s.l.With().Str("ipv6", ipv6Addresses[0].Address.String()).Logger()
 				if s.ipv6Addr != nil {
@@ -322,73 +288,42 @@ func (s *NetworkInterfaceState) update() (DhcpTargetState, error) {
 				s.ipv6Addr = &ipv6Addresses[0].Address
 				changed = true
 			}
+		} else if s.ipv6Addr != nil {
+			// IPv6 was removed
+			s.l.Info().Str("old_ipv6", s.ipv6Addr.String()).Msg("IPv6 address removed")
+			s.ipv6Addr = nil
+			changed = true
 		}
 	}
 
-	// if it's the initial check, we'll set changed to false
-	initialCheck := !s.checked
-	if initialCheck {
-		s.checked = true
-		changed = false
-		if dhcpTargetState == DhcpTargetStateRenew {
-			// it's the initial check, we'll start the DHCP client
-			// dhcpTargetState = DhcpTargetStateStart
-			// TODO: manage DHCP client start/stop
-			dhcpTargetState = DhcpTargetStateDoNothing
-		}
-	}
-
-	if initialCheck {
-		s.onInitialCheck(s)
-	} else if changed {
+	// Update hostname/FQDN from system
+	s.updateHostnameFromSystem()
+	// Trigger callback if changed
+	if changed && s.onStateChange != nil {
 		s.onStateChange(s)
 	}
 
-	return dhcpTargetState, nil
+	return nil
 }
 
-func (s *NetworkInterfaceState) updateNtpServersFromLease(lease *udhcpc.Lease) error {
-	if lease != nil && len(lease.NTPServers) > 0 {
-		s.l.Info().Msg("lease found, updating DHCP NTP addresses")
-		s.ntpAddresses = make([]*net.IP, 0, len(lease.NTPServers))
+// updateHostnameFromSystem reads hostname from system
+func (s *NetworkInterfaceState) updateHostnameFromSystem() {
+	// Read from /etc/hostname or use net.LookupHost
+	hostname, err := readSystemHostname()
+	if err != nil {
+		s.l.Warn().Err(err).Msg("failed to read hostname")
+		hostname = "jetkvm"
+	}
+	s.currentHostname = hostname
 
-		for _, ntpServer := range lease.NTPServers {
-			if ntpServer != nil {
-				s.l.Info().IPAddr("ntp_server", ntpServer).Msg("NTP server found in lease")
-				s.ntpAddresses = append(s.ntpAddresses, &ntpServer)
-			}
+	// Try to resolve FQDN
+	if s.ipv4Addr != nil {
+		if names, err := net.LookupAddr(s.ipv4Addr.String()); err == nil && len(names) > 0 {
+			s.currentFqdn = names[0]
+		} else {
+			s.currentFqdn = hostname
 		}
 	} else {
-		s.l.Info().Msg("no NTP servers found in lease")
-		s.ntpAddresses = make([]*net.IP, 0, len(s.config.TimeSyncNTPServers))
+		s.currentFqdn = hostname
 	}
-
-	return nil
-}
-
-func (s *NetworkInterfaceState) CheckAndUpdateDhcp() error {
-	dhcpTargetState, err := s.update()
-	if err != nil {
-		return logging.ErrorfL(s.l, "failed to update network state", err)
-	}
-
-	switch dhcpTargetState {
-	case DhcpTargetStateRenew:
-		s.l.Info().Msg("renewing DHCP lease")
-		_ = s.dhcpClient.Renew()
-	case DhcpTargetStateRelease:
-		s.l.Info().Msg("releasing DHCP lease")
-		_ = s.dhcpClient.Release()
-	case DhcpTargetStateStart:
-		s.l.Warn().Msg("dhcpTargetStateStart not implemented")
-	case DhcpTargetStateStop:
-		s.l.Warn().Msg("dhcpTargetStateStop not implemented")
-	}
-
-	return nil
-}
-
-func (s *NetworkInterfaceState) onConfigChange(config *NetworkConfig) {
-	_ = s.setHostnameIfNotSame()
-	s.cbConfigChange(config)
 }

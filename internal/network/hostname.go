@@ -1,137 +1,126 @@
 package network
 
-import (
-	"fmt"
-	"io"
-	"os"
-	"os/exec"
-	"strings"
-	"sync"
+// const (
+// 	hostnamePath = "/etc/hostname"
+// 	hostsPath    = "/etc/hosts"
+// )
 
-	"golang.org/x/net/idna"
-)
+// var (
+// 	hostnameLock sync.Mutex = sync.Mutex{}
+// )
 
-const (
-	hostnamePath = "/etc/hostname"
-	hostsPath    = "/etc/hosts"
-)
+// func updateEtcHosts(hostname string, fqdn string) error {
+// 	// update /etc/hosts
+// 	hostsFile, err := os.OpenFile(hostsPath, os.O_RDWR|os.O_SYNC, os.ModeExclusive)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to open %s: %w", hostsPath, err)
+// 	}
+// 	defer hostsFile.Close()
 
-var (
-	hostnameLock sync.Mutex = sync.Mutex{}
-)
+// 	// read all lines
+// 	if _, err := hostsFile.Seek(0, io.SeekStart); err != nil {
+// 		return fmt.Errorf("failed to seek %s: %w", hostsPath, err)
+// 	}
 
-func updateEtcHosts(hostname string, fqdn string) error {
-	// update /etc/hosts
-	hostsFile, err := os.OpenFile(hostsPath, os.O_RDWR|os.O_SYNC, os.ModeExclusive)
-	if err != nil {
-		return fmt.Errorf("failed to open %s: %w", hostsPath, err)
-	}
-	defer hostsFile.Close()
+// 	lines, err := io.ReadAll(hostsFile)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to read %s: %w", hostsPath, err)
+// 	}
 
-	// read all lines
-	if _, err := hostsFile.Seek(0, io.SeekStart); err != nil {
-		return fmt.Errorf("failed to seek %s: %w", hostsPath, err)
-	}
+// 	newLines := []string{}
+// 	hostLine := fmt.Sprintf("127.0.1.1\t%s %s", hostname, fqdn)
+// 	hostLineExists := false
 
-	lines, err := io.ReadAll(hostsFile)
-	if err != nil {
-		return fmt.Errorf("failed to read %s: %w", hostsPath, err)
-	}
+// 	for line := range strings.SplitSeq(string(lines), "\n") {
+// 		if strings.HasPrefix(line, "127.0.1.1") {
+// 			hostLineExists = true
+// 			line = hostLine
+// 		}
+// 		newLines = append(newLines, line)
+// 	}
 
-	newLines := []string{}
-	hostLine := fmt.Sprintf("127.0.1.1\t%s %s", hostname, fqdn)
-	hostLineExists := false
+// 	if !hostLineExists {
+// 		newLines = append(newLines, hostLine)
+// 	}
 
-	for line := range strings.SplitSeq(string(lines), "\n") {
-		if strings.HasPrefix(line, "127.0.1.1") {
-			hostLineExists = true
-			line = hostLine
-		}
-		newLines = append(newLines, line)
-	}
+// 	if err := hostsFile.Truncate(0); err != nil {
+// 		return fmt.Errorf("failed to truncate %s: %w", hostsPath, err)
+// 	}
 
-	if !hostLineExists {
-		newLines = append(newLines, hostLine)
-	}
+// 	if _, err := hostsFile.Seek(0, io.SeekStart); err != nil {
+// 		return fmt.Errorf("failed to seek %s: %w", hostsPath, err)
+// 	}
 
-	if err := hostsFile.Truncate(0); err != nil {
-		return fmt.Errorf("failed to truncate %s: %w", hostsPath, err)
-	}
+// 	if _, err := hostsFile.Write([]byte(strings.Join(newLines, "\n"))); err != nil {
+// 		return fmt.Errorf("failed to write %s: %w", hostsPath, err)
+// 	}
 
-	if _, err := hostsFile.Seek(0, io.SeekStart); err != nil {
-		return fmt.Errorf("failed to seek %s: %w", hostsPath, err)
-	}
+// 	return nil
+// }
 
-	if _, err := hostsFile.Write([]byte(strings.Join(newLines, "\n"))); err != nil {
-		return fmt.Errorf("failed to write %s: %w", hostsPath, err)
-	}
+// func ToValidHostname(hostname string) string {
+// 	ascii, err := idna.Lookup.ToASCII(hostname)
+// 	if err != nil {
+// 		return ""
+// 	}
+// 	return ascii
+// }
 
-	return nil
-}
+// func SetHostname(hostname string, fqdn string) error {
+// 	hostnameLock.Lock()
+// 	defer hostnameLock.Unlock()
 
-func ToValidHostname(hostname string) string {
-	ascii, err := idna.Lookup.ToASCII(hostname)
-	if err != nil {
-		return ""
-	}
-	return ascii
-}
+// 	hostname = ToValidHostname(strings.TrimSpace(hostname))
+// 	fqdn = ToValidHostname(strings.TrimSpace(fqdn))
 
-func SetHostname(hostname string, fqdn string) error {
-	hostnameLock.Lock()
-	defer hostnameLock.Unlock()
+// 	if hostname == "" {
+// 		return fmt.Errorf("invalid hostname: %s", hostname)
+// 	}
 
-	hostname = ToValidHostname(strings.TrimSpace(hostname))
-	fqdn = ToValidHostname(strings.TrimSpace(fqdn))
+// 	if fqdn == "" {
+// 		fqdn = hostname
+// 	}
 
-	if hostname == "" {
-		return fmt.Errorf("invalid hostname: %s", hostname)
-	}
+// 	// update /etc/hostname
+// 	if err := os.WriteFile(hostnamePath, []byte(hostname), 0644); err != nil {
+// 		return fmt.Errorf("failed to write %s: %w", hostnamePath, err)
+// 	}
 
-	if fqdn == "" {
-		fqdn = hostname
-	}
+// 	// update /etc/hosts
+// 	if err := updateEtcHosts(hostname, fqdn); err != nil {
+// 		return fmt.Errorf("failed to update /etc/hosts: %w", err)
+// 	}
 
-	// update /etc/hostname
-	if err := os.WriteFile(hostnamePath, []byte(hostname), 0644); err != nil {
-		return fmt.Errorf("failed to write %s: %w", hostnamePath, err)
-	}
+// 	// run hostname
+// 	if err := exec.Command("hostname", "-F", hostnamePath).Run(); err != nil {
+// 		return fmt.Errorf("failed to run hostname: %w", err)
+// 	}
 
-	// update /etc/hosts
-	if err := updateEtcHosts(hostname, fqdn); err != nil {
-		return fmt.Errorf("failed to update /etc/hosts: %w", err)
-	}
+// 	return nil
+// }
 
-	// run hostname
-	if err := exec.Command("hostname", "-F", hostnamePath).Run(); err != nil {
-		return fmt.Errorf("failed to run hostname: %w", err)
-	}
+// func (s *NetworkInterfaceState) setHostnameIfNotSame() error {
+// 	hostname := s.GetHostname()
+// 	currentHostname, _ := os.Hostname()
 
-	return nil
-}
+// 	fqdn := fmt.Sprintf("%s.%s", hostname, s.GetDomain())
 
-func (s *NetworkInterfaceState) setHostnameIfNotSame() error {
-	hostname := s.GetHostname()
-	currentHostname, _ := os.Hostname()
+// 	if currentHostname == hostname && s.currentFqdn == fqdn && s.currentHostname == hostname {
+// 		return nil
+// 	}
 
-	fqdn := fmt.Sprintf("%s.%s", hostname, s.GetDomain())
+// 	scopedLogger := s.l.With().Str("hostname", hostname).Str("fqdn", fqdn).Logger()
 
-	if currentHostname == hostname && s.currentFqdn == fqdn && s.currentHostname == hostname {
-		return nil
-	}
+// 	err := SetHostname(hostname, fqdn)
+// 	if err != nil {
+// 		scopedLogger.Error().Err(err).Msg("failed to set hostname")
+// 		return err
+// 	}
 
-	scopedLogger := s.l.With().Str("hostname", hostname).Str("fqdn", fqdn).Logger()
+// 	s.currentHostname = hostname
+// 	s.currentFqdn = fqdn
 
-	err := SetHostname(hostname, fqdn)
-	if err != nil {
-		scopedLogger.Error().Err(err).Msg("failed to set hostname")
-		return err
-	}
+// 	scopedLogger.Info().Msg("hostname set")
 
-	s.currentHostname = hostname
-	s.currentFqdn = fqdn
-
-	scopedLogger.Info().Msg("hostname set")
-
-	return nil
-}
+// 	return nil
+// }

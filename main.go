@@ -45,9 +45,9 @@ func Main() {
 
 	// Initialize network
 	if err := initNetwork(); err != nil {
-	// logger.Error().Err(err).Msg("failed to initialize network")
-	// os.Exit(1)
-	// }
+		logger.Error().Err(err).Msg("failed to initialize network")
+		os.Exit(1)
+	}
 
 	// Initialize time sync
 	initTimeSync()

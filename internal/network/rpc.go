@@ -1,18 +1,14 @@
 package network
 
 import (
-	"fmt"
 	"time"
-
-	"github.com/jetkvm/kvm/internal/confparser"
-	"github.com/jetkvm/kvm/internal/udhcpc"
 )
 
 type RpcIPv6Address struct {
-	Address           string     `json:"address"`
-	ValidLifetime     *time.Time `json:"valid_lifetime,omitempty"`
-	PreferredLifetime *time.Time `json:"preferred_lifetime,omitempty"`
-	Scope             int        `json:"scope"`
+	Address           string    `json:"address"`
+	ValidLifetime     time.Time `json:"valid_lifetime,omitempty"`
+	PreferredLifetime time.Time `json:"preferred_lifetime,omitempty"`
+	Scope             int       `json:"scope"`
 }
 
 type RpcNetworkState struct {
@@ -23,7 +19,7 @@ type RpcNetworkState struct {
 	IPv6LinkLocal string           `json:"ipv6_link_local,omitempty"`
 	IPv4Addresses []string         `json:"ipv4_addresses,omitempty"`
 	IPv6Addresses []RpcIPv6Address `json:"ipv6_addresses,omitempty"`
-	DHCPLease     *udhcpc.Lease    `json:"dhcp_lease,omitempty"`
+	// DHCPLease     *udhcpc.Lease    `json:"dhcp_lease,omitempty"`
 }
 
 type RpcNetworkSettings struct {
@@ -84,7 +80,7 @@ func (s *NetworkInterfaceState) RpcGetNetworkState() RpcNetworkState {
 		IPv6LinkLocal: s.IPv6LinkLocalAddress(),
 		IPv4Addresses: s.ipv4Addresses,
 		IPv6Addresses: ipv6Addresses,
-		DHCPLease:     s.dhcpClient.GetLease(),
+		// DHCPLease:     s.dhcpClient.GetLease(),
 	}
 }
 
@@ -98,29 +94,29 @@ func (s *NetworkInterfaceState) RpcGetNetworkSettings() RpcNetworkSettings {
 	}
 }
 
-func (s *NetworkInterfaceState) RpcSetNetworkSettings(settings RpcNetworkSettings) error {
-	currentSettings := s.config
+// func (s *NetworkInterfaceState) RpcSetNetworkSettings(settings RpcNetworkSettings) error {
+// 	currentSettings := s.config
 
-	err := confparser.SetDefaultsAndValidate(&settings.NetworkConfig)
-	if err != nil {
-		return err
-	}
+// 	err := confparser.SetDefaultsAndValidate(&settings.NetworkConfig)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if IsSame(currentSettings, settings.NetworkConfig) {
-		// no changes, do nothing
-		return nil
-	}
+// 	if IsSame(currentSettings, settings.NetworkConfig) {
+// 		// no changes, do nothing
+// 		return nil
+// 	}
 
-	s.config = &settings.NetworkConfig
-	s.onConfigChange(s.config)
+// 	s.config = &settings.NetworkConfig
+// 	s.onConfigChange(s.config)
 
-	return nil
-}
+// 	return nil
+// }
 
-func (s *NetworkInterfaceState) RpcRenewDHCPLease() error {
-	if s.dhcpClient == nil {
-		return fmt.Errorf("dhcp client not initialized")
-	}
+// func (s *NetworkInterfaceState) RpcRenewDHCPLease() error {
+// 	if s.dhcpClient == nil {
+// 		return fmt.Errorf("dhcp client not initialized")
+// 	}
 
-	return s.dhcpClient.Renew()
-}
+// 	return s.dhcpClient.Renew()
+// }

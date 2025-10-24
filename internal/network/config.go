@@ -1,7 +1,6 @@
 package network
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -9,15 +8,14 @@ import (
 
 	"github.com/guregu/null/v6"
 	"github.com/jetkvm/kvm/internal/mdns"
-	"golang.org/x/net/idna"
 )
 
 type IPv6Address struct {
-	Address           net.IP     `json:"address"`
-	Prefix            net.IPNet  `json:"prefix"`
-	ValidLifetime     *time.Time `json:"valid_lifetime"`
-	PreferredLifetime *time.Time `json:"preferred_lifetime"`
-	Scope             int        `json:"scope"`
+	Address           net.IP    `json:"address"`
+	Prefix            net.IPNet `json:"prefix"`
+	ValidLifetime     time.Time `json:"valid_lifetime"`
+	PreferredLifetime time.Time `json:"preferred_lifetime"`
+	Scope             int       `json:"scope"`
 }
 
 type IPv4StaticConfig struct {
@@ -85,42 +83,32 @@ func (s *NetworkConfig) GetTransportProxyFunc() func(*http.Request) (*url.URL, e
 	}
 }
 
-func (s *NetworkInterfaceState) GetHostname() string {
-	hostname := ToValidHostname(s.config.Hostname.String)
+// func ToValidDomain(domain string) string {
+// 	ascii, err := idna.Lookup.ToASCII(domain)
+// 	if err != nil {
+// 		return ""
+// 	}
 
-	if hostname == "" {
-		return s.defaultHostname
-	}
+// 	return ascii
+// }
 
-	return hostname
-}
+// func (s *NetworkInterfaceState) GetDomain() string {
+// 	domain := ToValidDomain(s.config.Domain.String)
 
-func ToValidDomain(domain string) string {
-	ascii, err := idna.Lookup.ToASCII(domain)
-	if err != nil {
-		return ""
-	}
+// 	if domain == "" {
+// 		lease := s.dhcpClient.GetLease()
+// 		if lease != nil && lease.Domain != "" {
+// 			domain = ToValidDomain(lease.Domain)
+// 		}
+// 	}
 
-	return ascii
-}
+// 	if domain == "" {
+// 		return "local"
+// 	}
 
-func (s *NetworkInterfaceState) GetDomain() string {
-	domain := ToValidDomain(s.config.Domain.String)
+// 	return domain
+// }
 
-	if domain == "" {
-		lease := s.dhcpClient.GetLease()
-		if lease != nil && lease.Domain != "" {
-			domain = ToValidDomain(lease.Domain)
-		}
-	}
-
-	if domain == "" {
-		return "local"
-	}
-
-	return domain
-}
-
-func (s *NetworkInterfaceState) GetFQDN() string {
-	return fmt.Sprintf("%s.%s", s.GetHostname(), s.GetDomain())
-}
+// func (s *NetworkInterfaceState) GetFQDN() string {
+// 	return fmt.Sprintf("%s.%s", s.GetHostname(), s.GetDomain())
+// }

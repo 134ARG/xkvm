@@ -4,11 +4,10 @@ import (
 	"fmt"
 
 	"github.com/jetkvm/kvm/internal/network"
-	"github.com/jetkvm/kvm/internal/udhcpc"
 )
 
 const (
-	NetIfName = "end0"
+	NetIfName = "wlan0"
 )
 
 var (
@@ -17,8 +16,7 @@ var (
 
 func networkStateChanged(isOnline bool) {
 	// do not block the main thread
-	go waitCtrlAndRequestDisplayUpdate(true)
-
+	// go waitCtrlAndRequestDisplayUpdate(true)
 	if timeSync != nil {
 		if networkState != nil {
 			timeSync.SetDhcpNtpAddresses(networkState.NtpAddressesString())
@@ -50,37 +48,37 @@ func initNetwork() error {
 	ensureConfigLoaded()
 
 	state, err := network.NewNetworkInterfaceState(&network.NetworkInterfaceOptions{
-		DefaultHostname: GetDefaultHostname(),
-		InterfaceName:   NetIfName,
-		NetworkConfig:   config.NetworkConfig,
-		Logger:          networkLogger,
+		// DefaultHostname: GetDefaultHostname(),
+		InterfaceName: NetIfName,
+		NetworkConfig: config.NetworkConfig,
+		Logger:        networkLogger,
 		OnStateChange: func(state *network.NetworkInterfaceState) {
 			networkStateChanged(state.IsOnline())
 		},
-		OnInitialCheck: func(state *network.NetworkInterfaceState) {
-			networkStateChanged(state.IsOnline())
-		},
-		OnDhcpLeaseChange: func(lease *udhcpc.Lease, state *network.NetworkInterfaceState) {
-			networkStateChanged(state.IsOnline())
+		// OnInitialCheck: func(state *network.NetworkInterfaceState) {
+		// 	networkStateChanged(state.IsOnline())
+		// },
+		// OnDhcpLeaseChange: func(lease *udhcpc.Lease, state *network.NetworkInterfaceState) {
+		// 	networkStateChanged(state.IsOnline())
 
-			if currentSession == nil {
-				return
-			}
+		// 	if currentSession == nil {
+		// 		return
+		// 	}
 
-			writeJSONRPCEvent("networkState", networkState.RpcGetNetworkState(), currentSession)
-		},
-		OnConfigChange: func(networkConfig *network.NetworkConfig) {
-			config.NetworkConfig = networkConfig
-			networkStateChanged(false)
+		// 	writeJSONRPCEvent("networkState", networkState.RpcGetNetworkState(), currentSession)
+		// },
+		// OnConfigChange: func(networkConfig *network.NetworkConfig) {
+		// 	config.NetworkConfig = networkConfig
+		// 	networkStateChanged(false)
 
-			if mDNS != nil {
-				_ = mDNS.SetListenOptions(networkConfig.GetMDNSMode())
-				_ = mDNS.SetLocalNames([]string{
-					networkState.GetHostname(),
-					networkState.GetFQDN(),
-				}, true)
-			}
-		},
+		// 	if mDNS != nil {
+		// 		_ = mDNS.SetListenOptions(networkConfig.GetMDNSMode())
+		// 		_ = mDNS.SetLocalNames([]string{
+		// 			networkState.GetHostname(),
+		// 			networkState.GetFQDN(),
+		// 		}, true)
+		// 	}
+		// },
 	})
 
 	if state == nil {
@@ -107,19 +105,19 @@ func rpcGetNetworkSettings() network.RpcNetworkSettings {
 	return networkState.RpcGetNetworkSettings()
 }
 
-func rpcSetNetworkSettings(settings network.RpcNetworkSettings) (*network.RpcNetworkSettings, error) {
-	s := networkState.RpcSetNetworkSettings(settings)
-	if s != nil {
-		return nil, s
-	}
+// func rpcSetNetworkSettings(settings network.RpcNetworkSettings) (*network.RpcNetworkSettings, error) {
+// 	s := networkState.RpcSetNetworkSettings(settings)
+// 	if s != nil {
+// 		return nil, s
+// 	}
 
-	if err := SaveConfig(); err != nil {
-		return nil, err
-	}
+// 	if err := SaveConfig(); err != nil {
+// 		return nil, err
+// 	}
 
-	return &network.RpcNetworkSettings{NetworkConfig: *config.NetworkConfig}, nil
-}
+// 	return &network.RpcNetworkSettings{NetworkConfig: *config.NetworkConfig}, nil
+// }
 
-func rpcRenewDHCPLease() error {
-	return networkState.RpcRenewDHCPLease()
-}
+// func rpcRenewDHCPLease() error {
+// 	return networkState.RpcRenewDHCPLease()
+// }

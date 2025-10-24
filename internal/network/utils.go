@@ -5,12 +5,12 @@ import (
 	"time"
 )
 
-func lifetimeToTime(lifetime int) *time.Time {
+func lifetimeToTime(lifetime int) time.Time {
 	if lifetime == 0 {
-		return nil
+		return time.Time{}
 	}
 	t := time.Now().Add(time.Duration(lifetime) * time.Second)
-	return &t
+	return t
 }
 
 func IsSame(a, b any) bool {
