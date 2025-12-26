@@ -1,6 +1,3 @@
-import { LuRefreshCcw } from "react-icons/lu";
-
-import { Button } from "@components/Button";
 import EmptyCard from "@components/EmptyCard";
 import { GridCard } from "@components/Card";
 import { LifeTimeLabel } from "@routes/devices.$id.settings.network";
@@ -33,17 +30,9 @@ export default function DhcpLeaseCard({
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
               {m.dhcp_lease_header()}
             </h3>
-
-            <div>
-              <Button
-                size="XS"
-                theme="light"
-                type="button"
-                className="text-red-500"
-                text={m.dhcp_lease_renew()}
-                LeadingIcon={LuRefreshCcw}
-                onClick={() => setShowRenewLeaseConfirm(true)}
-              />
+            
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              Read-only
             </div>
           </div>
 

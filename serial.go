@@ -1,10 +1,6 @@
 package kvm
 
 import (
-	"bufio"
-	"io"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/pion/webrtc/v4"
@@ -16,14 +12,14 @@ const serialPortPath = "/dev/ttyS3"
 var port serial.Port
 
 func mountATXControl() error {
-	_ = port.SetMode(defaultMode)
-	go runATXControl()
-
+	// ATX control disabled - stub implementation for future custom logic
+	serialLogger.Info().Msg("ATX control mounted (stub implementation)")
 	return nil
 }
 
 func unmountATXControl() error {
-	_ = reopenSerialPort()
+	// ATX control disabled - stub implementation
+	serialLogger.Info().Msg("ATX control unmounted (stub implementation)")
 	return nil
 }
 
@@ -35,219 +31,69 @@ var (
 )
 
 func runATXControl() {
+	// ATX control disabled - stub implementation for future custom logic
 	scopedLogger := serialLogger.With().Str("service", "atx_control").Logger()
+	scopedLogger.Info().Msg("ATX control service started (stub implementation)")
 
-	reader := bufio.NewReader(port)
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			scopedLogger.Warn().Err(err).Msg("Error reading from serial port")
-			return
-		}
-
-		// Each line should be 4 binary digits + newline
-		if len(line) != 5 {
-			scopedLogger.Warn().Int("length", len(line)).Msg("Invalid line length")
-			continue
-		}
-
-		// Parse new states
-		newLedHDDState := line[0] == '0'
-		newLedPWRState := line[1] == '0'
-		newBtnRSTState := line[2] == '1'
-		newBtnPWRState := line[3] == '1'
-
-		if currentSession != nil {
-			writeJSONRPCEvent("atxState", ATXState{
-				Power: newLedPWRState,
-				HDD:   newLedHDDState,
-			}, currentSession)
-		}
-
-		if newLedHDDState != ledHDDState ||
-			newLedPWRState != ledPWRState ||
-			newBtnRSTState != btnRSTState ||
-			newBtnPWRState != btnPWRState {
-			scopedLogger.Debug().
-				Bool("hdd", newLedHDDState).
-				Bool("pwr", newLedPWRState).
-				Bool("rst", newBtnRSTState).
-				Bool("pwr", newBtnPWRState).
-				Msg("Status changed")
-
-			// Update states
-			ledHDDState = newLedHDDState
-			ledPWRState = newLedPWRState
-			btnRSTState = newBtnRSTState
-			btnPWRState = newBtnPWRState
-		}
-	}
+	// Future custom ATX control logic can be implemented here
+	// For now, just maintain default states
+	ledHDDState = false
+	ledPWRState = false
+	btnRSTState = false
+	btnPWRState = false
 }
 
 func pressATXPowerButton(duration time.Duration) error {
-	_, err := port.Write([]byte("\n"))
-	if err != nil {
-		return err
-	}
-
-	_, err = port.Write([]byte("BTN_PWR_ON\n"))
-	if err != nil {
-		return err
-	}
-
-	time.Sleep(duration)
-
-	_, err = port.Write([]byte("BTN_PWR_OFF\n"))
-	if err != nil {
-		return err
-	}
-
+	// ATX power button control disabled - stub implementation for future custom logic
+	serialLogger.Info().Dur("duration", duration).Msg("ATX power button press requested (stub implementation)")
 	return nil
 }
 
 func pressATXResetButton(duration time.Duration) error {
-	_, err := port.Write([]byte("\n"))
-	if err != nil {
-		return err
-	}
-
-	_, err = port.Write([]byte("BTN_RST_ON\n"))
-	if err != nil {
-		return err
-	}
-
-	time.Sleep(duration)
-
-	_, err = port.Write([]byte("BTN_RST_OFF\n"))
-	if err != nil {
-		return err
-	}
-
+	// ATX reset button control disabled - stub implementation for future custom logic
+	serialLogger.Info().Dur("duration", duration).Msg("ATX reset button press requested (stub implementation)")
 	return nil
 }
 
 func mountDCControl() error {
-	_ = port.SetMode(defaultMode)
-	registerDCMetrics()
-	go runDCControl()
+	// DC control disabled - stub implementation for future custom logic
+	serialLogger.Info().Msg("DC control mounted (stub implementation)")
 	return nil
 }
 
 func unmountDCControl() error {
-	_ = reopenSerialPort()
+	// DC control disabled - stub implementation
+	serialLogger.Info().Msg("DC control unmounted (stub implementation)")
 	return nil
 }
 
 var dcState DCPowerState
 
 func runDCControl() {
+	// DC control disabled - stub implementation for future custom logic
 	scopedLogger := serialLogger.With().Str("service", "dc_control").Logger()
-	reader := bufio.NewReader(port)
-	hasRestoreFeature := false
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			scopedLogger.Warn().Err(err).Msg("Error reading from serial port")
-			return
-		}
+	scopedLogger.Info().Msg("DC control service started (stub implementation)")
 
-		// Split the line by semicolon
-		parts := strings.Split(strings.TrimSpace(line), ";")
-		if len(parts) == 5 {
-			scopedLogger.Debug().Str("line", line).Msg("Detected DC extension with restore feature")
-			hasRestoreFeature = true
-		} else if len(parts) == 4 {
-			scopedLogger.Debug().Str("line", line).Msg("Detected DC extension without restore feature")
-			hasRestoreFeature = false
-		} else {
-			scopedLogger.Warn().Str("line", line).Msg("Invalid line")
-			continue
-		}
-
-		// Parse new states
-		powerState, err := strconv.Atoi(parts[0])
-		if err != nil {
-			scopedLogger.Warn().Err(err).Msg("Invalid power state")
-			continue
-		}
-		dcState.IsOn = powerState == 1
-		if hasRestoreFeature {
-			restoreState, err := strconv.Atoi(parts[4])
-			if err != nil {
-				scopedLogger.Warn().Err(err).Msg("Invalid restore state")
-				continue
-			}
-			dcState.RestoreState = restoreState
-		} else {
-			// -1 means not supported
-			dcState.RestoreState = -1
-		}
-		milliVolts, err := strconv.ParseFloat(parts[1], 64)
-		if err != nil {
-			scopedLogger.Warn().Err(err).Msg("Invalid voltage")
-			continue
-		}
-		volts := milliVolts / 1000 // Convert mV to V
-
-		milliAmps, err := strconv.ParseFloat(parts[2], 64)
-		if err != nil {
-			scopedLogger.Warn().Err(err).Msg("Invalid current")
-			continue
-		}
-		amps := milliAmps / 1000 // Convert mA to A
-
-		milliWatts, err := strconv.ParseFloat(parts[3], 64)
-		if err != nil {
-			scopedLogger.Warn().Err(err).Msg("Invalid power")
-			continue
-		}
-		watts := milliWatts / 1000 // Convert mW to W
-
-		dcState.Voltage = volts
-		dcState.Current = amps
-		dcState.Power = watts
-
-		// Update Prometheus metrics
-		updateDCMetrics(dcState)
-
-		if currentSession != nil {
-			writeJSONRPCEvent("dcState", dcState, currentSession)
-		}
+	// Future custom DC control logic can be implemented here
+	// For now, initialize with default state
+	dcState = DCPowerState{
+		IsOn:         false,
+		Voltage:      0.0,
+		Current:      0.0,
+		Power:        0.0,
+		RestoreState: -1, // Not supported
 	}
 }
 
 func setDCPowerState(on bool) error {
-	_, err := port.Write([]byte("\n"))
-	if err != nil {
-		return err
-	}
-	command := "PWR_OFF\n"
-	if on {
-		command = "PWR_ON\n"
-	}
-	_, err = port.Write([]byte(command))
-	if err != nil {
-		return err
-	}
+	// DC power control disabled - stub implementation for future custom logic
+	serialLogger.Info().Bool("on", on).Msg("DC power state change requested (stub implementation)")
 	return nil
 }
 
 func setDCRestoreState(state int) error {
-	_, err := port.Write([]byte("\n"))
-	if err != nil {
-		return err
-	}
-	command := "RESTORE_MODE_OFF\n"
-	switch state {
-	case 1:
-		command = "RESTORE_MODE_ON\n"
-	case 2:
-		command = "RESTORE_MODE_LAST_STATE\n"
-	}
-	_, err = port.Write([]byte(command))
-	if err != nil {
-		return err
-	}
+	// DC restore state control disabled - stub implementation for future custom logic
+	serialLogger.Info().Int("state", state).Msg("DC restore state change requested (stub implementation)")
 	return nil
 }
 
@@ -259,7 +105,10 @@ var defaultMode = &serial.Mode{
 }
 
 func initSerialPort() {
-	_ = reopenSerialPort()
+	// Serial port ATX/DC control disabled on this platform
+	// Custom control logic can be added here in the future
+	serialLogger.Info().Msg("Serial port control disabled - using stub implementation")
+
 	switch config.ActiveExtension {
 	case "atx-power":
 		_ = mountATXControl()
@@ -269,53 +118,24 @@ func initSerialPort() {
 }
 
 func reopenSerialPort() error {
-	if port != nil {
-		port.Close()
-	}
-	var err error
-	port, err = serial.Open(serialPortPath, defaultMode)
-	if err != nil {
-		serialLogger.Error().
-			Err(err).
-			Str("path", serialPortPath).
-			Interface("mode", defaultMode).
-			Msg("Error opening serial port")
-	}
+	// Serial port control disabled - stub implementation
+	serialLogger.Info().Msg("Serial port reopen requested (stub implementation)")
 	return nil
 }
 
 func handleSerialChannel(d *webrtc.DataChannel) {
+	// Serial channel handling disabled - stub implementation for future custom logic
 	scopedLogger := serialLogger.With().
 		Uint16("data_channel_id", *d.ID()).Logger()
 
+	scopedLogger.Info().Msg("Serial channel handling disabled (stub implementation)")
+
 	d.OnOpen(func() {
-		go func() {
-			buf := make([]byte, 1024)
-			for {
-				n, err := port.Read(buf)
-				if err != nil {
-					if err != io.EOF {
-						scopedLogger.Warn().Err(err).Msg("Failed to read from serial port")
-					}
-					break
-				}
-				err = d.Send(buf[:n])
-				if err != nil {
-					scopedLogger.Warn().Err(err).Msg("Failed to send serial output")
-					break
-				}
-			}
-		}()
+		scopedLogger.Info().Msg("Serial channel opened (stub - no actual serial communication)")
 	})
 
 	d.OnMessage(func(msg webrtc.DataChannelMessage) {
-		if port == nil {
-			return
-		}
-		_, err := port.Write(msg.Data)
-		if err != nil {
-			scopedLogger.Warn().Err(err).Msg("Failed to write to serial")
-		}
+		scopedLogger.Debug().Int("bytes", len(msg.Data)).Msg("Serial message received (stub - discarded)")
 	})
 
 	d.OnError(func(err error) {

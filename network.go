@@ -5,20 +5,17 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"reflect"
 	"time"
 
-	"github.com/jetkvm/kvm/internal/confparser"
 	"github.com/jetkvm/kvm/internal/mdns"
 	"github.com/jetkvm/kvm/internal/network/types"
-	"github.com/jetkvm/kvm/internal/ota"
 	"github.com/jetkvm/kvm/pkg/myip"
 	"github.com/jetkvm/kvm/pkg/nmlite"
 	"github.com/jetkvm/kvm/pkg/nmlite/link"
 )
 
 const (
-	NetIfName = "eth0"
+	NetIfName = "wlan0"
 )
 
 var (
@@ -139,44 +136,25 @@ func networkStateChanged(_ string, state types.InterfaceState) {
 	}
 }
 
-func validateNetworkConfig() {
-	err := confparser.SetDefaultsAndValidate(config.NetworkConfig)
-	if err == nil {
-		return
-	}
-
-	networkLogger.Error().Err(err).Msg("failed to validate config, reverting to default config")
-	if err := SaveBackupConfig(); err != nil {
-		networkLogger.Error().Err(err).Msg("failed to save backup config")
-	}
-
-	// do not use a pointer to the default config
-	// it has been already changed during LoadConfig
-	config.NetworkConfig = &(types.NetworkConfig{})
-	if err := SaveConfig(); err != nil {
-		networkLogger.Error().Err(err).Msg("failed to save config")
-	}
-}
-
 func initNetwork() error {
 	ensureConfigLoaded()
 
-	// validate the config, if it's invalid, revert to the default config and save the backup
-	validateNetworkConfig()
+	// On full Linux systems, we only read network state - no configuration management
+	// Network management is handled by the OS (NetworkManager, systemd-networkd, etc.)
+	networkLogger.Info().Msg("initializing network manager in read-only mode")
 
-	nc := config.NetworkConfig
-
+	// Create a minimal network manager for status reading only
 	nm := nmlite.NewNetworkManager(context.Background(), networkLogger)
-	networkLogger.Info().Interface("networkConfig", nc).Str("hostname", nc.Hostname.String).Str("domain", nc.Domain.String).Msg("initializing network manager")
-	_ = setHostname(nm, nc.Hostname.String, nc.Domain.String)
 	nm.SetOnInterfaceStateChange(networkStateChanged)
-	if err := nm.AddInterface(NetIfName, nc); err != nil {
-		return fmt.Errorf("failed to add interface: %w", err)
+
+	// Try to add interface for monitoring only - don't fail if it doesn't work
+	if err := nm.AddInterface(NetIfName, config.NetworkConfig); err != nil {
+		networkLogger.Warn().Err(err).Str("interface", NetIfName).Msg("failed to add interface for monitoring - network status may be limited")
+		// Don't return error - we can still function without full network monitoring
 	}
-	_ = nm.CleanUpLegacyDHCPClients()
 
 	networkManager = nm
-
+	networkLogger.Info().Msg("network manager initialized in read-only mode")
 	return nil
 }
 
@@ -215,81 +193,10 @@ func initPublicIPState() {
 }
 
 func setHostname(nm *nmlite.NetworkManager, hostname, domain string) error {
-	if nm == nil {
-		return nil
-	}
-
-	if hostname == "" {
-		hostname = GetDefaultHostname()
-	}
-
-	return nm.SetHostname(hostname, domain)
-}
-
-func shouldRebootForNetworkChange(oldConfig, newConfig *types.NetworkConfig) (rebootRequired bool, postRebootAction *ota.PostRebootAction) {
-	oldDhcpClient := oldConfig.DHCPClient.String
-
-	l := networkLogger.With().
-		Interface("old", oldConfig).
-		Interface("new", newConfig).
-		Logger()
-
-	// DHCP client change always requires reboot
-	if newConfig.DHCPClient.String != oldDhcpClient {
-		rebootRequired = true
-		l.Info().Msg("DHCP client changed, reboot required")
-		return rebootRequired, postRebootAction
-	}
-
-	oldIPv4Mode := oldConfig.IPv4Mode.String
-	newIPv4Mode := newConfig.IPv4Mode.String
-
-	// IPv4 mode change requires reboot
-	if newIPv4Mode != oldIPv4Mode {
-		rebootRequired = true
-		l.Info().Msg("IPv4 mode changed with udhcpc, reboot required")
-
-		if newIPv4Mode == "static" && oldIPv4Mode != "static" {
-			postRebootAction = &ota.PostRebootAction{
-				HealthCheck: fmt.Sprintf("//%s/device/status", newConfig.IPv4Static.Address.String),
-				RedirectTo:  fmt.Sprintf("//%s", newConfig.IPv4Static.Address.String),
-			}
-			l.Info().Interface("postRebootAction", postRebootAction).Msg("IPv4 mode changed to static, reboot required")
-		}
-
-		return rebootRequired, postRebootAction
-	}
-
-	// IPv4 static config changes require reboot
-	if !reflect.DeepEqual(oldConfig.IPv4Static, newConfig.IPv4Static) {
-		rebootRequired = true
-
-		// Handle IP change for redirect (only if both are not nil and IP changed)
-		if newConfig.IPv4Static != nil && oldConfig.IPv4Static != nil &&
-			newConfig.IPv4Static.Address.String != oldConfig.IPv4Static.Address.String {
-			postRebootAction = &ota.PostRebootAction{
-				HealthCheck: fmt.Sprintf("//%s/device/status", newConfig.IPv4Static.Address.String),
-				RedirectTo:  fmt.Sprintf("//%s", newConfig.IPv4Static.Address.String),
-			}
-
-			l.Info().Interface("postRebootAction", postRebootAction).Msg("IPv4 static config changed, reboot required")
-		}
-
-		return rebootRequired, postRebootAction
-	}
-
-	// IPv6 mode change requires reboot when using udhcpc
-	if newConfig.IPv6Mode.String != oldConfig.IPv6Mode.String && oldDhcpClient == "udhcpc" {
-		rebootRequired = true
-		l.Info().Msg("IPv6 mode changed with udhcpc, reboot required")
-	}
-
-	if newConfig.Hostname.String != oldConfig.Hostname.String {
-		rebootRequired = true
-		l.Info().Msg("Hostname changed, reboot required")
-	}
-
-	return rebootRequired, postRebootAction
+	// Hostname setting disabled on full Linux systems
+	// Hostname management should be handled by the OS
+	networkLogger.Info().Str("hostname", hostname).Str("domain", domain).Msg("hostname setting disabled - use OS hostname management")
+	return fmt.Errorf("hostname setting is disabled - use OS hostname management tools (hostnamectl, etc.)")
 }
 
 func rpcGetNetworkState() *types.RpcInterfaceState {
@@ -302,70 +209,24 @@ func rpcGetNetworkSettings() *RpcNetworkSettings {
 }
 
 func rpcSetNetworkSettings(settings RpcNetworkSettings) (*RpcNetworkSettings, error) {
-	netConfig := settings.ToNetworkConfig()
-
-	l := networkLogger.With().
-		Str("interface", NetIfName).
-		Interface("newConfig", netConfig).
-		Logger()
-
-	l.Debug().Msg("setting new config")
-
-	// Check if reboot is needed
-	rebootRequired, postRebootAction := shouldRebootForNetworkChange(config.NetworkConfig, netConfig)
-
-	// If reboot required, send willReboot event before applying network config
-	if rebootRequired {
-		l.Info().Msg("Sending willReboot event before applying network config")
-		writeJSONRPCEvent("willReboot", postRebootAction, currentSession)
-	}
-
-	_ = setHostname(networkManager, netConfig.Hostname.String, netConfig.Domain.String)
-
-	s := networkManager.SetInterfaceConfig(NetIfName, netConfig)
-	if s != nil {
-		return nil, s
-	}
-	l.Debug().Msg("new config applied")
-
-	newConfig, err := networkManager.GetInterfaceConfig(NetIfName)
-	if err != nil {
-		return nil, err
-	}
-	config.NetworkConfig = newConfig
-
-	l.Debug().Msg("saving new config")
-	if err := SaveConfig(); err != nil {
-		return nil, err
-	}
-
-	if rebootRequired {
-		l.Info().Msg("Rebooting due to network changes")
-		if err := hwReboot(true, postRebootAction, 0); err != nil {
-			return nil, err
-		}
-	}
-
-	return toRpcNetworkSettings(newConfig), nil
+	// Network configuration is read-only on full Linux systems
+	// Network management should be handled by the OS (NetworkManager, systemd-networkd, etc.)
+	networkLogger.Warn().Msg("Network configuration changes are disabled - use OS network management tools")
+	return nil, fmt.Errorf("network configuration is read-only - use OS network management tools (NetworkManager, systemd-networkd, etc.)")
 }
 
 func rpcRenewDHCPLease() error {
-	return networkManager.RenewDHCPLease(NetIfName)
+	// DHCP lease renewal is read-only on full Linux systems
+	// DHCP management should be handled by the OS
+	networkLogger.Warn().Msg("DHCP lease renewal is disabled - use OS DHCP client management")
+	return fmt.Errorf("DHCP lease renewal is read-only - use OS DHCP client (dhclient, NetworkManager, etc.)")
 }
 
 func rpcToggleDHCPClient() error {
-	switch config.NetworkConfig.DHCPClient.String {
-	case "jetdhcpc":
-		config.NetworkConfig.DHCPClient.String = "udhcpc"
-	case "udhcpc":
-		config.NetworkConfig.DHCPClient.String = "jetdhcpc"
-	}
-
-	if err := SaveConfig(); err != nil {
-		return err
-	}
-
-	return rpcReboot(true)
+	// DHCP client switching is read-only on full Linux systems
+	// DHCP client management should be handled by the OS
+	networkLogger.Warn().Msg("DHCP client switching is disabled - use OS network management")
+	return fmt.Errorf("DHCP client switching is read-only - use OS network management tools")
 }
 
 func rpcGetPublicIPAddresses(refresh bool) ([]myip.PublicIP, error) {

@@ -60,8 +60,8 @@ func initNative(systemVersion *semver.Version, appVersion *semver.Version) {
 				nativeLogger.Info().Msg("Reboot request via native rpc event")
 				_ = rpcReboot(true)
 			case "toggleDHCPClient":
-				nativeLogger.Info().Msg("Toggle DHCP request via native rpc event")
-				_ = rpcToggleDHCPClient()
+				nativeLogger.Warn().Msg("DHCP client toggle disabled - network management is read-only")
+				// Don't call rpcToggleDHCPClient() - it's now disabled
 			default:
 				nativeLogger.Warn().Str("event", event).Msg("unknown rpc event received")
 			}

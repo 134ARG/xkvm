@@ -176,27 +176,11 @@ export async function getNetworkSettings() {
   return response.result;
 }
 
-export async function setNetworkSettings(settings: unknown) {
-  const response = await callJsonRpc({
-    method: "setNetworkSettings",
-    params: { settings },
-  });
-  if (response.error) {
-    throw new Error(response.error.message);
-  }
-  return response.result;
-}
+// Note: setNetworkSettings and renewDHCPLease are disabled in read-only mode
+// They will return errors from the backend
 
 export async function getNetworkState() {
   const response = await callJsonRpc({ method: "getNetworkState" });
-  if (response.error) {
-    throw new Error(response.error.message);
-  }
-  return response.result;
-}
-
-export async function renewDHCPLease() {
-  const response = await callJsonRpc({ method: "renewDHCPLease" });
   if (response.error) {
     throw new Error(response.error.message);
   }
