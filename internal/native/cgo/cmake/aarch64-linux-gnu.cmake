@@ -4,8 +4,13 @@
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR aarch64)
 
-# Set the sysroot path (relative to the CMakeLists.txt location)
-set(CMAKE_SYSROOT ${CMAKE_CURRENT_LIST_DIR}/../sysroot)
+# Set the sysroot path from environment variable
+if(DEFINED ENV{ARM64_SYSROOT})
+    set(CMAKE_SYSROOT $ENV{ARM64_SYSROOT})
+    message(STATUS "Using ARM64 sysroot: ${CMAKE_SYSROOT}")
+else()
+    message(FATAL_ERROR "ARM64_SYSROOT environment variable is required for cross-compilation")
+endif()
 
 # Cross-compilation tools
 set(CMAKE_C_COMPILER aarch64-linux-gnu-gcc)

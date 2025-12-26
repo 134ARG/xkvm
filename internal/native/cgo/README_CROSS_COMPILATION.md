@@ -15,7 +15,15 @@ The cross-compilation system supports:
 
 ### Cross-compile for ARM64:
 ```bash
+# Set up sysroot first
+export ARM64_SYSROOT="/opt/arm64-sysroot"
+./scripts/setup_arm64_sysroot.sh
+
+# Then cross-compile
 ./scripts/cross_build.sh
+
+# Or with inline variable
+ARM64_SYSROOT="/opt/arm64-sysroot" ./scripts/cross_build.sh
 ```
 
 ### Native build (on ARM64 machine):
@@ -52,6 +60,7 @@ The build system automatically detects:
 - `CROSS_COMPILE`: Force cross-compilation (yes/no/auto)
 - `TARGET_ARCH`: Target architecture (aarch64/x86_64)
 - `BUILD_BINARY`: Enable/disable binary building (ON/OFF)
+- `ARM64_SYSROOT`: **Required** - Path to ARM64 sysroot for cross-compilation
 
 ## Prerequisites
 
@@ -74,19 +83,28 @@ sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
 ### Create ARM64 Sysroot
 
-The cross-compilation setup requires a full ARM64 sysroot with the necessary libraries:
+The cross-compilation setup requires a full ARM64 sysroot with the necessary libraries. You must set the `ARM64_SYSROOT` environment variable to specify the location:
 
 ```bash
+# Set sysroot location (required)
+export ARM64_SYSROOT="/opt/arm64-sysroot"
+
 # Install debootstrap if not available
 sudo dnf install debootstrap  # Fedora/RHEL
 # or
 sudo apt install debootstrap  # Ubuntu/Debian
 
-# Create ARM64 sysroot (run from project root)
-sudo debootstrap --arch=arm64 --variant=minbase --include=build-essential,libc6-dev jammy internal/native/cgo/sysroot http://ports.ubuntu.com/ubuntu-ports
+# Create ARM64 sysroot at the specified location
+sudo debootstrap --arch=arm64 --variant=minbase --include=build-essential,libc6-dev jammy $ARM64_SYSROOT http://ports.ubuntu.com/ubuntu-ports
 
 # Install additional dependencies needed by Rockchip SDK
-sudo chroot internal/native/cgo/sysroot /bin/bash -c "apt update && apt install -y libasound2-dev libdrm-dev"
+sudo chroot $ARM64_SYSROOT /bin/bash -c "apt update && apt install -y libasound2-dev libdrm-dev"
+```
+
+**Or use the provided setup script:**
+```bash
+export ARM64_SYSROOT="/opt/arm64-sysroot"
+./scripts/setup_arm64_sysroot.sh
 ```
 
 ## Files Modified
@@ -143,7 +161,7 @@ import "C"
 ### Missing Dependencies
 If linking fails with missing library errors, install dependencies in sysroot:
 ```bash
-sudo chroot internal/native/cgo/sysroot /bin/bash -c "apt update && apt install -y <package-name>"
+sudo chroot $ARM64_SYSROOT /bin/bash -c "apt update && apt install -y <package-name>"
 ```
 
 ### Toolchain Issues
@@ -153,9 +171,10 @@ sudo dnf install gcc-aarch64-linux-gnu gcc-c++-aarch64-linux-gnu
 ```
 
 ### Sysroot Problems
-The sysroot can be rebuilt using debootstrap:
+The sysroot can be rebuilt using debootstrap. Set `ARM64_SYSROOT` to your desired location:
 ```bash
-sudo debootstrap --arch=arm64 --variant=minbase --include=build-essential,libc6-dev,libasound2-dev,libdrm-dev jammy internal/native/cgo/sysroot http://ports.ubuntu.com/ubuntu-ports
+export ARM64_SYSROOT="/path/to/your/sysroot"
+sudo debootstrap --arch=arm64 --variant=minbase --include=build-essential,libc6-dev,libasound2-dev,libdrm-dev jammy $ARM64_SYSROOT http://ports.ubuntu.com/ubuntu-ports
 ```
 
 ### Verifying Cross-Compilation

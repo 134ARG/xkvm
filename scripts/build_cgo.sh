@@ -59,21 +59,33 @@ if [ "$CROSS_COMPILE" = "yes" ]; then
     
     # Check if cross-compiler is available
     if ! command -v aarch64-linux-gnu-gcc &> /dev/null; then
-        msg_error "Cross-compiler aarch64-linux-gnu-gcc not found!"
-        msg_error "Install it with: sudo dnf install gcc-aarch64-linux-gnu gcc-c++-aarch64-linux-gnu"
+        msg_err "Cross-compiler aarch64-linux-gnu-gcc not found!"
+        msg_err "Install it with: sudo dnf install gcc-aarch64-linux-gnu gcc-c++-aarch64-linux-gnu"
+        exit 1
+    fi
+    
+    # Check if ARM64_SYSROOT is set
+    if [ -z "$ARM64_SYSROOT" ]; then
+        msg_err "ARM64_SYSROOT environment variable is required for cross-compilation"
+        msg_err "Set ARM64_SYSROOT to your ARM64 sysroot path:"
+        msg_err "  export ARM64_SYSROOT=\"/path/to/your/arm64-sysroot\""
+        msg_err "Or create a sysroot with: ./scripts/setup_arm64_sysroot.sh"
         exit 1
     fi
     
     # Check if sysroot exists
-    if [ ! -d "${CGO_PATH}/sysroot" ]; then
-        msg_error "ARM64 sysroot not found at ${CGO_PATH}/sysroot"
-        msg_error "Create it with: sudo debootstrap --arch=arm64 --variant=minbase --include=build-essential,libc6-dev jammy ${CGO_PATH}/sysroot http://ports.ubuntu.com/ubuntu-ports"
+    if [ ! -d "$ARM64_SYSROOT" ]; then
+        msg_err "ARM64 sysroot not found at: $ARM64_SYSROOT"
+        msg_err "Create it with: ARM64_SYSROOT=\"$ARM64_SYSROOT\" ./scripts/setup_arm64_sysroot.sh"
         exit 1
     fi
     
+    # Export ARM64_SYSROOT for CMake
+    export ARM64_SYSROOT
+    
     CMAKE_ARGS+=(-DCMAKE_TOOLCHAIN_FILE=cmake/aarch64-linux-gnu.cmake)
     msg_info "Using cross-compilation toolchain with sysroot"
-    msg_info "Sysroot: ${CGO_PATH}/sysroot"
+    msg_info "Sysroot: ${ARM64_SYSROOT}"
 else
     msg_info "▶ Using native compilation"
 fi

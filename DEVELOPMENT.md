@@ -389,6 +389,55 @@ export JETKVM_PROXY_URL="ws://<IP>"
 
 ## Advanced Topics
 
+### Cross-Compilation for ARM64
+
+JetKVM supports cross-compilation from x86_64 development machines to ARM64 (RK3566) targets. This is useful for building release binaries or when you don't have direct access to an ARM64 machine.
+
+#### Prerequisites
+
+1. **Install cross-compilation toolchain:**
+   ```bash
+   # Fedora/RHEL
+   sudo dnf install gcc-aarch64-linux-gnu gcc-c++-aarch64-linux-gnu
+   
+   # Ubuntu/Debian  
+   sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+   ```
+
+2. **Set up ARM64 sysroot (required for cross-compilation):**
+   ```bash
+   # Set sysroot location
+   export ARM64_SYSROOT="/opt/arm64-sysroot"
+   
+   # Use the provided script to create a sysroot
+   ./scripts/setup_arm64_sysroot.sh
+   ```
+
+#### Building for ARM64
+
+```bash
+# Set up sysroot first (required)
+export ARM64_SYSROOT="/opt/arm64-sysroot"
+./scripts/setup_arm64_sysroot.sh
+
+# Cross-compile native components only
+./scripts/cross_build.sh
+
+# Cross-compile full release
+make build_release
+
+# Or use inline environment variable
+ARM64_SYSROOT="/opt/arm64-sysroot" make build_release
+```
+
+#### Environment Variables
+
+- `ARM64_SYSROOT`: **Required** - Path to ARM64 sysroot for cross-compilation
+- `CROSS_COMPILE`: Force cross-compilation (`yes`/`no`/`auto`)
+- `TARGET_ARCH`: Target architecture (`aarch64`/`x86_64`)
+
+For detailed cross-compilation documentation, see [`internal/native/cgo/README_CROSS_COMPILATION.md`](internal/native/cgo/README_CROSS_COMPILATION.md).
+
 ### Performance Profiling
 
 1. Enable `Developer Mode` on your JetKVM device
