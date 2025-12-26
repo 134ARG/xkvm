@@ -6,19 +6,32 @@ import (
 )
 
 func (n *Native) setUIVars() {
-	uiSetVar("app_version", n.appVersion.String())
-	uiSetVar("system_version", n.systemVersion.String())
+	if n.appVersion != nil {
+		uiSetVar("app_version", n.appVersion.String())
+	} else {
+		uiSetVar("app_version", "unknown")
+	}
+
+	if n.systemVersion != nil {
+		uiSetVar("system_version", n.systemVersion.String())
+	} else {
+		uiSetVar("system_version", "unknown")
+	}
 }
 
 func (n *Native) initUI() {
-	uiInit(n.displayRotation)
+	// Skip UI initialization for headless operation
+	n.l.Info().Msg("UI initialization skipped - headless operation")
+	// Still set UI vars for compatibility, but with nil checks
 	n.setUIVars()
 }
 
 func (n *Native) tickUI() {
+	// Skip UI ticking for headless operation
+	n.l.Info().Msg("UI ticking skipped - headless operation")
+	// Just sleep to prevent busy loop
 	for {
-		uiTick()
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
