@@ -6,41 +6,23 @@ project(jknative LANGUAGES C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Rockchip SDK paths
-set(RK_SDK_BASE "/opt/jetkvm-native-buildkit")
-set(RK_MEDIA_OUTPUT "${RK_SDK_BASE}/media/out")
-set(RK_MEDIA_INCLUDE_PATH "${RK_MEDIA_OUTPUT}/include")
-set(RK_APP_MEDIA_LIBS_PATH "${RK_MEDIA_OUTPUT}/lib")
+# Rockchip SDK paths - Updated for RK3566 with local SDK
+set(RK_SDK_BASE "${CMAKE_CURRENT_SOURCE_DIR}/sdk")
+set(RK_ROCKIT_PATH "${RK_SDK_BASE}/vendor/rockit")
+set(RK_MPI_INCLUDE_PATH "${RK_ROCKIT_PATH}/mpi/sdk/include")
+set(RK_TGI_INCLUDE_PATH "${RK_ROCKIT_PATH}/tgi/sdk/include")
+set(RK_MPP_INCLUDE_PATH "${RK_SDK_BASE}/mpp/include")
 
-set(LV_USE_KCONFIG ON CACHE BOOL "" FORCE)
-set(LV_BUILD_DEFCONFIG_PATH ${CMAKE_CURRENT_SOURCE_DIR}/lvgl_defconfig CACHE PATH "" FORCE)
+# Determine architecture-specific library path
+# For RK3566 (ARM64), always use lib64
+set(RK_LIB_PATH "${RK_ROCKIT_PATH}/lib/lib64")
 
-# # libgpiod
+set(RK_MPP_LIB_PATH "${RK_SDK_BASE}/mpp/lib")
 
-# ExternalProject_Add(libgpiod-project
-#     URL https://mirrors.edge.kernel.org/pub/software/libs/libgpiod/libgpiod-2.2.tar.gz
-#     URL_HASH SHA256=f89c2176250f1a9563265479eb8ad5f22a63f42db6a1f438effc570f0254d2f5
-#     SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/libgpiod
-#     BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/deps/libgpiod
-#     CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env CPPFLAGS=-fPIC ${CMAKE_CURRENT_SOURCE_DIR}/deps/libgpiod/configure --enable-tools=no CC=${CMAKE_C_COMPILER} --host=${CMAKE_HOST_SYSTEM_PROCESSOR}
-#     BUILD_COMMAND make && make install
-#     BUILD_BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/deps/libgpiod/lib/libgpiod.a
-# )
-
-
-# Fetch LVGL from GitHub
-FetchContent_Declare(
-    lvgl
-    GIT_REPOSITORY https://github.com/lvgl/lvgl.git
-    GIT_TAG v9.3.0
-    GIT_SHALLOW 1
-    UPDATE_DISCONNECTED 1
-    PATCH_COMMAND patch -p1 -f < ${CMAKE_CURRENT_SOURCE_DIR}/lvgl-minify.patch && cat ${CMAKE_CURRENT_SOURCE_DIR}/lvgl-minify.del | xargs rm -v
-    )
-FetchContent_MakeAvailable(lvgl)
+# LVGL removed for headless operation
 
 # Get source files, excluding CMake generated files
-file(GLOB_RECURSE sources CONFIGURE_DEPENDS "*.c" "ui/*.c")
+file(GLOB_RECURSE sources CONFIGURE_DEPENDS "*.c")
 list(FILTER sources EXCLUDE REGEX "CMakeFiles.*CompilerId.*\\.c$")
 # Exclude main.c from library sources (it's used for the binary target)
 list(FILTER sources EXCLUDE REGEX "main\\.c$")
@@ -49,35 +31,48 @@ add_library(jknative STATIC ${sources} ${CMAKE_CURRENT_SOURCE_DIR}/ctrl.h)
 
 # Include directories
 target_include_directories(jknative PRIVATE
-    ${RK_MEDIA_INCLUDE_PATH}
-    ${RK_MEDIA_INCLUDE_PATH}/libdrm
+    ${RK_MPI_INCLUDE_PATH}
+    ${RK_TGI_INCLUDE_PATH}
+    ${RK_MPP_INCLUDE_PATH}
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/ui
     ${CMAKE_CURRENT_BINARY_DIR}/deps/libgpiod/include
 )
 
 # Set library search path
-target_link_directories(jknative PRIVATE ${RK_APP_MEDIA_LIBS_PATH})
+target_link_directories(jknative PRIVATE 
+    ${RK_LIB_PATH}
+    ${RK_MPP_LIB_PATH}
+)
 # target_link_directories(jknative PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/deps/libgpiod/lib)
 
 target_link_libraries(jknative PRIVATE
-    lvgl::lvgl 
     pthread
     rockit
     rockchip_mpp
-    rga
     m
     # libgpiod
 )
 
-# Binary target using main.c as entry point
-add_executable(jknative-bin ${CMAKE_CURRENT_SOURCE_DIR}/main.c)
+# Binary target using main.c as entry point (optional for cross-compilation)
+option(BUILD_BINARY "Build the binary executable" ON)
+if(BUILD_BINARY)
+    add_executable(jknative-bin ${CMAKE_CURRENT_SOURCE_DIR}/main.c)
 
-# Link the binary to the library (if needed in the future)
-target_link_libraries(jknative-bin PRIVATE
-    jknative
-    pthread
-)
+    # Set library search path for the binary as well
+    target_link_directories(jknative-bin PRIVATE 
+        ${RK_LIB_PATH}
+        ${RK_MPP_LIB_PATH}
+    )
 
+    # Link the binary to the library (if needed in the future)
+    target_link_libraries(jknative-bin PRIVATE
+        jknative
+        pthread
+        rockit
+        rockchip_mpp
+        m
+    )
+
+    install(TARGETS jknative-bin DESTINATION bin)
+endif()
 install(TARGETS jknative DESTINATION lib)
-install(TARGETS jknative-bin DESTINATION bin)

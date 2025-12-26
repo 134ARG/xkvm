@@ -14,7 +14,7 @@ import (
 )
 
 /*
-#cgo LDFLAGS: -Lcgo/lib -ljknative -llvgl
+#cgo LDFLAGS: -Lcgo/lib -ljknative
 #cgo CFLAGS: -Icgo/include
 #include "ctrl.h"
 #include <stdlib.h>
@@ -97,15 +97,8 @@ func jetkvm_go_rpc_handler(method *C.cchar_t, params *C.cchar_t) {
 var eventCodeToNameMap = map[int]string{}
 
 func uiEventCodeToName(code int) string {
-	name, ok := eventCodeToNameMap[code]
-	if !ok {
-		cCode := C.int(code)
-		cName := C.jetkvm_ui_event_code_to_name(cCode)
-		name = C.GoString(cName)
-		eventCodeToNameMap[code] = name
-	}
-
-	return name
+	// Headless operation - no LVGL event codes
+	return "UNKNOWN"
 }
 
 func setUpNativeHandlers() {
@@ -120,19 +113,12 @@ func setUpNativeHandlers() {
 }
 
 func uiInit(rotation uint16) {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	cRotation := C.u_int16_t(rotation)
-
-	C.jetkvm_ui_init(cRotation)
+	// No-op for headless operation
+	nativeLogger.Info().Msg("UI initialization skipped - headless operation")
 }
 
 func uiTick() {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	C.jetkvm_ui_tick()
+	// No-op for headless operation
 }
 
 func videoInit(factor float64) error {
@@ -189,98 +175,46 @@ func videoLogStatus() string {
 }
 
 func uiSetVar(name string, value string) {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	nameCStr := C.CString(name)
-	defer C.free(unsafe.Pointer(nameCStr))
-
-	valueCStr := C.CString(value)
-	defer C.free(unsafe.Pointer(valueCStr))
-
-	C.jetkvm_ui_set_var(nameCStr, valueCStr)
+	// No-op for headless operation
 }
 
 func uiGetVar(name string) string {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	nameCStr := C.CString(name)
-	defer C.free(unsafe.Pointer(nameCStr))
-
-	return C.GoString(C.jetkvm_ui_get_var(nameCStr))
+	// No-op for headless operation
+	return ""
 }
 
 func uiSwitchToScreen(screen string) {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	screenCStr := C.CString(screen)
-	defer C.free(unsafe.Pointer(screenCStr))
-	C.jetkvm_ui_load_screen(screenCStr)
+	// No-op for headless operation
 }
 
 func uiGetCurrentScreen() string {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	screenCStr := C.jetkvm_ui_get_current_screen()
-	return C.GoString(screenCStr)
+	// No-op for headless operation
+	return ""
 }
 
 func uiObjAddState(objName string, state string) (bool, error) {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	objNameCStr := C.CString(objName)
-	defer C.free(unsafe.Pointer(objNameCStr))
-	stateCStr := C.CString(state)
-	defer C.free(unsafe.Pointer(stateCStr))
-	C.jetkvm_ui_add_state(objNameCStr, stateCStr)
+	// No-op for headless operation
 	return true, nil
 }
 
 func uiObjClearState(objName string, state string) (bool, error) {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	objNameCStr := C.CString(objName)
-	defer C.free(unsafe.Pointer(objNameCStr))
-	stateCStr := C.CString(state)
-	defer C.free(unsafe.Pointer(stateCStr))
-	C.jetkvm_ui_clear_state(objNameCStr, stateCStr)
+	// No-op for headless operation
 	return true, nil
 }
 
 func uiGetLVGLVersion() string {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	return C.GoString(C.jetkvm_ui_get_lvgl_version())
+	// No LVGL for headless operation
+	return "N/A (headless)"
 }
 
 // TODO: use Enum instead of string but it's not a hot path and performance is not a concern now
 func uiObjAddFlag(objName string, flag string) (bool, error) {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	objNameCStr := C.CString(objName)
-	defer C.free(unsafe.Pointer(objNameCStr))
-	flagCStr := C.CString(flag)
-	defer C.free(unsafe.Pointer(flagCStr))
-	C.jetkvm_ui_add_flag(objNameCStr, flagCStr)
+	// No-op for headless operation
 	return true, nil
 }
 
 func uiObjClearFlag(objName string, flag string) (bool, error) {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	objNameCStr := C.CString(objName)
-	defer C.free(unsafe.Pointer(objNameCStr))
-	flagCStr := C.CString(flag)
-	defer C.free(unsafe.Pointer(flagCStr))
-	C.jetkvm_ui_clear_flag(objNameCStr, flagCStr)
+	// No-op for headless operation
 	return true, nil
 }
 
@@ -293,81 +227,33 @@ func uiObjShow(objName string) (bool, error) {
 }
 
 func uiObjSetOpacity(objName string, opacity int) (bool, error) {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	objNameCStr := C.CString(objName)
-	defer C.free(unsafe.Pointer(objNameCStr))
-
-	C.jetkvm_ui_set_opacity(objNameCStr, C.u_int8_t(opacity))
+	// No-op for headless operation
 	return true, nil
 }
 
 func uiObjFadeIn(objName string, duration uint32) (bool, error) {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	objNameCStr := C.CString(objName)
-	defer C.free(unsafe.Pointer(objNameCStr))
-
-	C.jetkvm_ui_fade_in(objNameCStr, C.u_int32_t(duration))
-
+	// No-op for headless operation
 	return true, nil
 }
 
 func uiObjFadeOut(objName string, duration uint32) (bool, error) {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	objNameCStr := C.CString(objName)
-	defer C.free(unsafe.Pointer(objNameCStr))
-
-	C.jetkvm_ui_fade_out(objNameCStr, C.u_int32_t(duration))
-
+	// No-op for headless operation
 	return true, nil
 }
 
 func uiLabelSetText(objName string, text string) (bool, error) {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	objNameCStr := C.CString(objName)
-	defer C.free(unsafe.Pointer(objNameCStr))
-
-	textCStr := C.CString(text)
-	defer C.free(unsafe.Pointer(textCStr))
-
-	ret := C.jetkvm_ui_set_text(objNameCStr, textCStr)
-	if ret < 0 {
-		return false, fmt.Errorf("failed to set text: %d", ret)
-	}
-	return ret == 0, nil
+	// No-op for headless operation
+	return true, nil
 }
 
 func uiImgSetSrc(objName string, src string) (bool, error) {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	objNameCStr := C.CString(objName)
-	defer C.free(unsafe.Pointer(objNameCStr))
-
-	srcCStr := C.CString(src)
-	defer C.free(unsafe.Pointer(srcCStr))
-
-	C.jetkvm_ui_set_image(objNameCStr, srcCStr)
-
+	// No-op for headless operation
 	return true, nil
 }
 
 func uiDispSetRotation(rotation uint16) (bool, error) {
-	cgoLock.Lock()
-	defer cgoLock.Unlock()
-
-	nativeLogger.Info().Uint16("rotation", rotation).Msg("setting rotation")
-
-	cRotation := C.u_int16_t(rotation)
-
-	C.jetkvm_ui_set_rotation(cRotation)
+	// No-op for headless operation
+	nativeLogger.Info().Uint16("rotation", rotation).Msg("rotation setting skipped - headless operation")
 	return true, nil
 }
 

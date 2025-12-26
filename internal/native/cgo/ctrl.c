@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/un.h>
 #include <sys/socket.h>
@@ -8,11 +9,8 @@
 #include <stdint.h>
 #include <fcntl.h>
 #include "video.h"
-#include "screen.h"
 #include "edid.h"
 #include "ctrl.h"
-#include <lvgl.h>
-#include "ui_index.h"
 #include "log.h"
 #include "log_handler.h"
 
@@ -32,15 +30,9 @@ void jetkvm_set_video_handler(jetkvm_video_handler_t *handler) {
 
 static jetkvm_indev_handler_t *jetkvm_indev_handler = NULL;
 
-static void jetkvm_indev_wrapper(lv_event_code_t code) {
-    if (jetkvm_indev_handler != NULL) {
-        (*jetkvm_indev_handler)((int)code);
-    }
-}
-
 void jetkvm_set_indev_handler(jetkvm_indev_handler_t *handler) {
     jetkvm_indev_handler = handler;
-    lvgl_set_indev_handler(jetkvm_indev_wrapper);
+    // Note: No LVGL integration for headless operation
 }
 
 void jetkvm_set_rpc_handler(jetkvm_rpc_handler_t *handler) {
@@ -54,7 +46,8 @@ void jetkvm_call_rpc_handler(const char *method, const char *params) {
 }
 
 const char *jetkvm_ui_event_code_to_name(int code) {
-    return lv_event_code_get_name((lv_event_code_t)code);
+    // Headless operation - no LVGL event codes
+    return "UNKNOWN";
 }
 
 void video_report_format(bool ready, const char *error, u_int16_t width, u_int16_t height, double frame_per_second)
@@ -149,222 +142,83 @@ const char *bytes_to_hex(const uint8_t *bytes, size_t len)
     return hex_str;
 }
 
-lv_obj_flag_t str_to_lv_obj_flag(const char *flag)
-{
-    if (strcmp(flag, "LV_OBJ_FLAG_HIDDEN") == 0)
-    {
-        return LV_OBJ_FLAG_HIDDEN;
-    }
-    else if (strcmp(flag, "LV_OBJ_FLAG_CLICKABLE") == 0)
-    {
-        return LV_OBJ_FLAG_CLICKABLE;
-    }
-    else if (strcmp(flag, "LV_OBJ_FLAG_SCROLLABLE") == 0)
-    {
-        return LV_OBJ_FLAG_SCROLLABLE;
-    }
-    else if (strcmp(flag, "LV_OBJ_FLAG_CLICK_FOCUSABLE") == 0)
-    {
-        return LV_OBJ_FLAG_CLICK_FOCUSABLE;
-    }
-    else if (strcmp(flag, "LV_OBJ_FLAG_SCROLL_ON_FOCUS") == 0)
-    {
-        return LV_OBJ_FLAG_SCROLL_ON_FOCUS;
-    }
-    else if (strcmp(flag, "LV_OBJ_FLAG_SCROLL_CHAIN") == 0)
-    {
-        return LV_OBJ_FLAG_SCROLL_CHAIN;
-    }
-    else if (strcmp(flag, "LV_OBJ_FLAG_PRESS_LOCK") == 0)
-    {
-        return LV_OBJ_FLAG_PRESS_LOCK;
-    }
-    else if (strcmp(flag, "LV_OBJ_FLAG_OVERFLOW_VISIBLE") == 0)
-    {
-        return LV_OBJ_FLAG_OVERFLOW_VISIBLE;
-    }
-    else
-    {
-        return 0; // Unknown flag
-    }
-}
-
+// LVGL functions removed for headless operation
 void jetkvm_ui_set_var(const char *name, const char *value) {
-    for (int i = 0; i < ui_vars_size; i++) {
-        if (strcmp(ui_vars[i].name, name) == 0) {
-            ui_vars[i].setter(value);
-            return;
-        }
-    }
-    log_error("variable %s not found", name);
+    // No-op for headless operation
 }
 
 const char *jetkvm_ui_get_var(const char *name) {
-    for (int i = 0; i < ui_vars_size; i++) {
-        if (strcmp(ui_vars[i].name, name) == 0) {
-            return ui_vars[i].getter();
-        }
-    }
-    log_error("variable %s not found", name);
+    // No-op for headless operation
     return NULL;
 }
 
 void jetkvm_ui_init(u_int16_t rotation) {
-    lvgl_init(rotation);
+    // No-op for headless operation
 }
 
 void jetkvm_ui_tick() {
-    lvgl_tick();
+    // No-op for headless operation
 }
 
 void jetkvm_set_video_state_handler(jetkvm_video_state_handler_t *handler) {
     video_state_handler = handler;
 }
 
-void jetkvm_ui_set_rotation(u_int16_t rotation)
-{
-    lvgl_set_rotation(NULL, rotation);
+void jetkvm_ui_set_rotation(u_int16_t rotation) {
+    // No-op for headless operation
 }
 
 const char *jetkvm_ui_get_current_screen() {
-    return ui_get_current_screen();
+    // No-op for headless operation
+    return NULL;
 }
 
 void jetkvm_ui_load_screen(const char *obj_name) {
-    lv_obj_t *obj = ui_get_obj(obj_name);
-    if (obj == NULL) {
-        return;
-    }
-
-    if (lv_scr_act() != obj) {
-        lv_scr_load(obj);
-    }
+    // No-op for headless operation
 }
 
 int jetkvm_ui_set_text(const char *obj_name, const char *text) {
-    lv_obj_t *obj = ui_get_obj(obj_name);
-    if (obj == NULL) {
-        return -1;
-    }
-
-    if (strcmp(lv_label_get_text(obj), text) == 0) {
-        return 1;
-    }
-
-    lv_label_set_text(obj, text);
-    return 0;
+    // No-op for headless operation
+    return -1;
 }
 
 void jetkvm_ui_set_image(const char *obj_name, const char *image_name) {
-    lv_obj_t *obj = ui_get_obj(obj_name);
-    if (obj == NULL) {
-        return;
-    }
-    lv_img_set_src(obj, image_name);
-}
-
-lv_state_t str_to_lv_state(const char *state_name) {
-    if (strcmp(state_name, "LV_STATE_USER_1") == 0) {
-        return LV_STATE_USER_1;
-    }
-    else if (strcmp(state_name, "LV_STATE_USER_2") == 0) {
-        return LV_STATE_USER_2;
-    }
-    else if (strcmp(state_name, "LV_STATE_USER_3") == 0) {
-        return LV_STATE_USER_3;
-    }
-    else if (strcmp(state_name, "LV_STATE_USER_4") == 0) {
-        return LV_STATE_USER_4;
-    }
-    else if (strcmp(state_name, "LV_STATE_DISABLED") == 0) {
-        return LV_STATE_DISABLED;
-    }
-    else if (strcmp(state_name, "LV_STATE_DEFAULT") == 0) {
-        return LV_STATE_DEFAULT;
-    }
-    else if (strcmp(state_name, "LV_STATE_CHECKED") == 0) {
-        return LV_STATE_CHECKED;
-    }
-    else if (strcmp(state_name, "LV_STATE_FOCUSED") == 0) {
-        return LV_STATE_FOCUSED;
-    }
-    return LV_STATE_DEFAULT;
+    // No-op for headless operation
 }
 
 void jetkvm_ui_add_state(const char *obj_name, const char *state_name) {
-    lv_obj_t *obj = ui_get_obj(obj_name);
-    if (obj == NULL) {
-        return;
-    }
-    lv_state_t state_val = str_to_lv_state(state_name);
-    lv_obj_add_state(obj, state_val);
+    // No-op for headless operation
 }
 
 void jetkvm_ui_clear_state(const char *obj_name, const char *state_name) {
-    lv_obj_t *obj = ui_get_obj(obj_name);
-    if (obj == NULL) {
-        return;
-    }
-    lv_state_t state_val = str_to_lv_state(state_name);
-    lv_obj_clear_state(obj, state_val);
+    // No-op for headless operation
 }
 
 int jetkvm_ui_add_flag(const char *obj_name, const char *flag_name) {
-    lv_obj_t *obj = ui_get_obj(obj_name);
-    if (obj == NULL) {
-        return -1;
-    }
-
-    lv_obj_flag_t flag_val = str_to_lv_obj_flag(flag_name);
-    if (flag_val == 0)
-    {
-        return -2;
-    }
-    lv_obj_add_flag(obj, flag_val);
-    return 0;
+    // No-op for headless operation
+    return -1;
 }
 
 int jetkvm_ui_clear_flag(const char *obj_name, const char *flag_name) {
-    lv_obj_t *obj = ui_get_obj(obj_name);
-    if (obj == NULL) {
-        return -1;
-    }
-
-    lv_obj_flag_t flag_val = str_to_lv_obj_flag(flag_name);
-    if (flag_val == 0)
-    {
-        return -2;
-    }
-    lv_obj_clear_flag(obj, flag_val);
-    return 0;
+    // No-op for headless operation
+    return -1;
 }
 
 void jetkvm_ui_fade_in(const char *obj_name, u_int32_t duration) {
-    lv_obj_t *obj = ui_get_obj(obj_name);
-    if (obj == NULL) {
-        return;
-    }
-    lv_obj_fade_in(obj, duration, 0);
+    // No-op for headless operation
 }
 
 void jetkvm_ui_fade_out(const char *obj_name, u_int32_t duration) {
-    lv_obj_t *obj = ui_get_obj(obj_name);
-    if (obj == NULL) {
-        return;
-    }
-    lv_obj_fade_out(obj, duration, 0);
+    // No-op for headless operation
 }
 
 void jetkvm_ui_set_opacity(const char *obj_name, u_int8_t opacity) {
-    lv_obj_t *obj = ui_get_obj(obj_name);
-    if (obj == NULL) {
-        return;
-    }
-    lv_obj_set_style_opa(obj, opacity, LV_PART_MAIN);
+    // No-op for headless operation
 }
 
 const char *jetkvm_ui_get_lvgl_version() {
-    return lv_version_info();
+    // No LVGL for headless operation
+    return "N/A (headless)";
 }
 
 void jetkvm_video_start() {
