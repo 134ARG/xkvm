@@ -23,16 +23,11 @@ sudo apt-get install -y --no-install-recommends \
   bc openssl flex bison libssl-dev python3 python-is-python3 texinfo kmod cmake \
   wget zstd \
   python3-venv python3-kconfiglib \
+  gcc-aarch64-linux-gnu g++-aarch64-linux-gnu \
   && sudo rm -rf /var/lib/apt/lists/*
 
-# Install buildkit
-BUILDKIT_VERSION="v0.2.5"
-BUILDKIT_TMPDIR="$(mktemp -d)"
-pushd "${BUILDKIT_TMPDIR}" > /dev/null
+# Note: Buildkit installation removed for RK3566 - using local SDK instead
+# The project now uses extracted MPP libraries from .deb packages
 
-wget https://github.com/jetkvm/rv1106-system/releases/download/${BUILDKIT_VERSION}/buildkit.tar.zst && \
-    sudo mkdir -p /opt/jetkvm-native-buildkit && \
-    sudo tar --use-compress-program="unzstd --long=31" -xvf buildkit.tar.zst -C /opt/jetkvm-native-buildkit && \
-    rm buildkit.tar.zst
-popd
-rm -rf "${BUILDKIT_TMPDIR}"
+echo "✅ Development dependencies installed"
+echo "🔧 Cross-compilation toolchain for ARM64 ready"

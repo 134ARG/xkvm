@@ -16,6 +16,8 @@ import (
 /*
 #cgo LDFLAGS: -Lcgo/lib -ljknative
 #cgo CFLAGS: -Icgo/include
+#cgo linux,arm64 LDFLAGS: -Lcgo/lib -ljknative -lrockit -lrockchip_mpp
+#cgo linux,amd64 LDFLAGS: -Lcgo/lib -ljknative
 #include "ctrl.h"
 #include <stdlib.h>
 

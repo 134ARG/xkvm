@@ -14,7 +14,8 @@
 #include <sys/klog.h>
 
 #define MAX_EDID_SIZE 256
-#define V4L_SUBDEV "/dev/v4l-subdev2"
+// #define V4L_SUBDEV "/dev/v4l-subdev2"
+#define V4L_SUBDEV "/dev/v4l-subdev3"
 
 int get_edid(uint8_t *edid, size_t max_size)
 {
