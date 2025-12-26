@@ -52,8 +52,6 @@ func Main() {
 		Interface("app_version", appVersionLocal).
 		Msg("starting JetKVM")
 
-	go runWatchdog()
-
 	// initialize usb gadget
 	setProcTitle("initUsbGadget")
 	initUsbGadget()

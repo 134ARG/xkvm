@@ -190,7 +190,6 @@ export LD_LIBRARY_PATH=/oem/usr/lib:\$LD_LIBRARY_PATH
 cd ${REMOTE_PATH}
 killall -9 jetkvm_app jetkvm_app_debug jetkvm_native_debug || true
 sleep 5
-echo 'V' > /dev/watchdog
 chmod +x jetkvm_native_debug
 gdbserver localhost:${GDB_DEBUG_PORT} ./jetkvm_native_debug
 EOF

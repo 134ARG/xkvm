@@ -17,3 +17,5 @@ node_modules
 ui/reports
 
 internal/native/cgo/sysroot/
+
+build.sh
