@@ -12,6 +12,12 @@ import (
 )
 
 func handleHidRPCMessage(message hidrpc.Message, session *Session) {
+	// Check if HID operations are suspended during USB reconfiguration
+	if gadget != nil && gadget.IsHidSuspended() {
+		hidRPCLogger.Debug().Msg("HID operations suspended during USB reconfiguration, skipping message")
+		return
+	}
+
 	var rpcErr error
 
 	switch message.Type() {

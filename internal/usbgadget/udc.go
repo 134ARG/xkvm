@@ -44,6 +44,10 @@ func rebindUsb(udc string, ignoreUnbindError bool) error {
 	if err != nil {
 		return fmt.Errorf("failed to bind UDC: %w", err)
 	}
+
+	// Wait for HID devices to become available after bind
+	time.Sleep(500 * time.Millisecond)
+
 	return nil
 }
 

@@ -94,6 +94,9 @@ type UsbGadget struct {
 
 	logSuppressionCounter map[string]int
 	logSuppressionLock    sync.Mutex
+
+	hidSuspended     bool
+	hidSuspendedLock sync.RWMutex
 }
 
 const configFSPath = "/sys/kernel/config"
@@ -173,18 +176,57 @@ func (u *UsbGadget) Close() error {
 	u.kbdAutoReleaseLock.Unlock()
 
 	// Close HID files
+	u.CloseHidFiles()
+
+	return nil
+}
+
+// CloseHidFiles closes all open HID device files
+func (u *UsbGadget) CloseHidFiles() {
+	u.keyboardLock.Lock()
 	if u.keyboardHidFile != nil {
 		u.keyboardHidFile.Close()
 		u.keyboardHidFile = nil
+		u.log.Debug().Msg("closed keyboard HID file")
 	}
+	u.keyboardLock.Unlock()
+
+	u.absMouseLock.Lock()
 	if u.absMouseHidFile != nil {
 		u.absMouseHidFile.Close()
 		u.absMouseHidFile = nil
+		u.log.Debug().Msg("closed absolute mouse HID file")
 	}
+	u.absMouseLock.Unlock()
+
+	u.relMouseLock.Lock()
 	if u.relMouseHidFile != nil {
 		u.relMouseHidFile.Close()
 		u.relMouseHidFile = nil
+		u.log.Debug().Msg("closed relative mouse HID file")
 	}
+	u.relMouseLock.Unlock()
+}
 
-	return nil
+// SuspendHidOperations suspends HID operations during USB reconfiguration
+func (u *UsbGadget) SuspendHidOperations() {
+	u.hidSuspendedLock.Lock()
+	defer u.hidSuspendedLock.Unlock()
+	u.hidSuspended = true
+	u.log.Debug().Msg("HID operations suspended")
+}
+
+// ResumeHidOperations resumes HID operations after USB reconfiguration
+func (u *UsbGadget) ResumeHidOperations() {
+	u.hidSuspendedLock.Lock()
+	defer u.hidSuspendedLock.Unlock()
+	u.hidSuspended = false
+	u.log.Debug().Msg("HID operations resumed")
+}
+
+// IsHidSuspended checks if HID operations are currently suspended
+func (u *UsbGadget) IsHidSuspended() bool {
+	u.hidSuspendedLock.RLock()
+	defer u.hidSuspendedLock.RUnlock()
+	return u.hidSuspended
 }

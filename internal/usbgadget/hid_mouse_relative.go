@@ -3,6 +3,8 @@ package usbgadget
 import (
 	"fmt"
 	"os"
+	"strings"
+	"time"
 )
 
 var relativeMouseConfig = gadgetConfigItem{
@@ -55,17 +57,57 @@ var relativeMouseCombinedReportDesc = []byte{
 	0xc0, //       End Collection
 }
 
-func (u *UsbGadget) relMouseWriteHidFile(data []byte) error {
-	if u.relMouseHidFile == nil {
-		var err error
-		u.relMouseHidFile, err = os.OpenFile("/dev/hidg2", os.O_RDWR, 0666)
-		if err != nil {
-			return fmt.Errorf("failed to open hidg1: %w", err)
+func (u *UsbGadget) openRelMouseHidFile() error {
+	if u.relMouseHidFile != nil {
+		return nil
+	}
+
+	var err error
+	u.relMouseHidFile, err = os.OpenFile("/dev/hidg2", os.O_RDWR, 0666)
+	if err != nil {
+		return fmt.Errorf("failed to open hidg2: %w", err)
+	}
+	return nil
+}
+
+func (u *UsbGadget) openRelMouseHidFileWithRetry() error {
+	maxRetries := 5
+	for i := 0; i < maxRetries; i++ {
+		err := u.openRelMouseHidFile()
+		if err == nil {
+			u.log.Debug().Int("attempt", i+1).Msg("successfully opened relative mouse HID file")
+			return nil
 		}
+
+		if i < maxRetries-1 {
+			backoff := time.Duration(50*(1<<uint(i))) * time.Millisecond
+			u.log.Debug().Err(err).Dur("backoff", backoff).Int("attempt", i+1).Msg("retrying relative mouse HID file open")
+			time.Sleep(backoff)
+		}
+	}
+	return fmt.Errorf("failed to open relative mouse HID file after %d retries", maxRetries)
+}
+
+func (u *UsbGadget) relMouseWriteHidFile(data []byte) error {
+	// Check if HID operations are suspended
+	if u.IsHidSuspended() {
+		return fmt.Errorf("HID operations suspended during USB reconfiguration")
+	}
+
+	if err := u.openRelMouseHidFile(); err != nil {
+		return err
 	}
 
 	_, err := u.writeWithTimeout(u.relMouseHidFile, data)
 	if err != nil {
+		// Check for "transport endpoint shutdown" which indicates stale file handle
+		if strings.Contains(err.Error(), "transport endpoint shutdown") {
+			u.log.Debug().Msg("detected stale relative mouse HID file handle, closing and will retry on next write")
+			u.relMouseHidFile.Close()
+			u.relMouseHidFile = nil
+			return err
+		}
+
 		u.logWithSuppression("relMouseWriteHidFile", 100, u.log, err, "failed to write to hidg2")
 		u.relMouseHidFile.Close()
 		u.relMouseHidFile = nil

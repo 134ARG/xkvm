@@ -242,8 +242,70 @@ func (u *UsbGadget) configureUsbGadget(resetUsb bool) error {
 		u.tx.CreateConfigPath()
 		u.tx.WriteGadgetConfig()
 		if resetUsb {
+			// Suspend HID operations before rebinding
+			u.SuspendHidOperations()
+
+			// Close HID files before rebinding USB
+			u.CloseHidFiles()
+
 			u.tx.RebindUsb(true)
 		}
 		return nil
 	})
+}
+
+// ReopenKeyboardHidFile reopens the keyboard HID file after USB reconfiguration
+func (u *UsbGadget) ReopenKeyboardHidFile() error {
+	u.log.Debug().Msg("reopening keyboard HID file after USB reconfiguration")
+	err := u.openKeyboardHidFileWithRetry()
+	if err != nil {
+		u.log.Warn().Err(err).Msg("failed to reopen keyboard HID file")
+		return err
+	}
+	u.log.Info().Msg("keyboard HID file reopened successfully")
+	return nil
+}
+
+// ReopenAllHidFiles reopens all HID files after USB reconfiguration
+func (u *UsbGadget) ReopenAllHidFiles() error {
+	var errors []error
+
+	// Reopen keyboard HID file
+	if u.enabledDevices.Keyboard {
+		u.log.Debug().Msg("reopening keyboard HID file after USB reconfiguration")
+		if err := u.openKeyboardHidFileWithRetry(); err != nil {
+			u.log.Warn().Err(err).Msg("failed to reopen keyboard HID file")
+			errors = append(errors, fmt.Errorf("keyboard: %w", err))
+		} else {
+			u.log.Info().Msg("keyboard HID file reopened successfully")
+		}
+	}
+
+	// Reopen absolute mouse HID file
+	if u.enabledDevices.AbsoluteMouse {
+		u.log.Debug().Msg("reopening absolute mouse HID file after USB reconfiguration")
+		if err := u.openAbsMouseHidFileWithRetry(); err != nil {
+			u.log.Warn().Err(err).Msg("failed to reopen absolute mouse HID file")
+			errors = append(errors, fmt.Errorf("absolute mouse: %w", err))
+		} else {
+			u.log.Info().Msg("absolute mouse HID file reopened successfully")
+		}
+	}
+
+	// Reopen relative mouse HID file
+	if u.enabledDevices.RelativeMouse {
+		u.log.Debug().Msg("reopening relative mouse HID file after USB reconfiguration")
+		if err := u.openRelMouseHidFileWithRetry(); err != nil {
+			u.log.Warn().Err(err).Msg("failed to reopen relative mouse HID file")
+			errors = append(errors, fmt.Errorf("relative mouse: %w", err))
+		} else {
+			u.log.Info().Msg("relative mouse HID file reopened successfully")
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("failed to reopen some HID files: %v", errors)
+	}
+
+	return nil
 }
