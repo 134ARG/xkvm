@@ -82,11 +82,6 @@ func Main() {
 		os.Exit(1)
 	}
 
-	// Initialize time sync
-	setProcTitle("initTimeSync")
-	initTimeSync()
-	timeSync.Start()
-
 	// Initialize mDNS
 	setProcTitle("initMdns")
 	if err := initMdns(); err != nil {
@@ -124,12 +119,6 @@ func Main() {
 			if currentSession != nil {
 				logger.Debug().Msg("skipping update since a session is active")
 				time.Sleep(1 * time.Minute)
-				continue
-			}
-
-			if isTimeSyncNeeded() || !timeSync.IsSyncSuccess() {
-				logger.Debug().Msg("system time is not synced, will retry in 30 seconds")
-				time.Sleep(30 * time.Second)
 				continue
 			}
 

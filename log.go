@@ -18,7 +18,6 @@ var (
 	webrtcLogger    = logging.GetSubsystemLogger("webrtc")
 	nativeLogger    = logging.GetSubsystemLogger("native")
 	nbdLogger       = logging.GetSubsystemLogger("nbd")
-	timesyncLogger  = logging.GetSubsystemLogger("timesync")
 	jsonRpcLogger   = logging.GetSubsystemLogger("jsonrpc")
 	hidRPCLogger    = logging.GetSubsystemLogger("hidrpc")
 	websecureLogger = logging.GetSubsystemLogger("websecure")

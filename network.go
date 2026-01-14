@@ -85,29 +85,6 @@ func restartMdns() {
 	}
 }
 
-func triggerTimeSyncOnNetworkStateChange() {
-	if timeSync == nil {
-		return
-	}
-
-	// set the NTP servers from the network manager
-	if networkManager != nil {
-		ntpServers := make([]string, len(networkManager.NTPServers()))
-		for i, server := range networkManager.NTPServers() {
-			ntpServers[i] = server.String()
-		}
-		networkLogger.Info().Strs("ntpServers", ntpServers).Msg("setting NTP servers from network manager")
-		timeSync.SetDhcpNtpAddresses(ntpServers)
-	}
-
-	// sync time
-	go func() {
-		if err := timeSync.Sync(); err != nil {
-			networkLogger.Error().Err(err).Msg("failed to sync time after network state change")
-		}
-	}()
-}
-
 func setPublicIPReadyState(ipv4Ready, ipv6Ready bool) {
 	if publicIPState == nil {
 		return
@@ -124,8 +101,7 @@ func networkStateChanged(_ string, state types.InterfaceState) {
 	}
 
 	if state.Online {
-		networkLogger.Info().Msg("network state changed to online, triggering time sync")
-		triggerTimeSyncOnNetworkStateChange()
+		networkLogger.Info().Msg("network state changed to online")
 	}
 
 	setPublicIPReadyState(state.IPv4Ready, state.IPv6Ready)

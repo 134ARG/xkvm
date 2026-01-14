@@ -500,13 +500,6 @@ func RunWebsocketClient() {
 			continue
 		}
 
-		// If the system time is not synchronized, the API request will fail anyway because the TLS handshake will fail.
-		if isTimeSyncNeeded() && !timeSync.IsSyncSuccess() {
-			cloudLogger.Warn().Msg("system time is not synced, will retry in 3 seconds")
-			time.Sleep(3 * time.Second)
-			continue
-		}
-
 		err := runWebsocketClient()
 		if err != nil {
 			cloudLogger.Warn().Err(err).Msg("websocket client error")

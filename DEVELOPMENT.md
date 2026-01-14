@@ -112,7 +112,6 @@ tail -f /var/log/jetkvm.log
 │   │   ├── cgo/              # C files for the native library (HDMI, Touchscreen, etc.)
 │   │   └── eez/              # EEZ Studio Project files (for Touchscreen)
 │   ├── network/              # Network implementation
-│   ├── timesync/             # Time sync/NTP implementation
 │   ├── tzdata/               # Timezone data and generation
 │   ├── udhcpc/               # DHCP implementation
 │   ├── usbgadget/            # USB gadget
