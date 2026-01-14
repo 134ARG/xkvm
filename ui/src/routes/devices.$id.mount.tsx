@@ -229,14 +229,15 @@ function ModeSelectionView({
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         {[
-          {
-            label: m.mount_url_mount(),
-            value: "url",
-            description: m.mount_url_description(),
-            icon: LuLink,
-            tag: m.experimental(),
-            disabled: false,
-          },
+          // URL mount hidden - experimental feature not needed
+          // {
+          //   label: m.mount_url_mount(),
+          //   value: "url",
+          //   description: m.mount_url_description(),
+          //   icon: LuLink,
+          //   tag: m.experimental(),
+          //   disabled: false,
+          // },
           {
             label: m.mount_jetkvm_storage(),
             value: "device",
@@ -326,7 +327,7 @@ function UrlView({
   onMount: (url: string, usbMode: RemoteVirtualMediaState["mode"]) => void;
   mountInProgress: boolean;
 }) {
-  const [usbMode, setUsbMode] = useState<RemoteVirtualMediaState["mode"]>("CDROM");
+  const [usbMode, setUsbMode] = useState<RemoteVirtualMediaState["mode"]>("Disk");
   const [url, setUrl] = useState<string>("");
   const [isUrlValid, setIsUrlValid] = useState(false);
 
@@ -384,11 +385,8 @@ function UrlView({
 
   function handleUrlChange(url: string) {
     setUrl(url);
-    if (url.endsWith(".iso")) {
-      setUsbMode("CDROM");
-    } else if (url.endsWith(".img")) {
-      setUsbMode("Disk");
-    }
+    // Always use Disk mode
+    setUsbMode("Disk");
   }
 
   return (
@@ -497,7 +495,7 @@ function DeviceFileView({
   const [onStorageFiles, setOnStorageFiles] = useState<StorageFile[]>([]);
 
   const [selected, setSelected] = useState<string | null>(null);
-  const [usbMode, setUsbMode] = useState<RemoteVirtualMediaState["mode"]>("CDROM");
+  const [usbMode, setUsbMode] = useState<RemoteVirtualMediaState["mode"]>("Disk");
   const [currentPage, setCurrentPage] = useState(1);
   const filesPerPage = 5;
 
@@ -581,11 +579,8 @@ function DeviceFileView({
 
   function handleOnSelectFile(file: StorageFile) {
     setSelected(file.name);
-    if (file.name.endsWith(".iso")) {
-      setUsbMode("CDROM");
-    } else if (file.name.endsWith(".img")) {
-      setUsbMode("Disk");
-    }
+    // Always use Disk mode
+    setUsbMode("Disk");
   }
 
   const indexOfLastFile = currentPage * filesPerPage;
@@ -1359,7 +1354,8 @@ function UsbModeSelector({
     <div className="flex flex-col items-start space-y-1 select-none">
       <label className="text-sm font-semibold text-black dark:text-white">Mount as</label>
       <div className="flex space-x-4">
-        <label htmlFor="cdrom" className="flex items-center">
+        {/* CDROM option hidden - causes USB stability issues */}
+        {/* <label htmlFor="cdrom" className="flex items-center">
           <input
             type="radio"
             id="cdrom"
@@ -1371,7 +1367,7 @@ function UsbModeSelector({
           <span className="ml-2 text-sm font-medium text-slate-900 dark:text-white">
             {m.mount_mode_cdrom()}
           </span>
-        </label>
+        </label> */}
         <label htmlFor="disk" className="flex items-center">
           <input
             type="radio"
