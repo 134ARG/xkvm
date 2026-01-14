@@ -96,10 +96,6 @@ func (e *EmptyNativeInterface) UIObjSetImageSrc(objName string, image string) (b
 	return false, nil
 }
 
-func (e *EmptyNativeInterface) DisplaySetRotation(rotation uint16) (bool, error) {
-	return false, nil
-}
-
 func (e *EmptyNativeInterface) UpdateLabelIfChanged(objName string, newText string) {}
 
 func (e *EmptyNativeInterface) UpdateLabelAndChangeVisibility(objName string, newText string) {}

@@ -41,7 +41,6 @@ const SettingsRoute = lazy(() => import("@routes/devices.$id.settings"));
 const SettingsMouseRoute = lazy(() => import("@routes/devices.$id.settings.mouse"));
 const SettingsKeyboardRoute = lazy(() => import("@routes/devices.$id.settings.keyboard"));
 const SettingsAdvancedRoute = lazy(() => import("@routes/devices.$id.settings.advanced"));
-const SettingsHardwareRoute = lazy(() => import("@routes/devices.$id.settings.hardware"));
 const SettingsVideoRoute = lazy(() => import("@routes/devices.$id.settings.video"));
 const SettingsAppearanceRoute = lazy(() => import("@routes/devices.$id.settings.appearance"));
 const SettingsGeneralIndexRoute = lazy(() => import("@routes/devices.$id.settings.general._index"));
@@ -154,10 +153,6 @@ const getDeviceRoute = (r: Omit<RouteObject, "children" | "index">): RouteObject
         {
           path: "advanced",
           element: <SettingsAdvancedRoute />,
-        },
-        {
-          path: "hardware",
-          element: <SettingsHardwareRoute />,
         },
         {
           path: "network",

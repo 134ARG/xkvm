@@ -32,7 +32,6 @@ type nativeProxyOptions struct {
 	Disable               bool            `env:"JETKVM_NATIVE_DISABLE"`
 	SystemVersion         *semver.Version `env:"JETKVM_NATIVE_SYSTEM_VERSION"`
 	AppVersion            *semver.Version `env:"JETKVM_NATIVE_APP_VERSION"`
-	DisplayRotation       uint16          `env:"JETKVM_NATIVE_DISPLAY_ROTATION"`
 	DefaultQualityFactor  float64         `env:"JETKVM_NATIVE_DEFAULT_QUALITY_FACTOR"`
 	CtrlUnixSocket        string          `env:"JETKVM_NATIVE_CTRL_UNIX_SOCKET"`
 	VideoStreamUnixSocket string          `env:"JETKVM_NATIVE_VIDEO_STREAM_UNIX_SOCKET"`
@@ -69,7 +68,6 @@ func (n *NativeOptions) toProxyOptions() *nativeProxyOptions {
 	return &nativeProxyOptions{
 		SystemVersion:        n.SystemVersion,
 		AppVersion:           n.AppVersion,
-		DisplayRotation:      n.DisplayRotation,
 		DefaultQualityFactor: n.DefaultQualityFactor,
 		OnVideoFrameReceived: n.OnVideoFrameReceived,
 		OnIndevEvent:         n.OnIndevEvent,
@@ -86,7 +84,6 @@ func (p *nativeProxyOptions) toNativeOptions() *NativeOptions {
 	return &NativeOptions{
 		SystemVersion:        p.SystemVersion,
 		AppVersion:           p.AppVersion,
-		DisplayRotation:      p.DisplayRotation,
 		DefaultQualityFactor: p.DefaultQualityFactor,
 	}
 }
@@ -679,12 +676,6 @@ func (p *NativeProxy) UIObjSetImageSrc(objName string, image string) (bool, erro
 func (p *NativeProxy) UIObjSetOpacity(objName string, opacity int) (bool, error) {
 	return nativeProxyClientExec[bool](p, func(client *GRPCClient) (bool, error) {
 		return client.UIObjSetOpacity(objName, opacity)
-	})
-}
-
-func (p *NativeProxy) DisplaySetRotation(rotation uint16) (bool, error) {
-	return nativeProxyClientExec[bool](p, func(client *GRPCClient) (bool, error) {
-		return client.DisplaySetRotation(rotation)
 	})
 }
 

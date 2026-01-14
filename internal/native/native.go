@@ -16,7 +16,6 @@ type Native struct {
 	lD                   *zerolog.Logger
 	systemVersion        *semver.Version
 	appVersion           *semver.Version
-	displayRotation      uint16
 	defaultQualityFactor float64
 	onVideoStateChange   func(state VideoState)
 	onVideoFrameReceived func(frame []byte, duration time.Duration)
@@ -31,7 +30,6 @@ type Native struct {
 type NativeOptions struct {
 	SystemVersion        *semver.Version
 	AppVersion           *semver.Version
-	DisplayRotation      uint16
 	DefaultQualityFactor float64
 	MaxRestartAttempts   uint
 	OnVideoStateChange   func(state VideoState)
@@ -109,7 +107,6 @@ func NewNative(opts NativeOptions) *Native {
 		lD:                   &displaySubLogger,
 		systemVersion:        opts.SystemVersion,
 		appVersion:           opts.AppVersion,
-		displayRotation:      opts.DisplayRotation,
 		defaultQualityFactor: defaultQualityFactor,
 		onVideoStateChange:   onVideoStateChange,
 		onVideoFrameReceived: onVideoFrameReceived,

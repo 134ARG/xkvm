@@ -183,14 +183,6 @@ func (c *GRPCClient) UIObjSetImageSrc(objName string, image string) (bool, error
 	return resp.Success, nil
 }
 
-func (c *GRPCClient) DisplaySetRotation(rotation uint16) (bool, error) {
-	resp, err := c.client.DisplaySetRotation(context.Background(), &pb.DisplaySetRotationRequest{Rotation: uint32(rotation)})
-	if err != nil {
-		return false, err
-	}
-	return resp.Success, nil
-}
-
 func (c *GRPCClient) UpdateLabelIfChanged(objName string, newText string) {
 	_, _ = c.client.UpdateLabelIfChanged(context.Background(), &pb.UpdateLabelIfChangedRequest{ObjName: objName, NewText: newText})
 }

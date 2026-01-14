@@ -144,9 +144,20 @@ func rpcGetLocalVersion() (*ota.LocalMetadata, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting local version: %w", err)
 	}
+
+	systemVersionStr := ""
+	if systemVersion != nil {
+		systemVersionStr = systemVersion.String()
+	}
+
+	appVersionStr := ""
+	if appVersion != nil {
+		appVersionStr = appVersion.String()
+	}
+
 	return &ota.LocalMetadata{
-		AppVersion:    appVersion.String(),
-		SystemVersion: systemVersion.String(),
+		AppVersion:    appVersionStr,
+		SystemVersion: systemVersionStr,
 	}, nil
 }
 

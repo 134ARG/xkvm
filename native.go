@@ -28,20 +28,17 @@ func initNative(systemVersion *semver.Version, appVersion *semver.Version) {
 	nativeInstance, err = native.NewNativeProxy(native.NativeOptions{
 		SystemVersion:        systemVersion,
 		AppVersion:           appVersion,
-		DisplayRotation:      config.GetDisplayRotation(),
 		DefaultQualityFactor: config.VideoQualityFactor,
 		MaxRestartAttempts:   config.NativeMaxRestart,
 		OnNativeRestart: func() {
-			configureDisplayOnNativeRestart()
+			// configureDisplayOnNativeRestart()
 		},
 		OnVideoStateChange: func(state native.VideoState) {
 			lastVideoState = state
 			triggerVideoStateUpdate()
-			requestDisplayUpdate(true, "video_state_changed")
 		},
 		OnIndevEvent: func(event string) {
 			nativeLogger.Trace().Str("event", event).Msg("indev event received")
-			wakeDisplay(false, "indev_event")
 		},
 		OnRpcEvent: func(event string) {
 			nativeCmdLock.Lock()

@@ -57,7 +57,6 @@ func Main() {
 
 	setProcTitle("initNative")
 	initNative(systemVersionLocal, appVersionLocal)
-	initDisplay()
 
 	http.DefaultClient.Timeout = 1 * time.Minute
 

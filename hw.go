@@ -51,7 +51,7 @@ func hwReboot(force bool, postRebootAction *ota.PostRebootAction, delay time.Dur
 	err := cmd.Start()
 	if err != nil {
 		logger.Error().Err(err).Msg("failed to reboot")
-		switchToMainScreen()
+		// switchToMainScreen()
 		return fmt.Errorf("failed to reboot: %w", err)
 	}
 

@@ -105,11 +105,6 @@ func (n *Native) UIObjSetImageSrc(objName string, image string) (bool, error) {
 	return uiImgSetSrc(objName, image)
 }
 
-// DisplaySetRotation sets the rotation of the display
-func (n *Native) DisplaySetRotation(rotation uint16) (bool, error) {
-	return uiDispSetRotation(rotation)
-}
-
 // UpdateLabelIfChanged updates the label if the text has changed
 func (n *Native) UpdateLabelIfChanged(objName string, newText string) {
 	l := n.lD.Trace().Str("obj", objName).Str("text", newText)

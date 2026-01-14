@@ -11,7 +11,6 @@ type nativeOptions struct {
 	Disable              bool            `env:"JETKVM_NATIVE_DISABLE"`
 	SystemVersion        *semver.Version `env:"JETKVM_NATIVE_SYSTEM_VERSION"`
 	AppVersion           *semver.Version `env:"JETKVM_NATIVE_APP_VERSION"`
-	DisplayRotation      uint16          `env:"JETKVM_NATIVE_DISPLAY_ROTATION"`
 	DefaultQualityFactor float64         `env:"JETKVM_NATIVE_DEFAULT_QUALITY_FACTOR"`
 }
 
@@ -28,7 +27,6 @@ func TestMarshalEnv(t *testing.T) {
 				Disable:              false,
 				SystemVersion:        semver.MustParse("1.1.0"),
 				AppVersion:           semver.MustParse("1111.0.0"),
-				DisplayRotation:      1,
 				DefaultQualityFactor: 1.0,
 			},
 			want: []string{

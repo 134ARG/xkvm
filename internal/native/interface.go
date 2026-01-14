@@ -27,7 +27,6 @@ type NativeInterface interface {
 	UIObjFadeOut(objName string, duration uint32) (bool, error)
 	UIObjSetLabelText(objName string, text string) (bool, error)
 	UIObjSetImageSrc(objName string, image string) (bool, error)
-	DisplaySetRotation(rotation uint16) (bool, error)
 	UpdateLabelIfChanged(objName string, newText string)
 	UpdateLabelAndChangeVisibility(objName string, newText string)
 	SwitchToScreenIf(screenName string, shouldSwitch []string)

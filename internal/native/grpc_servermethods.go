@@ -190,14 +190,6 @@ func (s *grpcServer) UIObjSetImageSrc(ctx context.Context, req *pb.UIObjSetImage
 	return &pb.UIObjSetImageSrcResponse{Success: success}, nil
 }
 
-func (s *grpcServer) DisplaySetRotation(ctx context.Context, req *pb.DisplaySetRotationRequest) (*pb.DisplaySetRotationResponse, error) {
-	success, err := s.native.DisplaySetRotation(uint16(req.Rotation))
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-	return &pb.DisplaySetRotationResponse{Success: success}, nil
-}
-
 func (s *grpcServer) UpdateLabelIfChanged(ctx context.Context, req *pb.UpdateLabelIfChangedRequest) (*pb.Empty, error) {
 	s.native.UpdateLabelIfChanged(req.ObjName, req.NewText)
 	return &pb.Empty{}, nil

@@ -325,12 +325,6 @@ export const useVideoStore = create<VideoState>(set => ({
   setVideoElement: (element: HTMLVideoElement | null) => set({ videoElement: element }),
 }));
 
-export interface BacklightSettings {
-  max_brightness: number;
-  dim_after: number;
-  off_after: number;
-}
-
 export interface SettingsState {
   isCursorHidden: boolean;
   setCursorVisibility: (enabled: boolean) => void;
@@ -344,12 +338,6 @@ export interface SettingsState {
   // Add new developer mode state
   developerMode: boolean;
   setDeveloperMode: (enabled: boolean) => void;
-
-  displayRotation: string;
-  setDisplayRotation: (rotation: string) => void;
-
-  backlightSettings: BacklightSettings;
-  setBacklightSettings: (settings: BacklightSettings) => void;
 
   keyboardLayout: string;
   setKeyboardLayout: (layout: string) => void;
@@ -386,16 +374,6 @@ export const useSettingsStore = create(
       // Add developer mode with default value
       developerMode: false,
       setDeveloperMode: (enabled: boolean) => set({ developerMode: enabled }),
-
-      displayRotation: "270",
-      setDisplayRotation: (rotation: string) => set({ displayRotation: rotation }),
-
-      backlightSettings: {
-        max_brightness: 100,
-        dim_after: 10000,
-        off_after: 50000,
-      },
-      setBacklightSettings: (settings: BacklightSettings) => set({ backlightSettings: settings }),
 
       keyboardLayout: "en-US",
       setKeyboardLayout: (layout: string) => set({ keyboardLayout: layout }),

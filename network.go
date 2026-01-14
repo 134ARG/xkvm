@@ -94,7 +94,6 @@ func setPublicIPReadyState(ipv4Ready, ipv6Ready bool) {
 
 func networkStateChanged(_ string, state types.InterfaceState) {
 	// do not block the main thread
-	go waitCtrlAndRequestDisplayUpdate(true, "network_state_changed")
 
 	if currentSession != nil {
 		writeJSONRPCEvent("networkState", state.ToRpcInterfaceState(), currentSession)

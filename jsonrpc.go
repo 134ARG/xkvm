@@ -59,16 +59,6 @@ type JSONRPCEvent struct {
 	Params  any    `json:"params,omitempty"`
 }
 
-type DisplayRotationSettings struct {
-	Rotation string `json:"rotation"`
-}
-
-type BacklightSettings struct {
-	MaxBrightness int `json:"max_brightness"`
-	DimAfter      int `json:"dim_after"`
-	OffAfter      int `json:"off_after"`
-}
-
 func writeJSONRPCResponse(response JSONRPCResponse, session *Session) {
 	responseBytes, err := json.Marshal(response)
 	if err != nil {
@@ -251,81 +241,6 @@ func rpcSetEDID(edid string) error {
 
 func rpcGetVideoLogStatus() (string, error) {
 	return nativeInstance.VideoLogStatus()
-}
-
-func rpcSetDisplayRotation(params DisplayRotationSettings) error {
-	currentRotation := config.DisplayRotation
-	if currentRotation == params.Rotation {
-		return nil
-	}
-
-	err := config.SetDisplayRotation(params.Rotation)
-	if err != nil {
-		return err
-	}
-
-	_, err = nativeInstance.DisplaySetRotation(config.GetDisplayRotation())
-	if err != nil {
-		return err
-	}
-
-	if err := SaveConfig(); err != nil {
-		return fmt.Errorf("failed to save config: %w", err)
-	}
-
-	return err
-}
-
-func rpcGetDisplayRotation() (*DisplayRotationSettings, error) {
-	return &DisplayRotationSettings{
-		Rotation: config.DisplayRotation,
-	}, nil
-}
-
-func rpcSetBacklightSettings(params BacklightSettings) error {
-	blConfig := params
-
-	// NOTE: by default, the frontend limits the brightness to 64, as that's what the device originally shipped with.
-	if blConfig.MaxBrightness > 255 || blConfig.MaxBrightness < 0 {
-		return fmt.Errorf("maxBrightness must be between 0 and 255")
-	}
-
-	if blConfig.DimAfter < 0 {
-		return fmt.Errorf("dimAfter must be a positive integer")
-	}
-
-	if blConfig.OffAfter < 0 {
-		return fmt.Errorf("offAfter must be a positive integer")
-	}
-
-	config.DisplayMaxBrightness = blConfig.MaxBrightness
-	config.DisplayDimAfterSec = blConfig.DimAfter
-	config.DisplayOffAfterSec = blConfig.OffAfter
-
-	if err := SaveConfig(); err != nil {
-		return fmt.Errorf("failed to save config: %w", err)
-	}
-
-	logger.Info().Int("max_brightness", config.DisplayMaxBrightness).Int("dim_after", config.DisplayDimAfterSec).Int("off_after", config.DisplayOffAfterSec).Msg("rpc: display: settings applied")
-
-	// If the device started up with auto-dim and/or auto-off set to zero, the display init
-	// method will not have started the tickers. So in case that has changed, attempt to start the tickers now.
-	startBacklightTickers()
-
-	// Wake the display after the settings are altered, this ensures the tickers
-	// are reset to the new settings, and will bring the display up to maxBrightness.
-	// Calling with force set to true, to ignore the current state of the display, and force
-	// it to reset the tickers.
-	wakeDisplay(true, "backlight_settings_changed")
-	return nil
-}
-
-func rpcGetBacklightSettings() (*BacklightSettings, error) {
-	return &BacklightSettings{
-		MaxBrightness: config.DisplayMaxBrightness,
-		DimAfter:      int(config.DisplayDimAfterSec),
-		OffAfter:      int(config.DisplayOffAfterSec),
-	}, nil
 }
 
 const (
@@ -1338,10 +1253,6 @@ var rpcHandlers = map[string]RPCHandler{
 	"getWakeOnLanDevices":    {Func: rpcGetWakeOnLanDevices},
 	"setWakeOnLanDevices":    {Func: rpcSetWakeOnLanDevices, Params: []string{"params"}},
 	"resetConfig":            {Func: rpcResetConfig},
-	"setDisplayRotation":     {Func: rpcSetDisplayRotation, Params: []string{"params"}},
-	"getDisplayRotation":     {Func: rpcGetDisplayRotation},
-	"setBacklightSettings":   {Func: rpcSetBacklightSettings, Params: []string{"params"}},
-	"getBacklightSettings":   {Func: rpcGetBacklightSettings},
 	"getDCPowerState":        {Func: rpcGetDCPowerState},
 	"setDCPowerState":        {Func: rpcSetDCPowerState, Params: []string{"enabled"}},
 	"setDCRestoreState":      {Func: rpcSetDCRestoreState, Params: []string{"state"}},
