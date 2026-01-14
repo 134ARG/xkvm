@@ -32,12 +32,13 @@ export default function SettingsAdvancedRoute() {
   const [usbEmulationEnabled, setUsbEmulationEnabled] = useState(false);
   const [showLoopbackWarning, setShowLoopbackWarning] = useState(false);
   const [localLoopbackOnly, setLocalLoopbackOnly] = useState(false);
-  const [updateTarget, setUpdateTarget] = useState<string>("app");
-  const [appVersion, setAppVersion] = useState<string>("");
-  const [systemVersion, setSystemVersion] = useState<string>("");
-  const [resetConfig, setResetConfig] = useState(false);
-  const [versionChangeAcknowledged, setVersionChangeAcknowledged] = useState(false);
-  const [customVersionUpdateLoading, setCustomVersionUpdateLoading] = useState(false);
+  // OTA custom version update state disabled
+  // const [updateTarget, setUpdateTarget] = useState<string>("app");
+  // const [appVersion, setAppVersion] = useState<string>("");
+  // const [systemVersion, setSystemVersion] = useState<string>("");
+  // const [resetConfig, setResetConfig] = useState(false);
+  // const [versionChangeAcknowledged, setVersionChangeAcknowledged] = useState(false);
+  // const [customVersionUpdateLoading, setCustomVersionUpdateLoading] = useState(false);
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
   const settings = useSettingsStore();
 
@@ -223,6 +224,8 @@ export default function SettingsAdvancedRoute() {
     });
   }, [send]);
 
+  // OTA custom version update handlers disabled
+  /*
   const handleVersionUpdateError = useCallback((error?: JsonRpcError | string) => {
     notifications.error(
       m.advanced_error_version_update({
@@ -285,6 +288,7 @@ export default function SettingsAdvancedRoute() {
     systemVersion,
     updateTarget,
   ]);
+  */
 
   return (
     <div className="space-y-4">
@@ -374,6 +378,7 @@ export default function SettingsAdvancedRoute() {
               </div>
             )}
 
+            {/* OTA custom version update functionality disabled
             <FeatureFlag minAppVersion="0.4.10" name="version-update">
               <div className="space-y-4">
                 <SettingsItem
@@ -455,6 +460,7 @@ export default function SettingsAdvancedRoute() {
                 />
               </div>
             </FeatureFlag>
+            */}
           </NestedSettingsGroup>
         ) : null}
 

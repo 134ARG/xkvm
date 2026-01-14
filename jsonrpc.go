@@ -621,9 +621,9 @@ func rpcGetMassStorageMode() (string, error) {
 	return mode, nil
 }
 
-func rpcIsUpdatePending() (bool, error) {
-	return otaState.IsUpdatePending(), nil
-}
+// func rpcIsUpdatePending() (bool, error) {
+// 	return otaState.IsUpdatePending(), nil
+// }
 
 func rpcGetUsbEmulationState() (bool, error) {
 	return gadget.IsUDCBound()
@@ -1295,31 +1295,34 @@ var rpcHandlers = map[string]RPCHandler{
 	"sendWOLMagicPacket":     {Func: rpcSendWOLMagicPacket, Params: []string{"macAddress"}},
 	"getStreamQualityFactor": {Func: rpcGetStreamQualityFactor},
 	"setStreamQualityFactor": {Func: rpcSetStreamQualityFactor, Params: []string{"factor"}},
-	"getAutoUpdateState":     {Func: rpcGetAutoUpdateState},
-	"setAutoUpdateState":     {Func: rpcSetAutoUpdateState, Params: []string{"enabled"}},
-	"getEDID":                {Func: rpcGetEDID},
-	"setEDID":                {Func: rpcSetEDID, Params: []string{"edid"}},
-	"getVideoLogStatus":      {Func: rpcGetVideoLogStatus},
-	"getVideoSleepMode":      {Func: rpcGetVideoSleepMode},
-	"setVideoSleepMode":      {Func: rpcSetVideoSleepMode, Params: []string{"duration"}},
-	"getDevChannelState":     {Func: rpcGetDevChannelState},
-	"setDevChannelState":     {Func: rpcSetDevChannelState, Params: []string{"enabled"}},
-	"getLocalVersion":        {Func: rpcGetLocalVersion},
-	"getUpdateStatus":        {Func: rpcGetUpdateStatus},
-	"checkUpdateComponents":  {Func: rpcCheckUpdateComponents, Params: []string{"params", "includePreRelease"}},
-	"getUpdateStatusChannel": {Func: rpcGetUpdateStatusChannel},
-	"tryUpdate":              {Func: rpcTryUpdate},
-	"tryUpdateComponents":    {Func: rpcTryUpdateComponents, Params: []string{"params", "includePreRelease", "resetConfig"}},
-	"getDevModeState":        {Func: rpcGetDevModeState},
-	"setDevModeState":        {Func: rpcSetDevModeState, Params: []string{"enabled"}},
-	"getSSHKeyState":         {Func: rpcGetSSHKeyState},
-	"setSSHKeyState":         {Func: rpcSetSSHKeyState, Params: []string{"sshKey"}},
-	"getTLSState":            {Func: rpcGetTLSState},
-	"setTLSState":            {Func: rpcSetTLSState, Params: []string{"state"}},
-	"setMassStorageMode":     {Func: rpcSetMassStorageMode, Params: []string{"mode"}},
-	"getMassStorageMode":     {Func: rpcGetMassStorageMode},
-	"getUsbGadgetHealth":     {Func: rpcGetUsbGadgetHealth},
-	"isUpdatePending":        {Func: rpcIsUpdatePending},
+	// OTA RPC handlers disabled
+	// "getAutoUpdateState":     {Func: rpcGetAutoUpdateState},
+	// "setAutoUpdateState":     {Func: rpcSetAutoUpdateState, Params: []string{"enabled"}},
+	"getEDID":           {Func: rpcGetEDID},
+	"setEDID":           {Func: rpcSetEDID, Params: []string{"edid"}},
+	"getVideoLogStatus": {Func: rpcGetVideoLogStatus},
+	"getVideoSleepMode": {Func: rpcGetVideoSleepMode},
+	"setVideoSleepMode": {Func: rpcSetVideoSleepMode, Params: []string{"duration"}},
+	// OTA RPC handlers disabled (except getLocalVersion which just reads version info)
+	// "getDevChannelState":     {Func: rpcGetDevChannelState},
+	// "setDevChannelState":     {Func: rpcSetDevChannelState, Params: []string{"enabled"}},
+	"getLocalVersion": {Func: rpcGetLocalVersion},
+	// "getUpdateStatus":        {Func: rpcGetUpdateStatus},
+	// "checkUpdateComponents":  {Func: rpcCheckUpdateComponents, Params: []string{"params", "includePreRelease"}},
+	// "getUpdateStatusChannel": {Func: rpcGetUpdateStatusChannel},
+	// "tryUpdate":              {Func: rpcTryUpdate},
+	// "tryUpdateComponents":    {Func: rpcTryUpdateComponents, Params: []string{"params", "includePreRelease", "resetConfig"}},
+	"getDevModeState":    {Func: rpcGetDevModeState},
+	"setDevModeState":    {Func: rpcSetDevModeState, Params: []string{"enabled"}},
+	"getSSHKeyState":     {Func: rpcGetSSHKeyState},
+	"setSSHKeyState":     {Func: rpcSetSSHKeyState, Params: []string{"sshKey"}},
+	"getTLSState":        {Func: rpcGetTLSState},
+	"setTLSState":        {Func: rpcSetTLSState, Params: []string{"state"}},
+	"setMassStorageMode": {Func: rpcSetMassStorageMode, Params: []string{"mode"}},
+	"getMassStorageMode": {Func: rpcGetMassStorageMode},
+	"getUsbGadgetHealth": {Func: rpcGetUsbGadgetHealth},
+	// OTA RPC handler disabled
+	// "isUpdatePending":        {Func: rpcIsUpdatePending},
 	"getUsbEmulationState":   {Func: rpcGetUsbEmulationState},
 	"setUsbEmulationState":   {Func: rpcSetUsbEmulationState, Params: []string{"enabled"}},
 	"getUsbConfig":           {Func: rpcGetUsbConfig},

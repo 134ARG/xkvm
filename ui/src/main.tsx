@@ -48,9 +48,10 @@ const SettingsGeneralIndexRoute = lazy(() => import("@routes/devices.$id.setting
 const SettingsGeneralRebootRoute = lazy(
   () => import("@routes/devices.$id.settings.general.reboot"),
 );
-const SettingsGeneralUpdateRoute = lazy(
-  () => import("@routes/devices.$id.settings.general.update"),
-);
+// OTA update route disabled
+// const SettingsGeneralUpdateRoute = lazy(
+//   () => import("@routes/devices.$id.settings.general.update"),
+// );
 const SettingsNetworkRoute = lazy(() => import("@routes/devices.$id.settings.network"));
 const SecurityAccessLocalAuthRoute = lazy(
   () => import("@routes/devices.$id.settings.access.local-auth"),
@@ -135,10 +136,11 @@ const getDeviceRoute = (r: Omit<RouteObject, "children" | "index">): RouteObject
               path: "reboot",
               element: <SettingsGeneralRebootRoute />,
             },
-            {
-              path: "update",
-              element: <SettingsGeneralUpdateRoute />,
-            },
+            // OTA update route disabled
+            // {
+            //   path: "update",
+            //   element: <SettingsGeneralUpdateRoute />,
+            // },
           ],
         },
         {

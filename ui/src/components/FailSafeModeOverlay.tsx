@@ -112,9 +112,12 @@ Please attach the recovery logs file that was downloaded to your computer:
     });
   };
 
+  // OTA downgrade functionality disabled
+  /*
   const handleDowngrade = () => {
     navigateTo(`/settings/general/update?custom_app_version=${DOWNGRADE_VERSION}`);
   };
+  */
 
   return (
     <AnimatePresence>
@@ -160,12 +163,14 @@ Please attach the recovery logs file that was downloaded to your computer:
                       text="Reboot Device"
                     />
 
+                    {/* OTA downgrade button disabled
                     <Button
                       size="SM"
                       onClick={handleDowngrade}
                       theme="light"
                       text={`Downgrade to v${DOWNGRADE_VERSION}`}
                     />
+                    */}
                   </div>
                 </div>
               </div>

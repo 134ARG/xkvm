@@ -16,13 +16,16 @@ import { deleteCookie, map_locale_code_to_name } from "@/utils";
 export default function SettingsGeneralRoute() {
   const { send } = useJsonRpc();
   const { navigateTo } = useDeviceUiNavigation();
-  const [autoUpdate, setAutoUpdate] = useState(true);
+  // OTA auto-update functionality disabled
+  // const [autoUpdate, setAutoUpdate] = useState(true);
   const currentVersions = useDeviceStore(state => {
     const { appVersion, systemVersion } = state;
     if (!appVersion || !systemVersion) return null;
     return { appVersion, systemVersion };
   });
 
+  // OTA auto-update functionality disabled
+  /*
   useEffect(() => {
     send("getAutoUpdateState", {}, (resp: JsonRpcResponse) => {
       if ("error" in resp) return;
@@ -41,6 +44,7 @@ export default function SettingsGeneralRoute() {
       setAutoUpdate(enabled);
     });
   };
+  */
 
   const [currentLocale, setCurrentLocale] = useState(getLocale());
 
@@ -99,6 +103,7 @@ export default function SettingsGeneralRoute() {
               />
             </SettingsItem>
           </div>
+          {/* OTA update functionality disabled
           <div className="mt-2 flex items-center justify-between gap-x-2">
             <SettingsItem
               title={m.general_check_for_updates()}
@@ -136,6 +141,7 @@ export default function SettingsGeneralRoute() {
               />
             </SettingsItem>
           </div>
+          */}
           <div className="mt-2 flex items-center justify-between gap-x-2">
             <SettingsItem
               title={m.general_reboot_device()}

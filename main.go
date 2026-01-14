@@ -11,7 +11,6 @@ import (
 
 	"github.com/erikdubbelboer/gspt"
 	"github.com/gwatts/rootcerts"
-	"github.com/jetkvm/kvm/internal/ota"
 )
 
 var appCtx context.Context
@@ -70,7 +69,8 @@ func Main() {
 		Int("ca_certs_loaded", len(rootcerts.Certs())).
 		Msg("loaded Root CA certificates")
 
-	initOta()
+	// OTA functionality disabled
+	// initOta()
 
 	http.DefaultClient.Timeout = 1 * time.Minute
 
@@ -102,38 +102,41 @@ func Main() {
 	// start video sleep mode timer
 	startVideoSleepModeTicker()
 
-	go func() {
-		// wait for 15 minutes before starting auto-update checks
-		// this is to avoid interfering with initial setup processes
-		// and to ensure the system is stable before checking for updates
-		time.Sleep(15 * time.Minute)
+	// OTA auto-update functionality disabled
+	/*
+		go func() {
+			// wait for 15 minutes before starting auto-update checks
+			// this is to avoid interfering with initial setup processes
+			// and to ensure the system is stable before checking for updates
+			time.Sleep(15 * time.Minute)
 
-		for {
-			logger.Info().Bool("auto_update_enabled", config.AutoUpdateEnabled).Msg("auto-update check")
-			if !config.AutoUpdateEnabled {
-				logger.Debug().Msg("auto-update disabled")
-				time.Sleep(5 * time.Minute) // we'll check if auto-updates are enabled in five minutes
-				continue
+			for {
+				logger.Info().Bool("auto_update_enabled", config.AutoUpdateEnabled).Msg("auto-update check")
+				if !config.AutoUpdateEnabled {
+					logger.Debug().Msg("auto-update disabled")
+					time.Sleep(5 * time.Minute) // we'll check if auto-updates are enabled in five minutes
+					continue
+				}
+
+				if currentSession != nil {
+					logger.Debug().Msg("skipping update since a session is active")
+					time.Sleep(1 * time.Minute)
+					continue
+				}
+
+				includePreRelease := config.IncludePreRelease
+				err = otaState.TryUpdate(context.Background(), ota.UpdateParams{
+					DeviceID:          GetDeviceID(),
+					IncludePreRelease: includePreRelease,
+				})
+				if err != nil {
+					logger.Warn().Err(err).Msg("failed to auto update")
+				}
+
+				time.Sleep(1 * time.Hour)
 			}
-
-			if currentSession != nil {
-				logger.Debug().Msg("skipping update since a session is active")
-				time.Sleep(1 * time.Minute)
-				continue
-			}
-
-			includePreRelease := config.IncludePreRelease
-			err = otaState.TryUpdate(context.Background(), ota.UpdateParams{
-				DeviceID:          GetDeviceID(),
-				IncludePreRelease: includePreRelease,
-			})
-			if err != nil {
-				logger.Warn().Err(err).Msg("failed to auto update")
-			}
-
-			time.Sleep(1 * time.Hour)
-		}
-	}()
+		}()
+	*/
 
 	//go RunFuseServer()
 	go RunWebServer()

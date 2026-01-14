@@ -42,7 +42,8 @@ import WebRTCVideo from "@components/WebRTCVideo";
 import DashboardNavbar from "@components/Header";
 const ConnectionStatsSidebar = lazy(() => import("@components/sidebar/connectionStats"));
 const Terminal = lazy(() => import("@components/Terminal"));
-const UpdateInProgressStatusCard = lazy(() => import("@components/UpdateInProgressStatusCard"));
+// OTA update progress card disabled
+// const UpdateInProgressStatusCard = lazy(() => import("@components/UpdateInProgressStatusCard"));
 import Modal from "@components/Modal";
 import { FailSafeModeOverlay } from "@components/FailSafeModeOverlay";
 import {
@@ -141,7 +142,7 @@ export default function KvmIdRoute() {
   const [connectionFailed, setConnectionFailed] = useState(false);
 
   const navigate = useNavigate();
-  const { otaState, setOtaState, setModalView } = useUpdateStore();
+  // const { otaState, setOtaState, setModalView } = useUpdateStore();
 
   const [loadingMessage, setLoadingMessage] = useState(m.connecting_to_device());
   const cleanupAndStopReconnecting = useCallback(
@@ -683,6 +684,8 @@ export default function KvmIdRoute() {
       setKeysDownState(downState);
     }
 
+    // OTA state handling disabled
+    /*
     if (resp.method === "otaState") {
       const otaState = resp.params as OtaState;
       console.debug("Setting OTA state", otaState);
@@ -713,7 +716,7 @@ export default function KvmIdRoute() {
         window.location.href = currentUrl.toString();
       }
     }
-
+    */
     if (resp.method === "willReboot") {
       const action = resp.params as PostRebootAction | undefined;
       setRebootState({
@@ -829,12 +832,15 @@ export default function KvmIdRoute() {
     setHidRpcDisabled,
   ]);
 
+  // OTA update success handling disabled
+  /*
   // When the update is successful, we need to refresh the client javascript and show a success modal
   useEffect(() => {
     if (queryParams.get("updateSuccess")) {
       navigateTo("/settings/general/update", { state: { updateSuccess: true } });
     }
   }, [navigate, navigateTo, queryParams, setModalView, setQueryParams]);
+  */
 
   // System update
   const [kvmTerminal, setKvmTerminal] = useState<RTCDataChannel | null>(null);
@@ -922,6 +928,7 @@ export default function KvmIdRoute() {
 
   return (
     <FeatureFlagProvider appVersion={appVersion}>
+      {/* OTA update progress card disabled
       {!outlet && otaState.updating && (
         <AnimatePresence>
           <motion.div
@@ -935,6 +942,7 @@ export default function KvmIdRoute() {
           </motion.div>
         </AnimatePresence>
       )}
+      */}
       <div className="relative h-full">
         <FocusTrap
           paused={disableVideoFocusTrap}

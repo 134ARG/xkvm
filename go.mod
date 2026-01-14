@@ -4,7 +4,6 @@ go 1.24.4
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
-	github.com/beevik/ntp v1.5.0
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/coder/websocket v1.8.14
 	github.com/coreos/go-oidc/v3 v3.16.0
@@ -42,6 +41,7 @@ require (
 )
 
 require (
+	github.com/Masterminds/semver v1.5.0
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect

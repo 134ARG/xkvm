@@ -326,7 +326,7 @@ func newSession(config SessionConfig) (*Session, error) {
 			})
 			// Wait for channel to be open before sending initial state
 			d.OnOpen(func() {
-				triggerOTAStateUpdate(otaState.ToRPCState())
+				// triggerOTAStateUpdate(otaState.ToRPCState())
 				triggerVideoStateUpdate()
 				triggerUSBStateUpdate()
 				notifyFailsafeMode(session)
