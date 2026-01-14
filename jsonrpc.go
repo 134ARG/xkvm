@@ -189,9 +189,10 @@ func rpcGetStreamQualityFactor() (float64, error) {
 }
 
 func rpcSetStreamQualityFactor(factor float64) error {
-	logger.Info().Float64("factor", factor).Msg("Setting stream quality factor")
+	logger.Info().Float64("bitrate_kbps", factor).Msg("Setting stream bitrate")
 	err := nativeInstance.VideoSetQualityFactor(factor)
 	if err != nil {
+		logger.Error().Err(err).Float64("bitrate_kbps", factor).Msg("Failed to set stream bitrate")
 		return err
 	}
 
@@ -199,6 +200,7 @@ func rpcSetStreamQualityFactor(factor float64) error {
 	if err := SaveConfig(); err != nil {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
+	logger.Info().Float64("bitrate_kbps", factor).Msg("Stream bitrate updated and saved")
 	return nil
 }
 

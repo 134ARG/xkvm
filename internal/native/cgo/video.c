@@ -42,7 +42,7 @@ MB_POOL memPool = MB_INVALID_POOLID;
 
 bool sleep_mode_available = false;
 bool should_exit = false;
-float quality_factor = 1.0f;
+float bitrate_kbps = 5000.0f; // Store bitrate in kbps (1000-20000)
 
 static void *venc_read_stream(void *arg);
 
@@ -122,7 +122,11 @@ static void populate_venc_attr(VENC_CHN_ATTR_S *stAttr, RK_U32 bitrate, RK_U32 m
     stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H264VBR;
     stAttr->stRcAttr.stH264Vbr.u32BitRate = bitrate;
     stAttr->stRcAttr.stH264Vbr.u32MaxBitRate = max_bitrate;
+    stAttr->stRcAttr.stH264Vbr.u32MinBitRate = bitrate / 2;  // Set minimum bitrate
     stAttr->stRcAttr.stH264Vbr.u32Gop = 60;
+    stAttr->stRcAttr.stH264Vbr.fr32DstFrameRateNum = 60;  // Target 60 fps
+    stAttr->stRcAttr.stH264Vbr.fr32DstFrameRateDen = 1;
+    stAttr->stRcAttr.stH264Vbr.u32StatTime = 3;  // Statistics time window
 
     stAttr->stVencAttr.enType = RK_VIDEO_ID_AVC;
     stAttr->stVencAttr.enPixelFormat = RK_FMT_YUV422_UYVY;
@@ -235,10 +239,12 @@ int video_init(float factor)
 {
     detect_sleep_mode();
 
-    if (factor <= 0 || factor > 1) {
-        factor = 1.0f;
+    // Validate and set bitrate (factor is now bitrate in kbps)
+    if (factor < 1000 || factor > 20000) {
+        bitrate_kbps = 5000.0f; // Default to 5000 kbps
+    } else {
+        bitrate_kbps = factor;
     }
-    quality_factor = factor;
 
     if (RK_MPI_SYS_Init() != RK_SUCCESS)
     {
@@ -534,9 +540,13 @@ void *run_video_stream(void *arg)
 
         struct v4l2_plane tmp_plane;
 
-        // Set VENC parameters
-        int32_t bitrate = calculate_bitrate(quality_factor, width, height);
-        RK_S32 ret = venc_start(bitrate, bitrate * 2, width, height);
+        // Set VENC parameters - use bitrate directly
+        int32_t bitrate = (int32_t)bitrate_kbps;
+        fprintf(stderr, "[NATIVE] Starting video encoder with bitrate: %d kbps, max: %d kbps, resolution: %dx%d\n", 
+                bitrate / 2, bitrate, width, height);
+        log_info("Starting video encoder with bitrate: %d kbps, max: %d kbps, resolution: %dx%d", 
+                 bitrate / 2, bitrate, width, height);
+        RK_S32 ret = venc_start(bitrate / 2, bitrate, width, height);
         if (ret != RK_SUCCESS)
         {
             log_error("Set VENC parameters failed with %#x", ret);
@@ -880,12 +890,24 @@ exit:
 
 void video_set_quality_factor(float factor)
 {
-    quality_factor = factor;
+    fprintf(stderr, "[NATIVE] video_set_quality_factor called with value: %.0f\n", factor);
+    log_info("video_set_quality_factor called with value: %.0f", factor);
+    
+    // Validate bitrate range (factor is now bitrate in kbps)
+    if (factor < 1000 || factor > 20000) {
+        fprintf(stderr, "[NATIVE] Invalid bitrate: %.0f, must be between 1000-20000 kbps\n", factor);
+        log_error("Invalid bitrate: %.0f, must be between 1000-20000 kbps", factor);
+        return;
+    }
+    
+    bitrate_kbps = factor;
+    fprintf(stderr, "[NATIVE] Bitrate updated to: %.0f kbps, restarting stream\n", bitrate_kbps);
+    log_info("Bitrate updated to: %.0f kbps, restarting stream", bitrate_kbps);
 
     // TODO: update venc bitrate without stopping streaming
     video_restart_streaming();
 }
 
 float video_get_quality_factor() {
-    return quality_factor;
+    return bitrate_kbps;
 }

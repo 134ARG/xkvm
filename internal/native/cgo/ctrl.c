@@ -234,9 +234,12 @@ uint8_t jetkvm_video_get_streaming_status() {
 }
 
 int jetkvm_video_set_quality_factor(float quality_factor) {
-    if (quality_factor <= 0 || quality_factor > 1) {
+    // Validate bitrate range (1000-20000 kbps)
+    if (quality_factor < 1000 || quality_factor > 20000) {
+        fprintf(stderr, "[NATIVE] jetkvm_video_set_quality_factor: Invalid bitrate %.0f, must be between 1000-20000 kbps\n", quality_factor);
         return -1;
     }
+    fprintf(stderr, "[NATIVE] jetkvm_video_set_quality_factor: Calling video_set_quality_factor with %.0f kbps\n", quality_factor);
     video_set_quality_factor(quality_factor);
     return 0;
 }

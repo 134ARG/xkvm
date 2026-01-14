@@ -41,15 +41,9 @@ const edids = [
   },
 ];
 
-const streamQualityOptions = [
-  { value: "1", label: m.video_quality_high() },
-  { value: "0.5", label: m.video_quality_medium() },
-  { value: "0.1", label: m.video_quality_low() },
-];
-
 export default function SettingsVideoRoute() {
   const { send } = useJsonRpc();
-  const [streamQuality, setStreamQuality] = useState("1");
+  const [streamQuality, setStreamQuality] = useState(5000);
   const [customEdidValue, setCustomEdidValue] = useState<string | null>(null);
   const [edid, setEdid] = useState<string | null>(null);
   const [edidLoading, setEdidLoading] = useState(true);
@@ -67,7 +61,7 @@ export default function SettingsVideoRoute() {
   useEffect(() => {
     send("getStreamQualityFactor", {}, (resp: JsonRpcResponse) => {
       if ("error" in resp) return;
-      setStreamQuality(String(resp.result));
+      setStreamQuality(Number(resp.result));
     });
 
     send("getEDID", {}, (resp: JsonRpcResponse) => {
@@ -95,8 +89,8 @@ export default function SettingsVideoRoute() {
     });
   }, [send]);
 
-  const handleStreamQualityChange = (factor: string) => {
-    send("setStreamQualityFactor", { factor: Number(factor) }, (resp: JsonRpcResponse) => {
+  const handleStreamQualityChange = (bitrate: number) => {
+    send("setStreamQualityFactor", { factor: bitrate }, (resp: JsonRpcResponse) => {
       if ("error" in resp) {
         notifications.error(
           m.video_failed_set_stream_quality({ error: resp.error.data || m.unknown_error() }),
@@ -106,10 +100,10 @@ export default function SettingsVideoRoute() {
 
       notifications.success(
         m.video_stream_quality_set({
-          quality: streamQualityOptions.find(x => x.value === factor)?.label || "Unknown",
+          quality: `${bitrate} kbps`,
         }),
       );
-      setStreamQuality(factor);
+      setStreamQuality(bitrate);
     });
   };
 
@@ -168,13 +162,24 @@ export default function SettingsVideoRoute() {
               title={m.video_stream_quality_title()}
               description={m.video_stream_quality_description()}
             >
-              <SelectMenuBasic
-                size="SM"
-                label=""
-                value={streamQuality}
-                options={streamQualityOptions}
-                onChange={e => handleStreamQualityChange(e.target.value)}
-              />
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min="1000"
+                  max="20000"
+                  step="100"
+                  value={streamQuality}
+                  onChange={e => setStreamQuality(Number(e.target.value))}
+                  onMouseUp={e =>
+                    handleStreamQualityChange(Number((e.target as HTMLInputElement).value))
+                  }
+                  onTouchEnd={e =>
+                    handleStreamQualityChange(Number((e.target as HTMLInputElement).value))
+                  }
+                  className="h-2 w-48 cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
+                />
+                <span className="min-w-[90px] text-sm font-medium">{streamQuality} kbps</span>
+              </div>
             </SettingsItem>
 
             {/* Video Enhancement Settings */}

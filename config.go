@@ -166,7 +166,7 @@ func getDefaultConfig() Config {
 			return c
 		}(),
 		DefaultLogLevel:    "INFO",
-		VideoQualityFactor: 1.0,
+		VideoQualityFactor: 5000.0,
 	}
 }
 
@@ -240,6 +240,11 @@ func LoadConfig() {
 	// fixup old keyboard layout value
 	if loadedConfig.KeyboardLayout == "en_US" {
 		loadedConfig.KeyboardLayout = "en-US"
+	}
+
+	// migrate old quality factor values (0.1, 0.5, 1.0) to new bitrate format
+	if loadedConfig.VideoQualityFactor < 10 {
+		loadedConfig.VideoQualityFactor = 5000.0
 	}
 
 	config = &loadedConfig
