@@ -24,7 +24,9 @@ import (
 )
 
 const (
-	maxFrameSize                   = 1920 * 1080 / 2
+	// maxFrameSize needs to accommodate I-frames which can be 3-4x larger than average
+	// At 1920x1080 with high bitrate, I-frames can exceed 2MB
+	maxFrameSize                   = 1920 * 1080 * 2 // 4MB buffer for I-frames
 	defaultMaxRestartAttempts uint = 5
 )
 
