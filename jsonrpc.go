@@ -649,6 +649,17 @@ func rpcSetUsbConfig(usbConfig usbgadget.Config) error {
 	return updateUsbRelatedConfig()
 }
 
+func rpcGetUsbGadgetHealth() (usbgadget.HealthStatus, error) {
+	if gadget == nil || !gadget.IsInitialized() {
+		return usbgadget.HealthStatus{
+			Healthy:      false,
+			LastCheck:    time.Now(),
+			ErrorMessage: "USB gadget not initialized",
+		}, nil
+	}
+	return gadget.CheckHealth(), nil
+}
+
 func rpcGetWakeOnLanDevices() ([]WakeOnLanDevice, error) {
 	if config.WakeOnLanDevices == nil {
 		return []WakeOnLanDevice{}, nil
@@ -1307,6 +1318,7 @@ var rpcHandlers = map[string]RPCHandler{
 	"setTLSState":            {Func: rpcSetTLSState, Params: []string{"state"}},
 	"setMassStorageMode":     {Func: rpcSetMassStorageMode, Params: []string{"mode"}},
 	"getMassStorageMode":     {Func: rpcGetMassStorageMode},
+	"getUsbGadgetHealth":     {Func: rpcGetUsbGadgetHealth},
 	"isUpdatePending":        {Func: rpcIsUpdatePending},
 	"getUsbEmulationState":   {Func: rpcGetUsbEmulationState},
 	"setUsbEmulationState":   {Func: rpcSetUsbEmulationState, Params: []string{"enabled"}},

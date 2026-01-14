@@ -398,37 +398,85 @@ func (c *ChangeSet) ApplyChanges() error {
 }
 
 func (c *ChangeSet) applyChange(change *FileChange) error {
-	switch change.Action() {
-	case FileChangeResolvedActionWriteFile:
-		return os.WriteFile(change.Path, change.ExpectedContent, 0644)
-	case FileChangeResolvedActionUpdateFile:
-		return os.WriteFile(change.Path, change.ExpectedContent, 0644)
-	case FileChangeResolvedActionCreateFile:
-		return os.WriteFile(change.Path, change.ExpectedContent, 0644)
-	case FileChangeResolvedActionCreateSymlink:
-		return os.Symlink(string(change.ExpectedContent), change.Path)
-	case FileChangeResolvedActionRecreateSymlink:
-		if err := os.Remove(change.Path); err != nil {
-			return fmt.Errorf("failed to remove symlink: %w", err)
-		}
-		return os.Symlink(string(change.ExpectedContent), change.Path)
-	case FileChangeResolvedActionReorderSymlinks:
-		return recreateSymlinks(change, nil)
-	case FileChangeResolvedActionCreateDirectory:
-		return os.MkdirAll(change.Path, 0755)
-	case FileChangeResolvedActionRemove:
-		return os.Remove(change.Path)
-	case FileChangeResolvedActionRemoveDirectory:
-		return os.RemoveAll(change.Path)
-	case FileChangeResolvedActionTouch:
-		return os.Chtimes(change.Path, time.Now(), time.Now())
-	case FileChangeResolvedActionMountConfigFS:
-		return mountConfigFS(change.Path)
-	case FileChangeResolvedActionDoNothing:
-		return nil
-	default:
-		return fmt.Errorf("unknown action: %d", change.Action())
+	action := change.Action()
+
+	// Add retry logic for file operations that might fail transiently
+	retryableActions := map[FileChangeResolvedAction]bool{
+		FileChangeResolvedActionWriteFile:       true,
+		FileChangeResolvedActionUpdateFile:      true,
+		FileChangeResolvedActionCreateFile:      true,
+		FileChangeResolvedActionCreateSymlink:   true,
+		FileChangeResolvedActionRecreateSymlink: true,
+		FileChangeResolvedActionRemove:          true,
 	}
+
+	applyFn := func() error {
+		switch action {
+		case FileChangeResolvedActionWriteFile:
+			return os.WriteFile(change.Path, change.ExpectedContent, 0644)
+		case FileChangeResolvedActionUpdateFile:
+			return os.WriteFile(change.Path, change.ExpectedContent, 0644)
+		case FileChangeResolvedActionCreateFile:
+			return os.WriteFile(change.Path, change.ExpectedContent, 0644)
+		case FileChangeResolvedActionCreateSymlink:
+			return os.Symlink(string(change.ExpectedContent), change.Path)
+		case FileChangeResolvedActionRecreateSymlink:
+			if err := os.Remove(change.Path); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("failed to remove symlink: %w", err)
+			}
+			return os.Symlink(string(change.ExpectedContent), change.Path)
+		case FileChangeResolvedActionReorderSymlinks:
+			return recreateSymlinks(change, nil)
+		case FileChangeResolvedActionCreateDirectory:
+			return os.MkdirAll(change.Path, 0755)
+		case FileChangeResolvedActionRemove:
+			err := os.Remove(change.Path)
+			if os.IsNotExist(err) {
+				return nil // Already removed, not an error
+			}
+			return err
+		case FileChangeResolvedActionRemoveDirectory:
+			return os.RemoveAll(change.Path)
+		case FileChangeResolvedActionTouch:
+			return os.Chtimes(change.Path, time.Now(), time.Now())
+		case FileChangeResolvedActionMountConfigFS:
+			return mountConfigFS(change.Path)
+		case FileChangeResolvedActionDoNothing:
+			return nil
+		default:
+			return fmt.Errorf("unknown action: %d", action)
+		}
+	}
+
+	// Apply with retry for retryable actions
+	if retryableActions[action] {
+		var lastErr error
+		backoff := 50 * time.Millisecond
+		maxRetries := 2
+
+		for attempt := 0; attempt <= maxRetries; attempt++ {
+			if attempt > 0 {
+				time.Sleep(backoff)
+				backoff *= 2
+			}
+
+			err := applyFn()
+			if err == nil {
+				return nil
+			}
+
+			lastErr = err
+
+			// Check if error is retryable
+			if !isRetryableError(err) {
+				return err
+			}
+		}
+
+		return lastErr
+	}
+
+	return applyFn()
 }
 
 func (c *ChangeSet) Apply() error {

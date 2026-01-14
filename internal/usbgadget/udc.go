@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 )
 
 func getUdcs() []string {
@@ -26,13 +27,22 @@ func getUdcs() []string {
 }
 
 func rebindUsb(udc string, ignoreUnbindError bool) error {
-	err := os.WriteFile(path.Join(dwc3Path, "unbind"), []byte(udc), 0644)
-	if err != nil && !ignoreUnbindError {
-		return err
+	// Check if already bound before unbinding
+	udcPath := path.Join(dwc3Path, udc)
+	if _, err := os.Stat(udcPath); err == nil {
+		// UDC is bound, unbind it
+		err = os.WriteFile(path.Join(dwc3Path, "unbind"), []byte(udc), 0644)
+		if err != nil && !ignoreUnbindError {
+			return fmt.Errorf("failed to unbind UDC: %w", err)
+		}
+		// Give it a moment to unbind
+		time.Sleep(100 * time.Millisecond)
 	}
-	err = os.WriteFile(path.Join(dwc3Path, "bind"), []byte(udc), 0644)
+
+	// Now bind
+	err := os.WriteFile(path.Join(dwc3Path, "bind"), []byte(udc), 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to bind UDC: %w", err)
 	}
 	return nil
 }
@@ -80,7 +90,17 @@ func (u *UsbGadget) IsUDCBound() (bool, error) {
 
 // BindUDC binds the gadget to the UDC.
 func (u *UsbGadget) BindUDC() error {
-	err := os.WriteFile(path.Join(dwc3Path, "bind"), []byte(u.udc), 0644)
+	// Check if already bound
+	bound, err := u.IsUDCBound()
+	if err != nil {
+		return fmt.Errorf("error checking UDC bind state: %w", err)
+	}
+	if bound {
+		u.log.Debug().Msg("UDC already bound, skipping")
+		return nil
+	}
+
+	err = os.WriteFile(path.Join(dwc3Path, "bind"), []byte(u.udc), 0644)
 	if err != nil {
 		return fmt.Errorf("error binding UDC: %w", err)
 	}
@@ -89,7 +109,17 @@ func (u *UsbGadget) BindUDC() error {
 
 // UnbindUDC unbinds the gadget from the UDC.
 func (u *UsbGadget) UnbindUDC() error {
-	err := os.WriteFile(path.Join(dwc3Path, "unbind"), []byte(u.udc), 0644)
+	// Check if bound before unbinding
+	bound, err := u.IsUDCBound()
+	if err != nil {
+		return fmt.Errorf("error checking UDC bind state: %w", err)
+	}
+	if !bound {
+		u.log.Debug().Msg("UDC not bound, skipping unbind")
+		return nil
+	}
+
+	err = os.WriteFile(path.Join(dwc3Path, "unbind"), []byte(u.udc), 0644)
 	if err != nil {
 		return fmt.Errorf("error unbinding UDC: %w", err)
 	}

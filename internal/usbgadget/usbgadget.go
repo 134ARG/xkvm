@@ -102,11 +102,11 @@ const gadgetPath = "/sys/kernel/config/usb_gadget"
 var defaultLogger = logging.GetSubsystemLogger("usbgadget")
 
 // NewUsbGadget creates a new UsbGadget.
-func NewUsbGadget(name string, enabledDevices *Devices, config *Config, logger *zerolog.Logger) *UsbGadget {
+func NewUsbGadget(name string, enabledDevices *Devices, config *Config, logger *zerolog.Logger) (*UsbGadget, error) {
 	return newUsbGadget(name, defaultGadgetConfig, enabledDevices, config, logger)
 }
 
-func newUsbGadget(name string, configMap map[string]gadgetConfigItem, enabledDevices *Devices, config *Config, logger *zerolog.Logger) *UsbGadget {
+func newUsbGadget(name string, configMap map[string]gadgetConfigItem, enabledDevices *Devices, config *Config, logger *zerolog.Logger) (*UsbGadget, error) {
 	if logger == nil {
 		logger = defaultLogger
 	}
@@ -149,10 +149,10 @@ func newUsbGadget(name string, configMap map[string]gadgetConfigItem, enabledDev
 	}
 	if err := g.Init(); err != nil {
 		logger.Error().Err(err).Msg("failed to init USB gadget")
-		return nil
+		return nil, err
 	}
 
-	return g
+	return g, nil
 }
 
 // Close cleans up resources used by the USB gadget

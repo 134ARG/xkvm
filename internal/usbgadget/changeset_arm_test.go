@@ -75,20 +75,23 @@ var oldAbsoluteMouseCombinedReportDesc = []byte{
 
 func TestUsbGadgetInit(t *testing.T) {
 	assert := assert.New(t)
-	usbGadget = NewUsbGadget(usbGadgetName, usbDevices, usbConfig, nil)
+	usbGadget, err := NewUsbGadget(usbGadgetName, usbDevices, usbConfig, nil)
 
+	assert.Nil(err)
 	assert.NotNil(usbGadget)
 }
 
 func TestUsbGadgetStrictModeInitFail(t *testing.T) {
 	usbConfig.strictMode = true
-	u := NewUsbGadget("test", usbDevices, usbConfig, nil)
+	u, err := NewUsbGadget("test", usbDevices, usbConfig, nil)
+	assert.NotNil(t, err, "should have error")
 	assert.Nil(t, u, "should be nil")
 }
 
 func TestUsbGadgetUDCNotBoundAfterReportDescrChanged(t *testing.T) {
 	assert := assert.New(t)
-	usbGadget = NewUsbGadget(usbGadgetName, usbDevices, usbConfig, nil)
+	usbGadget, err := NewUsbGadget(usbGadgetName, usbDevices, usbConfig, nil)
+	assert.Nil(err)
 	assert.NotNil(usbGadget)
 
 	// release the usb gadget and create a new one
@@ -100,7 +103,8 @@ func TestUsbGadgetUDCNotBoundAfterReportDescrChanged(t *testing.T) {
 	oldAbsoluteMouseConfig.reportDesc = oldAbsoluteMouseCombinedReportDesc
 	altGadgetConfig["absolute_mouse"] = oldAbsoluteMouseConfig
 
-	usbGadget = newUsbGadget(usbGadgetName, altGadgetConfig, usbDevices, usbConfig, nil)
+	usbGadget, err = newUsbGadget(usbGadgetName, altGadgetConfig, usbDevices, usbConfig, nil)
+	assert.Nil(err)
 	assert.NotNil(usbGadget)
 
 	udcs := getUdcs()

@@ -27,6 +27,10 @@ func writeFile(path string, data string) error {
 }
 
 func getMassStorageImage() (string, error) {
+	if gadget == nil || !gadget.IsInitialized() {
+		return "", fmt.Errorf("USB gadget not initialized")
+	}
+
 	massStorageFunctionPath, err := gadget.GetPath("mass_storage_lun0")
 	if err != nil {
 		return "", fmt.Errorf("failed to get mass storage path: %w", err)
@@ -40,6 +44,10 @@ func getMassStorageImage() (string, error) {
 }
 
 func setMassStorageImage(imagePath string) error {
+	if gadget == nil || !gadget.IsInitialized() {
+		return fmt.Errorf("USB gadget not initialized")
+	}
+
 	massStorageFunctionPath, err := gadget.GetPath("mass_storage_lun0")
 	if err != nil {
 		return fmt.Errorf("failed to get mass storage path: %w", err)
@@ -52,6 +60,10 @@ func setMassStorageImage(imagePath string) error {
 }
 
 func setMassStorageMode(cdrom bool) error {
+	if gadget == nil || !gadget.IsInitialized() {
+		return fmt.Errorf("USB gadget not initialized")
+	}
+
 	mode := "0"
 	if cdrom {
 		mode = "1"
@@ -135,6 +147,10 @@ func rpcMountBuiltInImage(filename string) error {
 }
 
 func getMassStorageCDROMEnabled() (bool, error) {
+	if gadget == nil || !gadget.IsInitialized() {
+		return false, fmt.Errorf("USB gadget not initialized")
+	}
+
 	massStorageFunctionPath, err := gadget.GetPath("mass_storage_lun0")
 	if err != nil {
 		return false, fmt.Errorf("failed to get mass storage path: %w", err)

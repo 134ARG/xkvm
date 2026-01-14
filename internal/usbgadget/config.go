@@ -177,7 +177,24 @@ func (u *UsbGadget) Init() error {
 
 	u.udc = udcs[0]
 
-	err := u.configureUsbGadget(false)
+	// Acquire lock to prevent concurrent initialization
+	lockFile, err := u.AcquireLock()
+	if err != nil {
+		u.log.Warn().Err(err).Msg("failed to acquire lock, proceeding without lock")
+	} else {
+		defer u.ReleaseLock(lockFile)
+	}
+
+	// Clean up any stale USB gadget state from previous runs
+	if err := u.cleanupStaleGadget(); err != nil {
+		u.log.Warn().Err(err).Msg("failed to cleanup stale gadget, continuing anyway")
+	}
+
+	// Use retry logic for initialization
+	err = u.RetryWithBackoff("usb_gadget_init", func() error {
+		return u.configureUsbGadget(false)
+	})
+
 	if err != nil {
 		return u.logError("unable to initialize USB stack", err)
 	}
@@ -191,7 +208,27 @@ func (u *UsbGadget) UpdateGadgetConfig() error {
 
 	u.loadGadgetConfig()
 
-	err := u.configureUsbGadget(true)
+	// Validate state before updating
+	if err := u.ValidateState(); err != nil {
+		u.log.Warn().Err(err).Msg("invalid state detected, attempting recovery")
+
+		// Try to recover by reinitializing
+		if err := u.cleanupStaleGadget(); err != nil {
+			return fmt.Errorf("failed to cleanup for recovery: %w", err)
+		}
+
+		// Reinitialize without lock (we already have it)
+		if err := u.configureUsbGadget(false); err != nil {
+			return fmt.Errorf("failed to reinitialize after recovery: %w", err)
+		}
+
+		u.log.Info().Msg("successfully recovered USB gadget state")
+	}
+
+	err := u.RetryWithBackoff("update_gadget_config", func() error {
+		return u.configureUsbGadget(true)
+	})
+
 	if err != nil {
 		return u.logError("unable to update gadget config", err)
 	}
