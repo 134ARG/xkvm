@@ -268,6 +268,16 @@ func getInitialVirtualMediaState() (*VirtualMediaState, error) {
 func setInitialVirtualMediaState() error {
 	virtualMediaStateMutex.Lock()
 	defer virtualMediaStateMutex.Unlock()
+
+	// Clear any stale mass storage image from previous runs
+	// This must be done after USB gadget initialization
+	logger.Info().Msg("clearing any stale mass storage configuration from previous runs")
+	if err := setMassStorageImage(""); err != nil {
+		// This is expected to fail if the gadget was just cleaned up
+		// The mass storage function will be recreated with empty file
+		logger.Debug().Err(err).Msg("could not clear mass storage (expected if gadget was just cleaned up)")
+	}
+
 	initialState, err := getInitialVirtualMediaState()
 	if err != nil {
 		return fmt.Errorf("failed to get initial virtual media state: %w", err)
