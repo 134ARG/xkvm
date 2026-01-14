@@ -63,6 +63,13 @@ func (hm *ResolvConfManager) getHostname() string {
 	if hm.hostname != "" {
 		return hm.hostname
 	}
+
+	// Read from system hostname
+	if sysHostname, err := os.Hostname(); err == nil && sysHostname != "" {
+		return sysHostname
+	}
+
+	// Only use as last resort fallback
 	return "jetkvm"
 }
 
