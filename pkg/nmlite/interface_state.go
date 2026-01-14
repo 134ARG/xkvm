@@ -93,6 +93,20 @@ func (im *InterfaceManager) updateInterfaceState() error {
 		changeReasons = append(changeReasons, IfStateIPAddressesChanged)
 	}
 
+	// Try to read DHCP lease from system DHCP clients if we don't have one
+	// This allows read-only mode to display DHCP lease information
+	if im.state.DHCPLease4 == nil && im.config.IPv4Mode.String == "dhcp" {
+		reader := NewDHCPLeaseReader(im.ifaceName)
+		if systemLease := reader.ReadSystemDHCPLease(); systemLease != nil {
+			im.state.DHCPLease4 = systemLease
+			stateChanged = true
+			im.logger.Debug().
+				Str("client", systemLease.DHCPClient).
+				Str("ip", systemLease.IPAddress.String()).
+				Msg("read DHCP lease from system DHCP client")
+		}
+	}
+
 	im.state.LastUpdated = time.Now()
 	im.stateMu.Unlock()
 

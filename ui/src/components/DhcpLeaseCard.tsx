@@ -6,12 +6,67 @@ import { m } from "@localizations/messages.js";
 
 export default function DhcpLeaseCard({
   networkState,
-  setShowRenewLeaseConfirm,
+  setShowRenewLeaseConfirm: _setShowRenewLeaseConfirm,
 }: {
   networkState: NetworkState | null;
   setShowRenewLeaseConfirm: (show: boolean) => void;
 }) {
   const isDhcpLeaseEmpty = Object.keys(networkState?.dhcp_lease || {}).length === 0;
+  const hasIPv4Addresses =
+    networkState?.ipv4 || (networkState?.ipv4_addresses && networkState.ipv4_addresses.length > 0);
+
+  // If we have IPv4 addresses but no DHCP lease details, show basic IPv4 info
+  if (isDhcpLeaseEmpty && hasIPv4Addresses) {
+    return (
+      <GridCard>
+        <div className="animate-fadeIn p-4 text-black opacity-0 animation-duration-500 dark:text-white">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                IPv4 Address Information
+              </h3>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Read-only</div>
+            </div>
+
+            <div className="space-y-2">
+              {networkState?.ipv4 && (
+                <div className="flex justify-between border-slate-800/10 pt-2 dark:border-slate-300/20">
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    {m.ip_address()}
+                  </span>
+                  &nbsp;
+                  <span className="text-sm font-medium">{networkState.ipv4}</span>
+                </div>
+              )}
+
+              {networkState?.ipv4_addresses && networkState.ipv4_addresses.length > 1 && (
+                <div className="flex justify-between border-t border-slate-800/10 pt-2 dark:border-slate-300/20">
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    Additional Addresses
+                  </span>
+                  &nbsp;
+                  <span className="text-right text-sm font-medium">
+                    {networkState.ipv4_addresses
+                      .filter(addr => addr !== networkState.ipv4)
+                      .map(addr => (
+                        <div key={addr}>{addr}</div>
+                      ))}
+                  </span>
+                </div>
+              )}
+
+              <div className="mt-4 rounded-md bg-blue-50 p-3 dark:bg-blue-900/20">
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  Detailed DHCP lease information is not available. Use OS network tools (nmcli, ip
+                  addr) for complete network details.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </GridCard>
+    );
+  }
 
   if (isDhcpLeaseEmpty) {
     return (
@@ -30,10 +85,8 @@ export default function DhcpLeaseCard({
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
               {m.dhcp_lease_header()}
             </h3>
-            
-            <div className="text-xs text-slate-500 dark:text-slate-400">
-              Read-only
-            </div>
+
+            <div className="text-xs text-slate-500 dark:text-slate-400">Read-only</div>
           </div>
 
           <div className="flex gap-x-6 gap-y-2">
