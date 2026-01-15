@@ -68,7 +68,7 @@ export function FailSafeModeOverlay({ reason }: FailSafeModeOverlayProps) {
       // Download logs
       const logContent = resp.result as string;
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const filename = `jetkvm-recovery-${reason}-${timestamp}.txt`;
+      const filename = `xkvm-recovery-${reason}-${timestamp}.txt`;
 
       const blob = new Blob([logContent], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
@@ -104,7 +104,7 @@ Please attach the recovery logs file that was downloaded to your computer:
 [Please describe what you were doing when this occurred]`;
 
       const issueUrl =
-        `https://github.com/jetkvm/kvm/issues/new?` +
+        `https://github.com/xkvm/kvm/issues/new?` +
         `title=${encodeURIComponent(`Recovery Mode: ${reason} process issue`)}&` +
         `body=${encodeURIComponent(issueBody)}`;
 

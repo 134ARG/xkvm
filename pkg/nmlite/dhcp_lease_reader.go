@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jetkvm/kvm/internal/network/types"
+	"github.com/xkvm/kvm/internal/network/types"
 )
 
 // DHCPLeaseReader reads DHCP lease information from system DHCP clients

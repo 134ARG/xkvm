@@ -28,7 +28,7 @@ export default function LoginRoute() {
       description={m.auth_login_description()}
       action={m.auth_login_action()}
       // Header CTA
-      cta={m.auth_header_cta_new_to_jetkvm()}
+      cta={m.auth_header_cta_new_to_xkvm()}
       ctaHref={`/signup?${sq.toString()}`}
     />
   );

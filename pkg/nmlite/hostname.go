@@ -70,7 +70,7 @@ func (hm *ResolvConfManager) getHostname() string {
 	}
 
 	// Only use as last resort fallback
-	return "jetkvm"
+	return "xkvm"
 }
 
 func (hm *ResolvConfManager) getDomain() string {
@@ -98,7 +98,7 @@ func (hm *ResolvConfManager) reconcileHostname() error {
 	domain := hm.getDomain()
 	hostname := hm.hostname
 	if hostname == "" {
-		hostname = "jetkvm"
+		hostname = "xkvm"
 	}
 	hm.mu.Unlock()
 

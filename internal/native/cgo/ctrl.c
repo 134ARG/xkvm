@@ -14,38 +14,38 @@
 #include "log.h"
 #include "log_handler.h"
 
-jetkvm_video_state_t state;
-jetkvm_video_state_handler_t *video_state_handler = NULL;
-jetkvm_rpc_handler_t *rpc_handler = NULL;
-jetkvm_video_handler_t *video_handler = NULL;
+xkvm_video_state_t state;
+xkvm_video_state_handler_t *video_state_handler = NULL;
+xkvm_rpc_handler_t *rpc_handler = NULL;
+xkvm_video_handler_t *video_handler = NULL;
 
 
-void jetkvm_set_log_handler(jetkvm_log_handler_t *handler) {
+void xkvm_set_log_handler(xkvm_log_handler_t *handler) {
     log_set_handler(handler);
 }
 
-void jetkvm_set_video_handler(jetkvm_video_handler_t *handler) {
+void xkvm_set_video_handler(xkvm_video_handler_t *handler) {
     video_handler = handler;
 }
 
-static jetkvm_indev_handler_t *jetkvm_indev_handler = NULL;
+static xkvm_indev_handler_t *xkvm_indev_handler = NULL;
 
-void jetkvm_set_indev_handler(jetkvm_indev_handler_t *handler) {
-    jetkvm_indev_handler = handler;
+void xkvm_set_indev_handler(xkvm_indev_handler_t *handler) {
+    xkvm_indev_handler = handler;
     // Note: No LVGL integration for headless operation
 }
 
-void jetkvm_set_rpc_handler(jetkvm_rpc_handler_t *handler) {
+void xkvm_set_rpc_handler(xkvm_rpc_handler_t *handler) {
     rpc_handler = handler;
 }
 
-void jetkvm_call_rpc_handler(const char *method, const char *params) {
+void xkvm_call_rpc_handler(const char *method, const char *params) {
     if (rpc_handler != NULL) {
         (*rpc_handler)(method, params);
     }
 }
 
-const char *jetkvm_ui_event_code_to_name(int code) {
+const char *xkvm_ui_event_code_to_name(int code) {
     // Headless operation - no LVGL event codes
     return "UNKNOWN";
 }
@@ -143,112 +143,112 @@ const char *bytes_to_hex(const uint8_t *bytes, size_t len)
 }
 
 // LVGL functions removed for headless operation
-void jetkvm_ui_set_var(const char *name, const char *value) {
+void xkvm_ui_set_var(const char *name, const char *value) {
     // No-op for headless operation
 }
 
-const char *jetkvm_ui_get_var(const char *name) {
+const char *xkvm_ui_get_var(const char *name) {
     // No-op for headless operation
     return NULL;
 }
 
-void jetkvm_ui_init(u_int16_t rotation) {
+void xkvm_ui_init(u_int16_t rotation) {
     // No-op for headless operation
 }
 
-void jetkvm_ui_tick() {
+void xkvm_ui_tick() {
     // No-op for headless operation
 }
 
-void jetkvm_set_video_state_handler(jetkvm_video_state_handler_t *handler) {
+void xkvm_set_video_state_handler(xkvm_video_state_handler_t *handler) {
     video_state_handler = handler;
 }
 
-void jetkvm_ui_set_rotation(u_int16_t rotation) {
+void xkvm_ui_set_rotation(u_int16_t rotation) {
     // No-op for headless operation
 }
 
-const char *jetkvm_ui_get_current_screen() {
+const char *xkvm_ui_get_current_screen() {
     // No-op for headless operation
     return NULL;
 }
 
-void jetkvm_ui_load_screen(const char *obj_name) {
+void xkvm_ui_load_screen(const char *obj_name) {
     // No-op for headless operation
 }
 
-int jetkvm_ui_set_text(const char *obj_name, const char *text) {
-    // No-op for headless operation
-    return -1;
-}
-
-void jetkvm_ui_set_image(const char *obj_name, const char *image_name) {
-    // No-op for headless operation
-}
-
-void jetkvm_ui_add_state(const char *obj_name, const char *state_name) {
-    // No-op for headless operation
-}
-
-void jetkvm_ui_clear_state(const char *obj_name, const char *state_name) {
-    // No-op for headless operation
-}
-
-int jetkvm_ui_add_flag(const char *obj_name, const char *flag_name) {
+int xkvm_ui_set_text(const char *obj_name, const char *text) {
     // No-op for headless operation
     return -1;
 }
 
-int jetkvm_ui_clear_flag(const char *obj_name, const char *flag_name) {
+void xkvm_ui_set_image(const char *obj_name, const char *image_name) {
+    // No-op for headless operation
+}
+
+void xkvm_ui_add_state(const char *obj_name, const char *state_name) {
+    // No-op for headless operation
+}
+
+void xkvm_ui_clear_state(const char *obj_name, const char *state_name) {
+    // No-op for headless operation
+}
+
+int xkvm_ui_add_flag(const char *obj_name, const char *flag_name) {
     // No-op for headless operation
     return -1;
 }
 
-void jetkvm_ui_fade_in(const char *obj_name, u_int32_t duration) {
+int xkvm_ui_clear_flag(const char *obj_name, const char *flag_name) {
+    // No-op for headless operation
+    return -1;
+}
+
+void xkvm_ui_fade_in(const char *obj_name, u_int32_t duration) {
     // No-op for headless operation
 }
 
-void jetkvm_ui_fade_out(const char *obj_name, u_int32_t duration) {
+void xkvm_ui_fade_out(const char *obj_name, u_int32_t duration) {
     // No-op for headless operation
 }
 
-void jetkvm_ui_set_opacity(const char *obj_name, u_int8_t opacity) {
+void xkvm_ui_set_opacity(const char *obj_name, u_int8_t opacity) {
     // No-op for headless operation
 }
 
-const char *jetkvm_ui_get_lvgl_version() {
+const char *xkvm_ui_get_lvgl_version() {
     // No LVGL for headless operation
     return "N/A (headless)";
 }
 
-void jetkvm_video_start() {
+void xkvm_video_start() {
     video_start_streaming();
 }
 
-void jetkvm_video_stop() {
+void xkvm_video_stop() {
     video_stop_streaming();
 }
 
-uint8_t jetkvm_video_get_streaming_status() {
+uint8_t xkvm_video_get_streaming_status() {
     return video_get_streaming_status();
 }
 
-int jetkvm_video_set_quality_factor(float quality_factor) {
+int xkvm_video_set_quality_factor(float quality_factor) {
     // Validate bitrate range (1000-20000 kbps)
     if (quality_factor < 1000 || quality_factor > 20000) {
-        fprintf(stderr, "[NATIVE] jetkvm_video_set_quality_factor: Invalid bitrate %.0f, must be between 1000-20000 kbps\n", quality_factor);
+        fprintf(stderr, "[NATIVE] xkvm_video_set_quality_factor: Invalid bitrate %.0f, must be between 1000-20000 kbps\n", quality_factor);
         return -1;
     }
-    fprintf(stderr, "[NATIVE] jetkvm_video_set_quality_factor: Calling video_set_quality_factor with %.0f kbps\n", quality_factor);
+    fprintf(stderr, "[NATIVE] xkvm_video_set_quality_factor: Calling video_set_quality_factor with %.0f kbps\n", quality_factor);
     video_set_quality_factor(quality_factor);
     return 0;
 }
 
-float jetkvm_video_get_quality_factor() {
+float xkvm_video_get_quality_factor() {
     return video_get_quality_factor();
 }
 
-int jetkvm_video_set_edid(const char *edid_hex) {
+int xkvm_video_set_edid(const char *edid_hex) {
     uint8_t edid[256];
     int edid_len = hex_to_bytes(edid_hex, edid, 256);
     if (edid_len < 0) {
@@ -257,7 +257,7 @@ int jetkvm_video_set_edid(const char *edid_hex) {
     return set_edid(edid, edid_len);
 }
 
-char *jetkvm_video_get_edid_hex() {
+char *xkvm_video_get_edid_hex() {
     uint8_t edid[256];
     int edid_len = get_edid(edid, 256);
     if (edid_len < 0) {
@@ -266,23 +266,23 @@ char *jetkvm_video_get_edid_hex() {
     return (char *)bytes_to_hex(edid, edid_len);
 }
 
-jetkvm_video_state_t *jetkvm_video_get_status() {
+xkvm_video_state_t *xkvm_video_get_status() {
     return &state;
 }
 
-char *jetkvm_video_log_status() {
+char *xkvm_video_log_status() {
     return (char *)videoc_log_status();
 }
 
-int jetkvm_video_init(float factor) {
+int xkvm_video_init(float factor) {
     return video_init(factor);
 }
 
-void jetkvm_video_shutdown() {
+void xkvm_video_shutdown() {
     video_shutdown();
 }
 
-void jetkvm_crash() {
+void xkvm_crash() {
     // let's call a function that will crash the program
     int* p = 0;
     *p = 0;

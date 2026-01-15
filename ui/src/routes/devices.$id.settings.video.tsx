@@ -17,7 +17,7 @@ const defaultEdid =
 const edids = [
   {
     value: defaultEdid,
-    label: m.video_edid_jetkvm_default(),
+    label: m.video_edid_xkvm_default(),
   },
   {
     value:

@@ -3,7 +3,7 @@ package native
 import (
 	"context"
 
-	pb "github.com/jetkvm/kvm/internal/native/proto"
+	pb "github.com/xkvm/kvm/internal/native/proto"
 )
 
 // Below are generated methods, do not edit manually

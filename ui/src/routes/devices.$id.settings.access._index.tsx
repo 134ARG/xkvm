@@ -52,7 +52,7 @@ export default function SettingsAccessIndexRoute() {
   const [cloudAppUrl, setCloudAppUrl] = useState("");
 
   // Use a simple string identifier for the selected provider
-  const [selectedProvider, setSelectedProvider] = useState<string>("jetkvm");
+  const [selectedProvider, setSelectedProvider] = useState<string>("xkvm");
   const [tlsMode, setTlsMode] = useState<string>("unknown");
   const [tlsCert, setTlsCert] = useState<string>("");
   const [tlsKey, setTlsKey] = useState<string>("");
@@ -67,11 +67,11 @@ export default function SettingsAccessIndexRoute() {
       if (cloudState.appUrl) setCloudAppUrl(cloudState.appUrl);
 
       // Find if the API URL matches any of our predefined providers
-      const isAPIJetKVMProd = cloudState.url === "https://api.jetkvm.com";
-      const isAppJetKVMProd = cloudState.appUrl === "https://app.jetkvm.com";
+      const isAPIXKVMProd = cloudState.url === "https://api.xkvm.com";
+      const isAppXKVMProd = cloudState.appUrl === "https://app.xkvm.com";
 
-      if (isAPIJetKVMProd && isAppJetKVMProd) {
-        setSelectedProvider("jetkvm");
+      if (isAPIXKVMProd && isAppXKVMProd) {
+        setSelectedProvider("xkvm");
       } else {
         setSelectedProvider("custom");
       }
@@ -136,9 +136,9 @@ export default function SettingsAccessIndexRoute() {
     setSelectedProvider(value);
 
     // If selecting a predefined provider, update both URLs
-    if (value === "jetkvm") {
-      setCloudApiUrl("https://api.jetkvm.com");
-      setCloudAppUrl("https://app.jetkvm.com");
+    if (value === "xkvm") {
+      setCloudApiUrl("https://api.xkvm.com");
+      setCloudAppUrl("https://app.xkvm.com");
     } else {
       if (cloudApiUrl || cloudAppUrl) return;
       setCloudApiUrl("");
@@ -330,7 +330,7 @@ export default function SettingsAccessIndexRoute() {
                   value={selectedProvider}
                   onChange={e => handleProviderChange(e.target.value)}
                   options={[
-                    { value: "jetkvm", label: m.access_provider_jetkvm() },
+                    { value: "xkvm", label: m.access_provider_xkvm() },
                     { value: "custom", label: m.access_provider_custom() },
                   ]}
                 />
@@ -361,8 +361,8 @@ export default function SettingsAccessIndexRoute() {
             </>
           )}
 
-          {/* Show security info for JetKVM Cloud */}
-          {selectedProvider === "jetkvm" && (
+          {/* Show security info for XKVM Cloud */}
+          {selectedProvider === "xkvm" && (
             <GridCard>
               <div className="flex items-start gap-x-4 p-4">
                 <ShieldCheckIcon className="mt-1 h-8 w-8 shrink-0 text-blue-600 dark:text-blue-500" />
@@ -383,7 +383,7 @@ export default function SettingsAccessIndexRoute() {
                     <div className="text-xs text-slate-700 dark:text-slate-300">
                       {m.access_security_open_source()}{" "}
                       <a
-                        href="https://github.com/jetkvm"
+                        href="https://github.com/xkvm"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="font-medium text-blue-600 hover:text-blue-800 dark:text-blue-500 dark:hover:text-blue-400"
@@ -397,7 +397,7 @@ export default function SettingsAccessIndexRoute() {
 
                   <div>
                     <LinkButton
-                      to="https://jetkvm.com/docs/networking/remote-access"
+                      to="https://xkvm.com/docs/networking/remote-access"
                       size="SM"
                       theme="light"
                       text={m.access_learn_security()}

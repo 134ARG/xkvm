@@ -5,7 +5,7 @@ set -e
 
 SCRIPT_PATH=$(realpath "$(dirname $(realpath "${BASH_SOURCE[0]}"))")
 
-echo "🔧 Cross-compiling JetKVM native components for ARM64..."
+echo "🔧 Cross-compiling XKVM native components for ARM64..."
 
 # Force cross-compilation
 export CROSS_COMPILE=yes

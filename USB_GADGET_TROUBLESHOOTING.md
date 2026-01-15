@@ -23,10 +23,10 @@ stale USB gadget cleaned up successfully
 If automatic cleanup fails:
 ```bash
 # Unbind UDC
-echo "" > /sys/kernel/config/usb_gadget/jetkvm/UDC
+echo "" > /sys/kernel/config/usb_gadget/xkvm/UDC
 
 # Remove gadget
-rm -rf /sys/kernel/config/usb_gadget/jetkvm
+rm -rf /sys/kernel/config/usb_gadget/xkvm
 ```
 
 ### Issue 2: "USB gadget not initialized" Errors
@@ -42,7 +42,7 @@ USB gadget failed to initialize or crashed.
 **Solution:**
 1. Check initialization logs:
 ```bash
-journalctl -u jetkvm | grep "USB gadget"
+journalctl -u xkvm | grep "USB gadget"
 ```
 
 2. Check health status via RPC:
@@ -50,9 +50,9 @@ journalctl -u jetkvm | grep "USB gadget"
 rpc.call("getUsbGadgetHealth")
 ```
 
-3. Restart JetKVM service:
+3. Restart XKVM service:
 ```bash
-systemctl restart jetkvm
+systemctl restart xkvm
 ```
 
 ### Issue 3: Lock Acquisition Timeout
@@ -65,14 +65,14 @@ systemctl restart jetkvm
 Another process is holding the lock or stale lock file.
 
 **Solution:**
-1. Check for other JetKVM processes:
+1. Check for other XKVM processes:
 ```bash
-ps aux | grep jetkvm
+ps aux | grep xkvm
 ```
 
 2. Remove stale lock file:
 ```bash
-rm -f /var/lock/jetkvm-usb.lock
+rm -f /var/lock/xkvm-usb.lock
 ```
 
 3. Restart service
@@ -95,7 +95,7 @@ ls /sys/devices/platform/usbdrd/*.usb
 
 2. Check current binding:
 ```bash
-cat /sys/kernel/config/usb_gadget/jetkvm/UDC
+cat /sys/kernel/config/usb_gadget/xkvm/UDC
 ```
 
 3. Manual rebind:
@@ -104,7 +104,7 @@ cat /sys/kernel/config/usb_gadget/jetkvm/UDC
 UDC=$(ls /sys/devices/platform/usbdrd/*.usb | head -1 | xargs basename)
 
 # Bind
-echo $UDC > /sys/kernel/config/usb_gadget/jetkvm/UDC
+echo $UDC > /sys/kernel/config/usb_gadget/xkvm/UDC
 ```
 
 ### Issue 5: Transient Errors During Init
@@ -147,7 +147,7 @@ rpc.call("getUsbGadgetHealth")
 
 2. Review health check logs:
 ```bash
-journalctl -u jetkvm | grep "health check"
+journalctl -u xkvm | grep "health check"
 ```
 
 3. If recovery fails repeatedly:
@@ -160,43 +160,43 @@ journalctl -u jetkvm | grep "health check"
 ### Check USB Gadget State
 ```bash
 # Check if gadget exists
-ls -la /sys/kernel/config/usb_gadget/jetkvm
+ls -la /sys/kernel/config/usb_gadget/xkvm
 
 # Check UDC binding
-cat /sys/kernel/config/usb_gadget/jetkvm/UDC
+cat /sys/kernel/config/usb_gadget/xkvm/UDC
 
 # Check USB state
 cat /sys/class/udc/*/state
 
 # List functions
-ls -la /sys/kernel/config/usb_gadget/jetkvm/functions/
+ls -la /sys/kernel/config/usb_gadget/xkvm/functions/
 
 # List config symlinks
-ls -la /sys/kernel/config/usb_gadget/jetkvm/configs/c.1/
+ls -la /sys/kernel/config/usb_gadget/xkvm/configs/c.1/
 ```
 
 ### Check Logs
 ```bash
 # Recent USB gadget logs
-journalctl -u jetkvm --since "10 minutes ago" | grep -i usb
+journalctl -u xkvm --since "10 minutes ago" | grep -i usb
 
 # Initialization logs
-journalctl -u jetkvm -b | grep "initUsbGadget"
+journalctl -u xkvm -b | grep "initUsbGadget"
 
 # Health check logs
-journalctl -u jetkvm | grep "health check"
+journalctl -u xkvm | grep "health check"
 
 # Cleanup logs
-journalctl -u jetkvm | grep "cleanup"
+journalctl -u xkvm | grep "cleanup"
 ```
 
 ### Check Lock Status
 ```bash
 # Check if lock file exists
-ls -la /var/lock/jetkvm-usb.lock
+ls -la /var/lock/xkvm-usb.lock
 
 # Check which process holds lock (if any)
-lsof /var/lock/jetkvm-usb.lock
+lsof /var/lock/xkvm-usb.lock
 ```
 
 ### Check Kernel Modules
@@ -264,7 +264,7 @@ if err := gadget.KeyboardReport(mod, keys); err != nil {
 ### 4. Regular Monitoring
 Monitor logs for warnings:
 ```bash
-journalctl -u jetkvm -f | grep -i "warn\|error"
+journalctl -u xkvm -f | grep -i "warn\|error"
 ```
 
 ## Advanced Debugging
@@ -296,13 +296,13 @@ cat /sys/kernel/debug/usb/usbmon/0u
 When reporting issues, include:
 
 1. **System Information:**
-   - JetKVM version
+   - XKVM version
    - Kernel version: `uname -r`
    - Hardware model
 
 2. **Logs:**
    ```bash
-   journalctl -u jetkvm --since "1 hour ago" > jetkvm.log
+   journalctl -u xkvm --since "1 hour ago" > xkvm.log
    dmesg > kernel.log
    ```
 
@@ -313,7 +313,7 @@ When reporting issues, include:
 
 4. **USB Gadget State:**
    ```bash
-   ls -laR /sys/kernel/config/usb_gadget/jetkvm/ > gadget-state.txt
+   ls -laR /sys/kernel/config/usb_gadget/xkvm/ > gadget-state.txt
    ```
 
 5. **Steps to Reproduce:**
@@ -327,18 +327,18 @@ If USB gadget is completely broken:
 
 ```bash
 # 1. Stop service
-systemctl stop jetkvm
+systemctl stop xkvm
 
 # 2. Clean up everything
-echo "" > /sys/kernel/config/usb_gadget/jetkvm/UDC 2>/dev/null
-rm -rf /sys/kernel/config/usb_gadget/jetkvm 2>/dev/null
-rm -f /var/lock/jetkvm-usb.lock
+echo "" > /sys/kernel/config/usb_gadget/xkvm/UDC 2>/dev/null
+rm -rf /sys/kernel/config/usb_gadget/xkvm 2>/dev/null
+rm -f /var/lock/xkvm-usb.lock
 
 # 3. Restart service
-systemctl start jetkvm
+systemctl start xkvm
 
 # 4. Check logs
-journalctl -u jetkvm -f
+journalctl -u xkvm -f
 ```
 
 If that doesn't work:

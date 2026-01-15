@@ -8,15 +8,15 @@ import (
 
 	"time"
 
-	"github.com/jetkvm/kvm/internal/sync"
+	"github.com/xkvm/kvm/internal/sync"
 
-	"github.com/jetkvm/kvm/internal/confparser"
-	"github.com/jetkvm/kvm/internal/logging"
-	"github.com/jetkvm/kvm/internal/network/types"
-	"github.com/jetkvm/kvm/pkg/nmlite/link"
 	"github.com/mdlayher/ndp"
 	"github.com/rs/zerolog"
 	"github.com/vishvananda/netlink"
+	"github.com/xkvm/kvm/internal/confparser"
+	"github.com/xkvm/kvm/internal/logging"
+	"github.com/xkvm/kvm/internal/network/types"
+	"github.com/xkvm/kvm/pkg/nmlite/link"
 )
 
 type ResolvConfChangeCallback func(family int, resolvConf *types.InterfaceResolvConf) error

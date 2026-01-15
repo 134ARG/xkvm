@@ -20,12 +20,12 @@ import (
 // stderr - logging and error messages
 
 var (
-	procPrefix    string = "jetkvm: [native]"
+	procPrefix    string = "xkvm: [native]"
 	lastProcTitle string
 )
 
 const (
-	DebugModeFile = "/userdata/jetkvm/.native-debug-mode"
+	DebugModeFile = "/userdata/xkvm/.native-debug-mode"
 )
 
 func setProcTitle(status string) {
@@ -57,7 +57,7 @@ func monitorCrashSignal(ctx context.Context, logger *zerolog.Logger, nativeInsta
 
 func updateProcessTitle(state *VideoState) {
 	if state == nil {
-		procPrefix = "jetkvm: [native]"
+		procPrefix = "xkvm: [native]"
 	} else {
 		var status string
 		if state.Streaming == VideoStreamingStatusInactive {
@@ -69,7 +69,7 @@ func updateProcessTitle(state *VideoState) {
 		} else {
 			status = fmt.Sprintf("%s,%dx%d,%.1ffps", state.Streaming.String(), state.Width, state.Height, state.FramePerSecond)
 		}
-		procPrefix = fmt.Sprintf("jetkvm: [native+video{%s}]", status)
+		procPrefix = fmt.Sprintf("xkvm: [native+video{%s}]", status)
 	}
 	setProcTitle(lastProcTitle)
 }
@@ -114,7 +114,7 @@ func RunNativeProcess(binaryName string) {
 
 	// Create native instance
 	nativeInstance := NewNative(*nativeOptions)
-	gspt.SetProcTitle("jetkvm: [native] initializing")
+	gspt.SetProcTitle("xkvm: [native] initializing")
 
 	// Start native instance
 	if err := nativeInstance.Start(); err != nil {

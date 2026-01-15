@@ -9,16 +9,16 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/jetkvm/kvm/internal/websecure"
+	"github.com/xkvm/kvm/internal/websecure"
 )
 
 const (
-	tlsStorePath                     = "/userdata/jetkvm/tls"
+	tlsStorePath                     = "/userdata/xkvm/tls"
 	webSecureListen                  = ":443"
-	webSecureSelfSignedDefaultDomain = "jetkvm.local"
-	webSecureSelfSignedCAName        = "JetKVM Self-Signed CA"
-	webSecureSelfSignedOrganization  = "JetKVM"
-	webSecureSelfSignedOU            = "JetKVM Self-Signed"
+	webSecureSelfSignedDefaultDomain = "xkvm.local"
+	webSecureSelfSignedCAName        = "XKVM Self-Signed CA"
+	webSecureSelfSignedOrganization  = "XKVM"
+	webSecureSelfSignedOU            = "XKVM Self-Signed"
 	webSecureCustomCertificateName   = "user-defined"
 )
 

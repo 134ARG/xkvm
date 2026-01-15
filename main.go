@@ -14,7 +14,7 @@ import (
 )
 
 var appCtx context.Context
-var procPrefix string = "jetkvm: [app]"
+var procPrefix string = "xkvm: [app]"
 
 func setProcTitle(status string) {
 	if status != "" {
@@ -27,11 +27,11 @@ func setProcTitle(status string) {
 func Main() {
 	setProcTitle("starting")
 
-	logger.Log().Msg("JetKVM Starting Up")
+	logger.Log().Msg("XKVM Starting Up")
 
 	checkFailsafeReason()
 	if failsafeModeActive {
-		procPrefix = "jetkvm: [app+failsafe]"
+		procPrefix = "xkvm: [app+failsafe]"
 		logger.Warn().Str("reason", failsafeModeReason).Msg("failsafe mode activated")
 	}
 
@@ -49,7 +49,7 @@ func Main() {
 	logger.Info().
 		Interface("system_version", systemVersionLocal).
 		Interface("app_version", appVersionLocal).
-		Msg("starting JetKVM")
+		Msg("starting XKVM")
 
 	// initialize usb gadget
 	setProcTitle("initUsbGadget")
@@ -158,7 +158,7 @@ func Main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	<-sigs
 
-	logger.Log().Msg("JetKVM Shutting Down")
+	logger.Log().Msg("XKVM Shutting Down")
 	//if fuseServer != nil {
 	//	err := setMassStorageImage(" ")
 	//	if err != nil {

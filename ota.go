@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/jetkvm/kvm/internal/ota"
+	"github.com/xkvm/kvm/internal/ota"
 )
 
 // import (
@@ -16,7 +16,7 @@ import (
 
 // 	"github.com/Masterminds/semver/v3"
 // 	"github.com/google/uuid"
-// 	"github.com/jetkvm/kvm/internal/ota"
+// 	"github.com/xkvm/kvm/internal/ota"
 // )
 
 var builtAppVersion = "0.1.0+dev"

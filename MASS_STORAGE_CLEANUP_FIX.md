@@ -2,11 +2,11 @@
 
 ## Problem
 
-After shutting down JetKVM and restarting it, the host computer still sees a CD-ROM or disk device attached from previous runs. This is because the mass storage configuration persists in the USB gadget configfs even after the JetKVM application restarts.
+After shutting down XKVM and restarting it, the host computer still sees a CD-ROM or disk device attached from previous runs. This is because the mass storage configuration persists in the USB gadget configfs even after the XKVM application restarts.
 
 ## Root Cause
 
-The USB gadget configfs is a kernel-level configuration that persists across application restarts. When JetKVM starts up and cleans up the stale gadget, it recreates the mass storage function with the default configuration. The issue was:
+The USB gadget configfs is a kernel-level configuration that persists across application restarts. When XKVM starts up and cleans up the stale gadget, it recreates the mass storage function with the default configuration. The issue was:
 
 1. Default `cdrom` attribute was set to `"1"` (CDROM mode)
 2. This caused the host to see a CD-ROM device even with no image mounted
@@ -33,7 +33,7 @@ var massStorageLun0Config = gadgetConfigItem{
         "ro":        "1",
         "removable": "1",
         "file":      "\n", // Empty by default
-        "inquiry_string": "JetKVM  Virtual Media",
+        "inquiry_string": "XKVM  Virtual Media",
     },
 }
 ```
@@ -48,15 +48,15 @@ Added attempt to clear mass storage file on startup (logs debug message if it fa
 
 ### Before Fix
 1. Mount a disk image
-2. Shut down JetKVM without unmounting
-3. Restart JetKVM
+2. Shut down XKVM without unmounting
+3. Restart XKVM
 4. Host sees a CD-ROM device (even if no image is mounted)
 5. Stale configuration persists
 
 ### After Fix
 1. Mount a disk image
-2. Shut down JetKVM without unmounting
-3. Restart JetKVM
+2. Shut down XKVM without unmounting
+3. Restart XKVM
 4. **USB gadget is cleaned up and recreated with Disk mode**
 5. **No stale devices visible to host**
 6. Clean state ready for new mounts
@@ -123,8 +123,8 @@ This fix works in conjunction with:
 
 To verify the fix:
 1. Mount a disk image
-2. Shut down JetKVM (kill the process or reboot the device)
-3. Restart JetKVM
+2. Shut down XKVM (kill the process or reboot the device)
+3. Restart XKVM
 4. Check host computer - should see no stale devices
 5. Check logs - should see cleanup messages
 6. Mount a new image - should work as Disk mode

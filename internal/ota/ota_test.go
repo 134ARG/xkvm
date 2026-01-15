@@ -26,7 +26,7 @@ import (
 var testDataFS embed.FS
 
 const pseudoDeviceID = "golang-test"
-const releaseAPIEndpoint = "https://api.jetkvm.com/releases"
+const releaseAPIEndpoint = "https://api.xkvm.com/releases"
 
 type testData struct {
 	Name           string `json:"name"`

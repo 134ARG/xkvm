@@ -21,12 +21,12 @@ import (
 	gin_logger "github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jetkvm/kvm/internal/logging"
 	"github.com/pion/webrtc/v4"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/vearutop/statigz"
+	"github.com/xkvm/kvm/internal/logging"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -549,7 +549,7 @@ func basicAuthProtectedMiddleware(requireDeveloperMode bool) gin.HandlerFunc {
 		// calculate basic auth credentials
 		_, password, ok := c.Request.BasicAuth()
 		if !ok {
-			c.Header("WWW-Authenticate", "Basic realm=\"JetKVM\"")
+			c.Header("WWW-Authenticate", "Basic realm=\"XKVM\"")
 			sendErrorJsonThenAbort(c, http.StatusUnauthorized, "Basic auth is required")
 			return
 		}

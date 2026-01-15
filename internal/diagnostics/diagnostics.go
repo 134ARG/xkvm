@@ -5,8 +5,8 @@ package diagnostics
 import (
 	"io"
 
-	"github.com/jetkvm/kvm/internal/logging"
 	"github.com/rs/zerolog"
+	"github.com/xkvm/kvm/internal/logging"
 )
 
 var diagLogger = logging.GetSubsystemLogger("diagnostics")

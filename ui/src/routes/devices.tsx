@@ -73,7 +73,7 @@ export default function DevicesRoute() {
                   description={m.cloud_kvms_no_devices_description()}
                   BtnElm={
                     <LinkButton
-                      to="https://jetkvm.com/docs/networking/remote-access"
+                      to="https://xkvm.com/docs/networking/remote-access"
                       size="SM"
                       theme="primary"
                       TrailingIcon={ArrowRightIcon}

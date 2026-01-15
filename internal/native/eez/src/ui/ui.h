@@ -3,9 +3,9 @@
 
 #include <lvgl.h>
 
-typedef void (jetkvm_rpc_handler_t)(const char *method, const char *params);
+typedef void (xkvm_rpc_handler_t)(const char *method, const char *params);
 
-void ui_set_rpc_handler(jetkvm_rpc_handler_t *handler);
+void ui_set_rpc_handler(xkvm_rpc_handler_t *handler);
 void ui_call_rpc_handler(const char *method, const char *params);
 
 

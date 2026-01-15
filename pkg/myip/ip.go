@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jetkvm/kvm/internal/logging"
 	"github.com/rs/zerolog"
+	"github.com/xkvm/kvm/internal/logging"
 )
 
 type PublicIP struct {

@@ -72,7 +72,7 @@ export default function SettingsGeneralRoute() {
 
       setLocale(validLocale); // tell the i18n system to change locale
     } else {
-      deleteCookie("JETKVM_LOCALE", "", "/"); // delete the cookie that the i18n system uses to store the locale
+      deleteCookie("XKVM_LOCALE", "", "/"); // delete the cookie that the i18n system uses to store the locale
     }
 
     setCurrentLocale(validLocale);

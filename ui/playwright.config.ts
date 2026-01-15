@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
-if (!process.env.JETKVM_URL) {
-  throw new Error("JETKVM_URL environment variable is required");
+if (!process.env.XKVM_URL) {
+  throw new Error("XKVM_URL environment variable is required");
 }
 
 export default defineConfig({
@@ -10,7 +10,7 @@ export default defineConfig({
   workers: 1,
   reporter: "list",
   use: {
-    baseURL: process.env.JETKVM_URL,
+    baseURL: process.env.XKVM_URL,
     trace: "retain-on-failure",
     video: "retain-on-failure",
     screenshot: "only-on-failure",

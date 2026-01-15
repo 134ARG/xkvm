@@ -13,7 +13,7 @@
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
-void jetkvm_log(const char *message);
+void xkvm_log(const char *message);
 
 /* Log to screen */
 #define emit_log(level, file, func, line, ...) do {                              \

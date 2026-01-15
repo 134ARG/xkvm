@@ -208,7 +208,7 @@ export default function SettingsAdvancedRoute() {
 
       const logContent = resp.result as string;
       const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const filename = `jetkvm-diagnostics-${timestamp}.txt`;
+      const filename = `xkvm-diagnostics-${timestamp}.txt`;
 
       const blob = new Blob([logContent], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
@@ -418,7 +418,7 @@ export default function SettingsAdvancedRoute() {
                 <p className="text-xs text-slate-600 dark:text-slate-400">
                   {m.advanced_version_update_helper()}{" "}
                   <a
-                    href="https://github.com/jetkvm/kvm/releases"
+                    href="https://github.com/xkvm/kvm/releases"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="font-medium text-blue-700 hover:underline dark:text-blue-500"

@@ -45,40 +45,40 @@ const (
 var (
 	metricCloudConnectionStatus = promauto.NewGauge(
 		prometheus.GaugeOpts{
-			Name: "jetkvm_cloud_connection_status",
+			Name: "xkvm_cloud_connection_status",
 			Help: "The status of the cloud connection",
 		},
 	)
 	metricCloudConnectionEstablishedTimestamp = promauto.NewGauge(
 		prometheus.GaugeOpts{
-			Name: "jetkvm_cloud_connection_established_timestamp_seconds",
+			Name: "xkvm_cloud_connection_established_timestamp_seconds",
 			Help: "The timestamp when the cloud connection was established",
 		},
 	)
 	metricConnectionLastPingTimestamp = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "jetkvm_connection_last_ping_timestamp_seconds",
+			Name: "xkvm_connection_last_ping_timestamp_seconds",
 			Help: "The timestamp when the last ping response was received",
 		},
 		[]string{"type", "source"},
 	)
 	metricConnectionLastPingReceivedTimestamp = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "jetkvm_connection_last_ping_received_timestamp_seconds",
+			Name: "xkvm_connection_last_ping_received_timestamp_seconds",
 			Help: "The timestamp when the last ping request was received",
 		},
 		[]string{"type", "source"},
 	)
 	metricConnectionLastPingDuration = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "jetkvm_connection_last_ping_duration_seconds",
+			Name: "xkvm_connection_last_ping_duration_seconds",
 			Help: "The duration of the last ping response",
 		},
 		[]string{"type", "source"},
 	)
 	metricConnectionPingDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name: "jetkvm_connection_ping_duration_seconds",
+			Name: "xkvm_connection_ping_duration_seconds",
 			Help: "The duration of the ping response",
 			Buckets: []float64{
 				0.1, 0.5, 1, 10,
@@ -88,28 +88,28 @@ var (
 	)
 	metricConnectionTotalPingSentCount = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "jetkvm_connection_ping_sent_total",
+			Name: "xkvm_connection_ping_sent_total",
 			Help: "The total number of pings sent to the connection",
 		},
 		[]string{"type", "source"},
 	)
 	metricConnectionTotalPingReceivedCount = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "jetkvm_connection_ping_received_total",
+			Name: "xkvm_connection_ping_received_total",
 			Help: "The total number of pings received from the connection",
 		},
 		[]string{"type", "source"},
 	)
 	metricConnectionSessionRequestCount = promauto.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "jetkvm_connection_session_requests_total",
+			Name: "xkvm_connection_session_requests_total",
 			Help: "The total number of session requests received",
 		},
 		[]string{"type", "source"},
 	)
 	metricConnectionSessionRequestDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name: "jetkvm_connection_session_request_duration_seconds",
+			Name: "xkvm_connection_session_request_duration_seconds",
 			Help: "The duration of session requests",
 			Buckets: []float64{
 				0.1, 0.5, 1, 10,
@@ -119,21 +119,21 @@ var (
 	)
 	metricConnectionLastSessionRequestTimestamp = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "jetkvm_connection_last_session_request_timestamp_seconds",
+			Name: "xkvm_connection_last_session_request_timestamp_seconds",
 			Help: "The timestamp of the last session request",
 		},
 		[]string{"type", "source"},
 	)
 	metricConnectionLastSessionRequestDuration = promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "jetkvm_connection_last_session_request_duration",
+			Name: "xkvm_connection_last_session_request_duration",
 			Help: "The duration of the last session request",
 		},
 		[]string{"type", "source"},
 	)
 	metricCloudConnectionFailureCount = promauto.NewCounter(
 		prometheus.CounterOpts{
-			Name: "jetkvm_cloud_connection_failure_total",
+			Name: "xkvm_cloud_connection_failure_total",
 			Help: "The number of times the cloud connection has failed",
 		},
 	)

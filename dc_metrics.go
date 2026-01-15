@@ -8,22 +8,22 @@ import (
 
 var (
 	dcCurrentGauge = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "jetkvm_dc_current_amperes",
+		Name: "xkvm_dc_current_amperes",
 		Help: "Current DC power consumption in amperes",
 	})
 
 	dcPowerGauge = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "jetkvm_dc_power_watts",
+		Name: "xkvm_dc_power_watts",
 		Help: "DC power consumption in watts",
 	})
 
 	dcVoltageGauge = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "jetkvm_dc_voltage_volts",
+		Name: "xkvm_dc_voltage_volts",
 		Help: "DC voltage in volts",
 	})
 
 	dcStateGauge = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "jetkvm_dc_power_state",
+		Name: "xkvm_dc_power_state",
 		Help: "DC power state (1 = on, 0 = off)",
 	})
 

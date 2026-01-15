@@ -30,7 +30,7 @@ msg_ok() { msg "$1" $C_OK; }
 msg_err() { msg "$1" $C_ERR; }
 msg_warn() { msg "$1" $C_WARN; }
 
-DOCKER_BUILD_TAG=${DOCKER_BUILD_TAG:-ghcr.io/jetkvm/buildkit:latest}
+DOCKER_BUILD_TAG=${DOCKER_BUILD_TAG:-ghcr.io/xkvm/buildkit:latest}
 DOCKER_BUILD_DEBUG=${DOCKER_BUILD_DEBUG:-false}
 DOCKER_BUILD_CONTEXT_DIR=${DOCKER_BUILD_CONTEXT_DIR:-$(mktemp -d)}
 DOCKER_GO_CACHE_DIR=${DOCKER_GO_CACHE_DIR:-$(pwd)/.cache}
@@ -54,7 +54,7 @@ EOF
 }
 
 function build_docker_image() {
-    if [ "$JETKVM_INSIDE_DOCKER" = 1 ]; then
+    if [ "$XKVM_INSIDE_DOCKER" = 1 ]; then
         msg_err "Error: already running inside Docker"
         exit
     fi
@@ -92,7 +92,7 @@ function do_make() {
         msg_info "▶ Building the project in Docker ..."
         set -x
         docker run \
-            --env JETKVM_INSIDE_DOCKER=1 \
+            --env XKVM_INSIDE_DOCKER=1 \
             -v "$(pwd):/build" \
             -v "${DOCKER_GO_CACHE_DIR}:/root/.cache/go-build" \
             ${DOCKER_BUILD_TAG} make "$@"

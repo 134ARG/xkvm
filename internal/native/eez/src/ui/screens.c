@@ -142,7 +142,7 @@ void create_screen_no_network_screen() {
                             objects.no_network_header_logo = obj;
                             lv_obj_set_pos(obj, 0, 0);
                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                            lv_image_set_src(obj, &img_jetkvm);
+                            lv_image_set_src(obj, &img_xkvm);
                             lv_obj_set_style_transform_width(obj, 174, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_transform_height(obj, 49, LV_PART_MAIN | LV_STATE_DEFAULT);
                         }
@@ -255,7 +255,7 @@ void create_screen_home_screen() {
                             objects.home_header_logo = obj;
                             lv_obj_set_pos(obj, 0, 0);
                             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                            lv_image_set_src(obj, &img_jetkvm);
+                            lv_image_set_src(obj, &img_xkvm);
                             lv_obj_set_style_transform_width(obj, 174, LV_PART_MAIN | LV_STATE_DEFAULT);
                             lv_obj_set_style_transform_height(obj, 49, LV_PART_MAIN | LV_STATE_DEFAULT);
                         }
@@ -1732,7 +1732,7 @@ void create_screen_status_screen() {
                                             lv_obj_set_pos(obj, 0, 0);
                                             lv_obj_set_size(obj, LV_PCT(100), LV_SIZE_CONTENT);
                                             add_style_info_content_label(obj);
-                                            lv_label_set_text(obj, "api.jetkvm.com");
+                                            lv_label_set_text(obj, "api.xkvm.com");
                                         }
                                     }
                                 }

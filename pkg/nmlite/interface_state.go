@@ -5,9 +5,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jetkvm/kvm/internal/network/types"
-	"github.com/jetkvm/kvm/pkg/nmlite/link"
 	"github.com/vishvananda/netlink"
+	"github.com/xkvm/kvm/internal/network/types"
+	"github.com/xkvm/kvm/pkg/nmlite/link"
 )
 
 type IfStateChangeReason uint

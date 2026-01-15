@@ -8,10 +8,10 @@ import (
 )
 
 type nativeOptions struct {
-	Disable              bool            `env:"JETKVM_NATIVE_DISABLE"`
-	SystemVersion        *semver.Version `env:"JETKVM_NATIVE_SYSTEM_VERSION"`
-	AppVersion           *semver.Version `env:"JETKVM_NATIVE_APP_VERSION"`
-	DefaultQualityFactor float64         `env:"JETKVM_NATIVE_DEFAULT_QUALITY_FACTOR"`
+	Disable              bool            `env:"XKVM_NATIVE_DISABLE"`
+	SystemVersion        *semver.Version `env:"XKVM_NATIVE_SYSTEM_VERSION"`
+	AppVersion           *semver.Version `env:"XKVM_NATIVE_APP_VERSION"`
+	DefaultQualityFactor float64         `env:"XKVM_NATIVE_DEFAULT_QUALITY_FACTOR"`
 }
 
 func TestMarshalEnv(t *testing.T) {
@@ -30,11 +30,11 @@ func TestMarshalEnv(t *testing.T) {
 				DefaultQualityFactor: 1.0,
 			},
 			want: []string{
-				"JETKVM_NATIVE_DISABLE=false",
-				"JETKVM_NATIVE_SYSTEM_VERSION=1.1.0",
-				"JETKVM_NATIVE_APP_VERSION=1111.0.0",
-				"JETKVM_NATIVE_DISPLAY_ROTATION=1",
-				"JETKVM_NATIVE_DEFAULT_QUALITY_FACTOR=1",
+				"XKVM_NATIVE_DISABLE=false",
+				"XKVM_NATIVE_SYSTEM_VERSION=1.1.0",
+				"XKVM_NATIVE_APP_VERSION=1111.0.0",
+				"XKVM_NATIVE_DISPLAY_ROTATION=1",
+				"XKVM_NATIVE_DEFAULT_QUALITY_FACTOR=1",
 			},
 			wantErr: false,
 		},

@@ -7,16 +7,16 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/jetkvm/kvm/internal/confparser"
-	"github.com/jetkvm/kvm/internal/logging"
-	"github.com/jetkvm/kvm/internal/network/types"
-	"github.com/jetkvm/kvm/internal/usbgadget"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/xkvm/kvm/internal/confparser"
+	"github.com/xkvm/kvm/internal/logging"
+	"github.com/xkvm/kvm/internal/network/types"
+	"github.com/xkvm/kvm/internal/usbgadget"
 )
 
 const (
-	DefaultAPIURL = "https://api.jetkvm.com"
+	DefaultAPIURL = "https://api.xkvm.com"
 )
 
 type WakeOnLanDevice struct {
@@ -134,7 +134,7 @@ var (
 		VendorId:     "0x1d6b", //The Linux Foundation
 		ProductId:    "0x0104", //Multifunction Composite Gadget
 		SerialNumber: "",
-		Manufacturer: "JetKVM",
+		Manufacturer: "XKVM",
 		Product:      "USB Emulation Device",
 	}
 	defaultUsbDevices = usbgadget.Devices{
@@ -149,7 +149,7 @@ func getDefaultConfig() Config {
 	return Config{
 		CloudURL:          DefaultAPIURL,
 		UpdateAPIURL:      DefaultAPIURL,
-		CloudAppURL:       "https://app.jetkvm.com",
+		CloudAppURL:       "https://app.xkvm.com",
 		AutoUpdateEnabled: true, // Set a default value
 		ActiveExtension:   "",
 		KeyboardMacros:    []KeyboardMacro{},
@@ -178,13 +178,13 @@ var (
 var (
 	configSuccess = promauto.NewGauge(
 		prometheus.GaugeOpts{
-			Name: "jetkvm_config_last_reload_successful",
+			Name: "xkvm_config_last_reload_successful",
 			Help: "The last configuration load succeeded",
 		},
 	)
 	configSuccessTime = promauto.NewGauge(
 		prometheus.GaugeOpts{
-			Name: "jetkvm_config_last_reload_success_timestamp_seconds",
+			Name: "xkvm_config_last_reload_success_timestamp_seconds",
 			Help: "Timestamp of last successful config load",
 		},
 	)

@@ -12,13 +12,13 @@ import (
 var (
 	wolPackets = promauto.NewCounter(
 		prometheus.CounterOpts{
-			Name: "jetkvm_wol_sent_packets_total",
+			Name: "xkvm_wol_sent_packets_total",
 			Help: "Total number of Wake-on-LAN magic packets sent.",
 		},
 	)
 	wolErrors = promauto.NewCounter(
 		prometheus.CounterOpts{
-			Name: "jetkvm_wol_sent_packet_errors_total",
+			Name: "xkvm_wol_sent_packet_errors_total",
 			Help: "Total number of Wake-on-LAN magic packets errors.",
 		},
 	)

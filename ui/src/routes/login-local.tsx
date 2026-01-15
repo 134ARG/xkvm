@@ -121,7 +121,7 @@ export default function LoginLocalRoute() {
 
                   <div className="mt-4 flex justify-start text-xs text-slate-500 dark:text-slate-400">
                     <ExtLink
-                      href="https://jetkvm.com/docs/networking/local-access#reset-password"
+                      href="https://xkvm.com/docs/networking/local-access#reset-password"
                       className="hover:underline"
                     >
                       {m.login_forgot_password()}

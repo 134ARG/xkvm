@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jetkvm/kvm/internal/mdns"
-	"github.com/jetkvm/kvm/internal/network/types"
-	"github.com/jetkvm/kvm/pkg/myip"
-	"github.com/jetkvm/kvm/pkg/nmlite"
-	"github.com/jetkvm/kvm/pkg/nmlite/link"
+	"github.com/xkvm/kvm/internal/mdns"
+	"github.com/xkvm/kvm/internal/network/types"
+	"github.com/xkvm/kvm/pkg/myip"
+	"github.com/xkvm/kvm/pkg/nmlite"
+	"github.com/xkvm/kvm/pkg/nmlite/link"
 )
 
 const (

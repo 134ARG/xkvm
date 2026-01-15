@@ -21,11 +21,11 @@ import (
 	"github.com/rs/zerolog"
 	"go.bug.st/serial"
 
-	"github.com/jetkvm/kvm/internal/diagnostics"
-	"github.com/jetkvm/kvm/internal/hidrpc"
-	"github.com/jetkvm/kvm/internal/supervisor"
-	"github.com/jetkvm/kvm/internal/usbgadget"
-	"github.com/jetkvm/kvm/internal/utils"
+	"github.com/xkvm/kvm/internal/diagnostics"
+	"github.com/xkvm/kvm/internal/hidrpc"
+	"github.com/xkvm/kvm/internal/supervisor"
+	"github.com/xkvm/kvm/internal/usbgadget"
+	"github.com/xkvm/kvm/internal/utils"
 )
 
 // ansiRegex matches ANSI escape sequences for stripping from log output
@@ -246,7 +246,7 @@ func rpcGetVideoLogStatus() (string, error) {
 }
 
 const (
-	devModeFile = "/userdata/jetkvm/devmode.enable"
+	devModeFile = "/userdata/xkvm/devmode.enable"
 	sshKeyDir   = "/userdata/dropbear/.ssh"
 	sshKeyFile  = "/userdata/dropbear/.ssh/authorized_keys"
 )
@@ -669,8 +669,8 @@ func rpcGetDiagnostics() (string, error) {
 			if entry.IsDir() || entry.Name() == supervisor.ErrorDumpLastFile {
 				continue
 			}
-			// Match jetkvm-*.log pattern
-			if !strings.HasPrefix(entry.Name(), "jetkvm-") || !strings.HasSuffix(entry.Name(), ".log") {
+			// Match xkvm-*.log pattern
+			if !strings.HasPrefix(entry.Name(), "xkvm-") || !strings.HasSuffix(entry.Name(), ".log") {
 				continue
 			}
 			info, err := entry.Info()

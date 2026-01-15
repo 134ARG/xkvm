@@ -15,9 +15,9 @@
 
 
 
-jetkvm_rpc_handler_t *ui_rpc_handler = NULL;
+xkvm_rpc_handler_t *ui_rpc_handler = NULL;
 
-void ui_set_rpc_handler(jetkvm_rpc_handler_t *handler) {
+void ui_set_rpc_handler(xkvm_rpc_handler_t *handler) {
     ui_rpc_handler = handler;
 }
 

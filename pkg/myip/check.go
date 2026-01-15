@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jetkvm/kvm/pkg/nmlite/link"
+	"github.com/xkvm/kvm/pkg/nmlite/link"
 )
 
 func (ps *PublicIPState) request(ctx context.Context, url string, family int) ([]byte, error) {

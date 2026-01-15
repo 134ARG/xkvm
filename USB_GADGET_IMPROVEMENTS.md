@@ -7,7 +7,7 @@ This document describes the improvements made to the USB gadget subsystem to mak
 ## Problems Addressed
 
 ### 1. Stale State After Crashes
-**Problem**: When JetKVM crashes, USB gadget directories (`/sys/kernel/config/usb_gadget/jetkvm`) are left behind. On next startup, initialization fails because directories already exist.
+**Problem**: When XKVM crashes, USB gadget directories (`/sys/kernel/config/usb_gadget/xkvm`) are left behind. On next startup, initialization fails because directories already exist.
 
 **Solution**: Added automatic cleanup of stale USB gadget state on startup:
 - `cleanupStaleGadget()` method checks for existing gadget directories
@@ -30,7 +30,7 @@ This document describes the improvements made to the USB gadget subsystem to mak
 
 **Solution**: Added file-based locking mechanism:
 - `AcquireLock()` and `ReleaseLock()` methods using `flock`
-- Lock file at `/var/lock/jetkvm-usb.lock`
+- Lock file at `/var/lock/xkvm-usb.lock`
 - 10-second timeout for lock acquisition
 - Used during initialization and cleanup operations
 
@@ -131,7 +131,7 @@ rpcGetUsbGadgetHealth() (usbgadget.HealthStatus, error)
 
 ### Initialization with Error Handling
 ```go
-gadget, err := usbgadget.NewUsbGadget("jetkvm", devices, config, logger)
+gadget, err := usbgadget.NewUsbGadget("xkvm", devices, config, logger)
 if err != nil {
     logger.Error().Err(err).Msg("failed to initialize USB gadget")
     return
@@ -178,7 +178,7 @@ return gadget.KeyboardReport(modifier, keys)
 
 ### Lock File Location
 ```
-/var/lock/jetkvm-usb.lock
+/var/lock/xkvm-usb.lock
 ```
 
 ### Health Check Interval

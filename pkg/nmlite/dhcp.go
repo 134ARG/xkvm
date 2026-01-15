@@ -5,10 +5,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jetkvm/kvm/internal/network/types"
-	"github.com/jetkvm/kvm/pkg/nmlite/jetdhcpc"
-	"github.com/jetkvm/kvm/pkg/nmlite/udhcpc"
 	"github.com/rs/zerolog"
+	"github.com/xkvm/kvm/internal/network/types"
+	"github.com/xkvm/kvm/pkg/nmlite/jetdhcpc"
+	"github.com/xkvm/kvm/pkg/nmlite/udhcpc"
 )
 
 // DHCPClient wraps the dhclient package for use in the network manager

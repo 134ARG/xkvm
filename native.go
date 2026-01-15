@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/jetkvm/kvm/internal/diagnostics"
-	"github.com/jetkvm/kvm/internal/native"
 	"github.com/pion/webrtc/v4/pkg/media"
+	"github.com/xkvm/kvm/internal/diagnostics"
+	"github.com/xkvm/kvm/internal/native"
 )
 
 var (
@@ -99,7 +99,7 @@ func initNative(systemVersion *semver.Version, appVersion *semver.Version) {
 		}
 	}()
 
-	if os.Getenv("JETKVM_CRASH_TESTING") == "1" {
+	if os.Getenv("XKVM_CRASH_TESTING") == "1" {
 		nativeInstance.DoNotUseThisIsForCrashTestingOnly()
 	}
 }

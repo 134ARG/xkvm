@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/jetkvm/kvm/internal/network/types"
-	"github.com/jetkvm/kvm/pkg/nmlite/link"
 	"github.com/rs/zerolog"
+	"github.com/xkvm/kvm/internal/network/types"
+	"github.com/xkvm/kvm/pkg/nmlite/link"
 )
 
 // StaticConfigManager manages static network configuration

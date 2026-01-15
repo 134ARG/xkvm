@@ -7,7 +7,7 @@ import { paraglideVitePlugin } from "@inlang/paraglide-js";
 
 declare const process: {
   env: {
-    JETKVM_PROXY_URL: string;
+    XKVM_PROXY_URL: string;
     USE_SSL: string;
   };
 };
@@ -15,7 +15,7 @@ declare const process: {
 export default defineConfig(({ mode, command }) => {
   const isCloud = mode.indexOf("cloud") !== -1;
   const onDevice = mode === "device";
-  const { JETKVM_PROXY_URL, USE_SSL } = process.env;
+  const { XKVM_PROXY_URL, USE_SSL } = process.env;
   const useSSL = USE_SSL === "true";
 
   const plugins = [
@@ -29,10 +29,10 @@ export default defineConfig(({ mode, command }) => {
   }
 
   plugins.push(paraglideVitePlugin({
-    project: "./localization/jetKVM.UI.inlang",
+    project: "./localization/xKVM.UI.inlang",
     outdir: "./localization/paraglide",
     outputStructure: 'message-modules',
-    cookieName: 'JETKVM_LOCALE',
+    cookieName: 'XKVM_LOCALE',
     strategy: ['cookie', 'baseLocale'],
   }))
 
@@ -61,15 +61,15 @@ export default defineConfig(({ mode, command }) => {
     server: {
       host: "0.0.0.0",
       https: useSSL,
-      proxy: JETKVM_PROXY_URL
+      proxy: XKVM_PROXY_URL
         ? {
-          "/me": JETKVM_PROXY_URL,
-          "/device": JETKVM_PROXY_URL,
-          "/webrtc": JETKVM_PROXY_URL,
-          "/auth": JETKVM_PROXY_URL,
-          "/storage": JETKVM_PROXY_URL,
-          "/cloud": JETKVM_PROXY_URL,
-          "/developer": JETKVM_PROXY_URL,
+          "/me": XKVM_PROXY_URL,
+          "/device": XKVM_PROXY_URL,
+          "/webrtc": XKVM_PROXY_URL,
+          "/auth": XKVM_PROXY_URL,
+          "/storage": XKVM_PROXY_URL,
+          "/cloud": XKVM_PROXY_URL,
+          "/developer": XKVM_PROXY_URL,
         }
         : undefined,
     },

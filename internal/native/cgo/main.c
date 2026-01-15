@@ -18,14 +18,14 @@
 static int client_fd = -1;
 static pthread_mutex_t client_fd_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void jetkvm_c_log_handler(int level, const char *filename, const char *funcname, int line, const char *message) {
+void xkvm_c_log_handler(int level, const char *filename, const char *funcname, int line, const char *message) {
     // printf("[%s] %s:%d %s: %s\n", filename ? filename : "unknown", funcname ? funcname : "unknown", line, message ? message : "");
     fprintf(stderr, "[%s] %s:%d %s: %s\n", filename ? filename : "unknown", funcname ? funcname : "unknown", line, message ? message : "");
 }
 
 // Video handler that pipes frames to the Unix socket
-// This will be called by the video subsystem via video_send_frame -> jetkvm_set_video_handler's handler
-void jetkvm_video_handler(const uint8_t *frame, ssize_t len) {
+// This will be called by the video subsystem via video_send_frame -> xkvm_set_video_handler's handler
+void xkvm_video_handler(const uint8_t *frame, ssize_t len) {
     // pthread_mutex_lock(&client_fd_mutex);
     // if (client_fd >= 0 && frame != NULL && len > 0) {
     //     ssize_t bytes_written = 0;
@@ -47,7 +47,7 @@ void jetkvm_video_handler(const uint8_t *frame, ssize_t len) {
     // pthread_mutex_unlock(&client_fd_mutex);
 }
 
-void jetkvm_video_state_handler(jetkvm_video_state_t *state) {
+void xkvm_video_state_handler(xkvm_video_state_t *state) {
     fprintf(stderr, "Video state: {\n"
         "\"ready\": %d,\n"
         "\"error\": \"%s\",\n"
@@ -57,16 +57,16 @@ void jetkvm_video_state_handler(jetkvm_video_state_t *state) {
     "}\n", state->ready, state->error, state->width, state->height, state->frame_per_second);
 }
 
-void jetkvm_indev_handler(int code) {
+void xkvm_indev_handler(int code) {
     fprintf(stderr, "Video indev: %d\n", code);
 }
 
-void jetkvm_rpc_handler(const char *method, const char *params) {
+void xkvm_rpc_handler(const char *method, const char *params) {
     fprintf(stderr, "Video rpc: %s %s\n", method, params);
 }
 
-// Note: jetkvm_set_video_handler, jetkvm_set_indev_handler, jetkvm_set_rpc_handler,
-// jetkvm_call_rpc_handler, and jetkvm_set_video_state_handler are implemented in
+// Note: xkvm_set_video_handler, xkvm_set_indev_handler, xkvm_set_rpc_handler,
+// xkvm_call_rpc_handler, and xkvm_set_video_state_handler are implemented in
 // the library (ctrl.c) and will be used from there when linking.
 
 int main(int argc, char *argv[]) {
@@ -81,30 +81,30 @@ int main(int argc, char *argv[]) {
     unlink(socket_path);
 
     // Set handlers
-    jetkvm_set_log_handler(&jetkvm_c_log_handler);
-    jetkvm_set_video_handler(&jetkvm_video_handler);
-    jetkvm_set_video_state_handler(&jetkvm_video_state_handler);
-    jetkvm_set_indev_handler(&jetkvm_indev_handler);
-    jetkvm_set_rpc_handler(&jetkvm_rpc_handler);
+    xkvm_set_log_handler(&xkvm_c_log_handler);
+    xkvm_set_video_handler(&xkvm_video_handler);
+    xkvm_set_video_state_handler(&xkvm_video_state_handler);
+    xkvm_set_indev_handler(&xkvm_indev_handler);
+    xkvm_set_rpc_handler(&xkvm_rpc_handler);
     
     // Initialize video first (before accepting connections)
     fprintf(stderr, "Initializing video...\n");
-    if (jetkvm_video_init(1.0) != 0) {
+    if (xkvm_video_init(1.0) != 0) {
         fprintf(stderr, "Failed to initialize video\n");
         return 1;
     }
     
     // Start video streaming - frames will be sent via video_send_frame
     // which calls the video handler we set up
-    jetkvm_video_start();
+    xkvm_video_start();
     fprintf(stderr, "Video streaming started.\n");
 
     // Create Unix domain socket
     int server_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (server_fd < 0) {
         perror("socket");
-        jetkvm_video_stop();
-        jetkvm_video_shutdown();
+        xkvm_video_stop();
+        xkvm_video_shutdown();
         return 1;
     }
     
@@ -113,8 +113,8 @@ int main(int argc, char *argv[]) {
     if (flags < 0 || fcntl(server_fd, F_SETFL, flags | O_NONBLOCK) < 0) {
         perror("fcntl");
         close(server_fd);
-        jetkvm_video_stop();
-        jetkvm_video_shutdown();
+        xkvm_video_stop();
+        xkvm_video_shutdown();
         return 1;
     }
     
@@ -127,8 +127,8 @@ int main(int argc, char *argv[]) {
     if (bind(server_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         perror("bind");
         close(server_fd);
-        jetkvm_video_stop();
-        jetkvm_video_shutdown();
+        xkvm_video_stop();
+        xkvm_video_shutdown();
         return 1;
     }
     
@@ -136,8 +136,8 @@ int main(int argc, char *argv[]) {
     if (listen(server_fd, 1) < 0) {
         perror("listen");
         close(server_fd);
-        jetkvm_video_stop();
-        jetkvm_video_shutdown();
+        xkvm_video_stop();
+        xkvm_video_shutdown();
         return 1;
     }
     
@@ -208,8 +208,8 @@ int main(int argc, char *argv[]) {
     }
     
     // Stop video streaming
-    jetkvm_video_stop();
-    jetkvm_video_shutdown();
+    xkvm_video_stop();
+    xkvm_video_shutdown();
     
     // Cleanup
     pthread_mutex_lock(&client_fd_mutex);

@@ -12,12 +12,12 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"github.com/gin-gonic/gin"
-	"github.com/jetkvm/kvm/internal/diagnostics"
-	"github.com/jetkvm/kvm/internal/hidrpc"
-	"github.com/jetkvm/kvm/internal/logging"
-	"github.com/jetkvm/kvm/internal/usbgadget"
 	"github.com/pion/webrtc/v4"
 	"github.com/rs/zerolog"
+	"github.com/xkvm/kvm/internal/diagnostics"
+	"github.com/xkvm/kvm/internal/hidrpc"
+	"github.com/xkvm/kvm/internal/logging"
+	"github.com/xkvm/kvm/internal/usbgadget"
 )
 
 type Session struct {

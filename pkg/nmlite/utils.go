@@ -4,7 +4,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/jetkvm/kvm/internal/network/types"
+	"github.com/xkvm/kvm/internal/network/types"
 )
 
 func lifetimeToTime(lifetime int) *time.Time {

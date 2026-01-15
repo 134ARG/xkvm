@@ -58,7 +58,7 @@ check_ssh() {
 # Default values
 SCRIPT_PATH=$(realpath "$(dirname $(realpath "${BASH_SOURCE[0]}"))")
 REMOTE_USER="root"
-REMOTE_PATH="/userdata/jetkvm/bin"
+REMOTE_PATH="/userdata/xkvm/bin"
 SKIP_UI_BUILD=false
 SKIP_UI_BUILD_RELEASE=0
 SKIP_NATIVE_BUILD=0
@@ -66,13 +66,13 @@ GDB_DEBUG_PORT=2345
 BUILD_NATIVE_BINARY=false
 ENABLE_SYNC_TRACE=0
 RESET_USB_HID_DEVICE=false
-LOG_TRACE_SCOPES="${LOG_TRACE_SCOPES:-jetkvm,cloud,websocket,native,jsonrpc}"  # Scopes to enable TRACE logging for
+LOG_TRACE_SCOPES="${LOG_TRACE_SCOPES:-xkvm,cloud,websocket,native,jsonrpc}"  # Scopes to enable TRACE logging for
 RUN_GO_TESTS=false
 RUN_GO_TESTS_ONLY=false
 INSTALL_APP=false
 BUILD_IN_DOCKER=true
 DOCKER_BUILD_DEBUG=false
-DOCKER_BUILD_TAG=ghcr.io/jetkvm/buildkit:latest
+DOCKER_BUILD_TAG=ghcr.io/xkvm/buildkit:latest
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -175,12 +175,12 @@ if [ "$BUILD_NATIVE_BINARY" = true ]; then
     msg_info "▶ Checking if GDB is available on remote host"
     if ! sshdev "command -v gdbserver > /dev/null 2>&1"; then
         msg_warn "Error: gdbserver is not installed on the remote host"
-        tar -czf - -C /opt/jetkvm-native-buildkit/gdb/ . | sshdev "tar -xzf - -C /usr/bin"
+        tar -czf - -C /opt/xkvm-native-buildkit/gdb/ . | sshdev "tar -xzf - -C /usr/bin"
         msg_info "✓ gdbserver installed on remote host"
     fi
-    msg_info "▶ Stopping any existing instances of jetkvm_native_debug on remote host"
-    sshdev "killall -9 jetkvm_app jetkvm_app_debug jetkvm_native_debug gdbserver || true >> /dev/null 2>&1"
-    sshdev "cat > ${REMOTE_PATH}/jetkvm_native_debug" < internal/native/cgo/build/jknative-bin
+    msg_info "▶ Stopping any existing instances of xkvm_native_debug on remote host"
+    sshdev "killall -9 xkvm_app xkvm_app_debug xkvm_native_debug gdbserver || true >> /dev/null 2>&1"
+    sshdev "cat > ${REMOTE_PATH}/xkvm_native_debug" < internal/native/cgo/build/jknative-bin
     sshdev -t ash << EOF
 set -e
 
@@ -188,10 +188,10 @@ set -e
 export LD_LIBRARY_PATH=/oem/usr/lib:\$LD_LIBRARY_PATH
 
 cd ${REMOTE_PATH}
-killall -9 jetkvm_app jetkvm_app_debug jetkvm_native_debug || true
+killall -9 xkvm_app xkvm_app_debug xkvm_native_debug || true
 sleep 5
-chmod +x jetkvm_native_debug
-gdbserver localhost:${GDB_DEBUG_PORT} ./jetkvm_native_debug
+chmod +x xkvm_native_debug
+gdbserver localhost:${GDB_DEBUG_PORT} ./xkvm_native_debug
 EOF
     exit 0
 fi
@@ -204,7 +204,7 @@ if [[ "$SKIP_UI_BUILD" = true && ! -f "static/index.html" ]]; then
     SKIP_UI_BUILD=false
 fi
 
-if [[ "$SKIP_UI_BUILD" = false && "$JETKVM_INSIDE_DOCKER" != 1 ]]; then
+if [[ "$SKIP_UI_BUILD" = false && "$XKVM_INSIDE_DOCKER" != 1 ]]; then
     msg_info "▶ Building frontend"
     make frontend SKIP_UI_BUILD=0
     SKIP_UI_BUILD_RELEASE=1
@@ -266,7 +266,7 @@ then
     ENABLE_SYNC_TRACE=${ENABLE_SYNC_TRACE}
 
 	# Copy the binary to the remote host as if we were the OTA updater.
-	sshdev "cat > /userdata/jetkvm/jetkvm_app.update" < bin/jetkvm_app
+	sshdev "cat > /userdata/xkvm/xkvm_app.update" < bin/xkvm_app
 
 	# Reboot the device, the new app will be deployed by the startup process.
 	sshdev "reboot"
@@ -278,17 +278,17 @@ else
     ENABLE_SYNC_TRACE=${ENABLE_SYNC_TRACE}
 
 	# Kill any existing instances of the application
-	sshdev "killall jetkvm_app_debug || true"
+	sshdev "killall xkvm_app_debug || true"
 
 	# Copy the binary to the remote host
-	sshdev "cat > ${REMOTE_PATH}/jetkvm_app_debug" < bin/jetkvm_app
+	sshdev "cat > ${REMOTE_PATH}/xkvm_app_debug" < bin/xkvm_app
 
 	if [ "$RESET_USB_HID_DEVICE" = true ]; then
 	msg_info "▶ Resetting USB HID device"
-	msg_warn "The option has been deprecated and will be removed in a future version, as JetKVM will now reset USB gadget configuration when needed"
+	msg_warn "The option has been deprecated and will be removed in a future version, as XKVM will now reset USB gadget configuration when needed"
 	# Remove the old USB gadget configuration
-	sshdev "rm -rf /sys/kernel/config/usb_gadget/jetkvm/configs/c.1/hid.usb*"
-	sshdev "ls /sys/class/udc > /sys/kernel/config/usb_gadget/jetkvm/UDC"
+	sshdev "rm -rf /sys/kernel/config/usb_gadget/xkvm/configs/c.1/hid.usb*"
+	sshdev "ls /sys/class/udc > /sys/kernel/config/usb_gadget/xkvm/UDC"
 	fi
 
 	# Deploy and run the application on the remote host
@@ -299,14 +299,14 @@ set -e
 export LD_LIBRARY_PATH=/oem/usr/lib:\$LD_LIBRARY_PATH
 
 # Kill any existing instances of the application
-killall jetkvm_app || true
-killall jetkvm_app_debug || true
+killall xkvm_app || true
+killall xkvm_app_debug || true
 
 # Wait until both binaries are killed, max 10 seconds
 i=1
 while [ \$i -le 10 ]; do
-    echo "Waiting for jetkvm_app and jetkvm_app_debug to be killed, \$i/10 ..."
-    if ! pgrep -f "jetkvm_app" > /dev/null && ! pgrep -f "jetkvm_app_debug" > /dev/null; then
+    echo "Waiting for xkvm_app and xkvm_app_debug to be killed, \$i/10 ..."
+    if ! pgrep -f "xkvm_app" > /dev/null && ! pgrep -f "xkvm_app_debug" > /dev/null; then
         break
     fi
     sleep 1
@@ -317,14 +317,14 @@ done
 cd "${REMOTE_PATH}"
 
 # Make the new binary executable
-chmod +x jetkvm_app_debug
+chmod +x xkvm_app_debug
 
 # Run the application with logging configuration
 if [ -n "${LOG_TRACE_SCOPES}" ]; then
-    export JETKVM_LOG_ERROR=all
-    export JETKVM_LOG_TRACE="${LOG_TRACE_SCOPES}"
+    export XKVM_LOG_ERROR=all
+    export XKVM_LOG_TRACE="${LOG_TRACE_SCOPES}"
 fi
-./jetkvm_app_debug | tee -a /tmp/jetkvm_app_debug.log
+./xkvm_app_debug | tee -a /tmp/xkvm_app_debug.log
 EOF
 fi
 

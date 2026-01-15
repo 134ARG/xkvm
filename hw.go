@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jetkvm/kvm/internal/ota"
+	"github.com/xkvm/kvm/internal/ota"
 )
 
 func extractSerialNumber() (string, error) {
@@ -83,8 +83,8 @@ func GetDeviceID() string {
 func GetDefaultHostname() string {
 	deviceId := GetDeviceID()
 	if deviceId == "unknown_device_id" {
-		return "jetkvm"
+		return "xkvm"
 	}
 
-	return fmt.Sprintf("jetkvm-%s", strings.ToLower(deviceId))
+	return fmt.Sprintf("xkvm-%s", strings.ToLower(deviceId))
 }

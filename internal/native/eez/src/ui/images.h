@@ -18,7 +18,7 @@ extern const lv_img_dsc_t img_cloud;
 extern const lv_img_dsc_t img_d2;
 extern const lv_img_dsc_t img_ethernet;
 extern const lv_img_dsc_t img_hdmi;
-extern const lv_img_dsc_t img_jetkvm;
+extern const lv_img_dsc_t img_xkvm;
 extern const lv_img_dsc_t img_usb;
 extern const lv_img_dsc_t img_x_icon;
 

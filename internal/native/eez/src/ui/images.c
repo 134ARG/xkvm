@@ -12,7 +12,7 @@ const ext_img_desc_t images[14] = {
     { "d2", &img_d2 },
     { "ethernet", &img_ethernet },
     { "hdmi", &img_hdmi },
-    { "jetkvm", &img_jetkvm },
+    { "xkvm", &img_xkvm },
     { "usb", &img_usb },
     { "x-icon", &img_x_icon },
 };

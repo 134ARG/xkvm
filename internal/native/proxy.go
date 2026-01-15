@@ -17,10 +17,10 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/jetkvm/kvm/internal/diagnostics"
-	"github.com/jetkvm/kvm/internal/supervisor"
-	"github.com/jetkvm/kvm/internal/utils"
 	"github.com/rs/zerolog"
+	"github.com/xkvm/kvm/internal/diagnostics"
+	"github.com/xkvm/kvm/internal/supervisor"
+	"github.com/xkvm/kvm/internal/utils"
 )
 
 const (
@@ -31,15 +31,15 @@ const (
 )
 
 type nativeProxyOptions struct {
-	Disable               bool            `env:"JETKVM_NATIVE_DISABLE"`
-	SystemVersion         *semver.Version `env:"JETKVM_NATIVE_SYSTEM_VERSION"`
-	AppVersion            *semver.Version `env:"JETKVM_NATIVE_APP_VERSION"`
-	DefaultQualityFactor  float64         `env:"JETKVM_NATIVE_DEFAULT_QUALITY_FACTOR"`
-	CtrlUnixSocket        string          `env:"JETKVM_NATIVE_CTRL_UNIX_SOCKET"`
-	VideoStreamUnixSocket string          `env:"JETKVM_NATIVE_VIDEO_STREAM_UNIX_SOCKET"`
-	BinaryPath            string          `env:"JETKVM_NATIVE_BINARY_PATH"`
-	LoggerLevel           zerolog.Level   `env:"JETKVM_NATIVE_LOGGER_LEVEL"`
-	HandshakeMessage      string          `env:"JETKVM_NATIVE_HANDSHAKE_MESSAGE"`
+	Disable               bool            `env:"XKVM_NATIVE_DISABLE"`
+	SystemVersion         *semver.Version `env:"XKVM_NATIVE_SYSTEM_VERSION"`
+	AppVersion            *semver.Version `env:"XKVM_NATIVE_APP_VERSION"`
+	DefaultQualityFactor  float64         `env:"XKVM_NATIVE_DEFAULT_QUALITY_FACTOR"`
+	CtrlUnixSocket        string          `env:"XKVM_NATIVE_CTRL_UNIX_SOCKET"`
+	VideoStreamUnixSocket string          `env:"XKVM_NATIVE_VIDEO_STREAM_UNIX_SOCKET"`
+	BinaryPath            string          `env:"XKVM_NATIVE_BINARY_PATH"`
+	LoggerLevel           zerolog.Level   `env:"XKVM_NATIVE_LOGGER_LEVEL"`
+	HandshakeMessage      string          `env:"XKVM_NATIVE_HANDSHAKE_MESSAGE"`
 	MaxRestartAttempts    uint
 
 	OnVideoFrameReceived func(frame []byte, duration time.Duration)
@@ -145,7 +145,7 @@ type NativeProxy struct {
 // NewNativeProxy creates a new NativeProxy that spawns a separate process
 func NewNativeProxy(opts NativeOptions) (*NativeProxy, error) {
 	proxyOptions := opts.toProxyOptions()
-	proxyOptions.VideoStreamUnixSocket = fmt.Sprintf("@jetkvm/native/video-stream/%s", randomId(4))
+	proxyOptions.VideoStreamUnixSocket = fmt.Sprintf("@xkvm/native/video-stream/%s", randomId(4))
 
 	// Get the current executable path to spawn itself
 	exePath, err := os.Executable()
@@ -227,7 +227,7 @@ func (p *NativeProxy) toProcessCommand() (*cmdWrapper, error) {
 	// generate a new random ID for the gRPC socket on each restart
 	// sometimes the socket is not closed properly when the process exits
 	// this is a workaround to avoid the issue
-	p.nativeUnixSocket = fmt.Sprintf("jetkvm/native/grpc/%s", randomId(4))
+	p.nativeUnixSocket = fmt.Sprintf("xkvm/native/grpc/%s", randomId(4))
 	p.options.CtrlUnixSocket = p.nativeUnixSocket
 
 	envArgs, err := utils.MarshalEnv(p.options)

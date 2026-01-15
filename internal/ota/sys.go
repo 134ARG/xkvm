@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	systemUpdatePath = "/userdata/jetkvm/update_system.tar"
+	systemUpdatePath = "/userdata/xkvm/update_system.tar"
 )
 
 // DO NOT call it directly, it's not thread safe
@@ -43,7 +43,7 @@ func (s *State) updateSystem(ctx context.Context, systemUpdate *componentUpdateS
 
 	l.Info().Msg("Starting rk_ota command")
 
-	cmd := exec.Command("rk_ota", "--misc=update", "--tar_path=/userdata/jetkvm/update_system.tar", "--save_dir=/userdata/jetkvm/ota_save", "--partition=all")
+	cmd := exec.Command("rk_ota", "--misc=update", "--tar_path=/userdata/xkvm/update_system.tar", "--save_dir=/userdata/xkvm/ota_save", "--partition=all")
 	var b bytes.Buffer
 	cmd.Stdout = &b
 	cmd.Stderr = &b

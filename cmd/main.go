@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/erikdubbelboer/gspt"
-	"github.com/jetkvm/kvm"
-	"github.com/jetkvm/kvm/internal/native"
-	"github.com/jetkvm/kvm/internal/supervisor"
+	"github.com/xkvm/kvm"
+	"github.com/xkvm/kvm/internal/native"
+	"github.com/xkvm/kvm/internal/supervisor"
 )
 
 var (
@@ -38,7 +38,7 @@ func setProcTitle(status string) {
 	if status != "" {
 		status = " " + status
 	}
-	title := fmt.Sprintf("jetkvm: [supervisor]%s", status)
+	title := fmt.Sprintf("xkvm: [supervisor]%s", status)
 	gspt.SetProcTitle(title)
 }
 
@@ -100,7 +100,7 @@ func supervise() error {
 	}...)
 	cmd.Args = os.Args
 
-	logFile, err := os.CreateTemp("", "jetkvm-stdout.log")
+	logFile, err := os.CreateTemp("", "xkvm-stdout.log")
 	defer func() {
 		// we don't care about the errors here
 		_ = logFile.Close()

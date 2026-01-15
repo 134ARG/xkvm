@@ -60,7 +60,7 @@ export default function PeerConnectionStatusCard({
 
   return (
     <StatusCard
-      title={title || "JetKVM Device"}
+      title={title || "XKVM Device"}
       status={PeerConnectionStatusMap[state]}
       {...StatusCardProps[state]}
     />

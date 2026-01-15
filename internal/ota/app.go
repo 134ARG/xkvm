@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	appUpdatePath = "/userdata/jetkvm/jetkvm_app.update"
+	appUpdatePath = "/userdata/xkvm/xkvm_app.update"
 )
 
 // DO NOT call it directly, it's not thread safe

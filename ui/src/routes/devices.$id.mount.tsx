@@ -128,12 +128,12 @@ export function Dialog({ onClose }: Readonly<{ onClose: () => void }>) {
             <div className="flex flex-col items-start justify-start space-y-4 text-left">
               <img
                 src={LogoBlueIcon}
-                alt={m.jetkvm_logo()}
+                alt={m.xkvm_logo()}
                 className="block h-[24px] dark:hidden"
               />
               <img
                 src={LogoWhiteIcon}
-                alt={m.jetkvm_logo()}
+                alt={m.xkvm_logo()}
                 className="hidden h-[24px] dark:mt-0! dark:block"
               />
               {modalView === "mode" && (
@@ -239,9 +239,9 @@ function ModeSelectionView({
           //   disabled: false,
           // },
           {
-            label: m.mount_jetkvm_storage(),
+            label: m.mount_xkvm_storage(),
             value: "device",
-            description: m.mount_jetkvm_storage_description(),
+            description: m.mount_xkvm_storage_description(),
             icon: LuRadioReceiver,
             tag: null,
             disabled: false,

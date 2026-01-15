@@ -19,7 +19,7 @@ test.describe("HTTPS Mode Tests", () => {
     const page = await browser.newPage();
     try {
       // Try HTTP first (the original URL)
-      const baseUrl = process.env.JETKVM_URL || "http://localhost";
+      const baseUrl = process.env.XKVM_URL || "http://localhost";
       await page.goto(`${baseUrl}/settings/access`);
       await page.waitForLoadState("networkidle");
 

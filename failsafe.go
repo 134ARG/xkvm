@@ -5,14 +5,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/jetkvm/kvm/internal/supervisor"
+	"github.com/xkvm/kvm/internal/supervisor"
 )
 
 const (
-	failsafeDefaultLastCrashPath = "/userdata/jetkvm/crashdump/last-crash.log"
-	failsafeFile                 = "/userdata/jetkvm/.enablefailsafe"
-	failsafeLastCrashEnv         = "JETKVM_LAST_ERROR_PATH"
-	failsafeEnv                  = "JETKVM_FORCE_FAILSAFE"
+	failsafeDefaultLastCrashPath = "/userdata/xkvm/crashdump/last-crash.log"
+	failsafeFile                 = "/userdata/xkvm/.enablefailsafe"
+	failsafeLastCrashEnv         = "XKVM_LAST_ERROR_PATH"
+	failsafeEnv                  = "XKVM_FORCE_FAILSAFE"
 )
 
 var (

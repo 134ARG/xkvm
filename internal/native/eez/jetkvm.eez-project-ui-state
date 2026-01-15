@@ -1,12 +1,12 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[jetkvm.eez-project]:/userPages/6",
-    "selectedActionObject": "[jetkvm.eez-project]:/actions/0",
-    "selectedGlobalVariableObject": "[jetkvm.eez-project]:/variables/globalVariables/3",
-    "selectedStyleObject": "[jetkvm.eez-project]:/lvglStyles/styles/8",
-    "selectedThemeObject": "[jetkvm.eez-project]:/themes/0",
-    "selectedFontObject": "[jetkvm.eez-project]:/fonts/4",
-    "selectedBitmapObject": "[jetkvm.eez-project]:/bitmaps/9",
+    "selectedUserPageObject": "[xkvm.eez-project]:/userPages/6",
+    "selectedActionObject": "[xkvm.eez-project]:/actions/0",
+    "selectedGlobalVariableObject": "[xkvm.eez-project]:/variables/globalVariables/3",
+    "selectedStyleObject": "[xkvm.eez-project]:/lvglStyles/styles/8",
+    "selectedThemeObject": "[xkvm.eez-project]:/themes/0",
+    "selectedFontObject": "[xkvm.eez-project]:/fonts/4",
+    "selectedBitmapObject": "[xkvm.eez-project]:/bitmaps/9",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
     }
@@ -205,7 +205,7 @@
                   "name": "NetworkInfoScreen",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[jetkvm.eez-project]:/userPages/6",
+                    "objectPath": "[xkvm.eez-project]:/userPages/6",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -216,8 +216,8 @@
                   "name": "Settings",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[jetkvm.eez-project]:/settings",
-                    "subObjectPath": "[jetkvm.eez-project]:/settings",
+                    "objectPath": "[xkvm.eez-project]:/settings",
+                    "subObjectPath": "[xkvm.eez-project]:/settings",
                     "permanent": false
                   },
                   "icon": "material:settings"
@@ -228,7 +228,7 @@
                   "name": "RebootScreen",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[jetkvm.eez-project]:/userPages/9",
+                    "objectPath": "[xkvm.eez-project]:/userPages/9",
                     "permanent": true
                   },
                   "icon": "svg:page"
@@ -239,7 +239,7 @@
                   "name": "HomeScreen",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[jetkvm.eez-project]:/userPages/2",
+                    "objectPath": "[xkvm.eez-project]:/userPages/2",
                     "permanent": true
                   },
                   "icon": "svg:page"
@@ -494,7 +494,7 @@
                   "name": "BootScreen",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[jetkvm.eez-project]:/userPages/0",
+                    "objectPath": "[xkvm.eez-project]:/userPages/0",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -505,7 +505,7 @@
                   "name": "MenuScreen",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[jetkvm.eez-project]:/userPages/2",
+                    "objectPath": "[xkvm.eez-project]:/userPages/2",
                     "permanent": true
                   },
                   "icon": "svg:page"
@@ -516,7 +516,7 @@
                   "name": "HomeScreen",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[jetkvm.eez-project]:/userPages/1",
+                    "objectPath": "[xkvm.eez-project]:/userPages/1",
                     "permanent": true
                   },
                   "icon": "svg:page"
@@ -1048,7 +1048,7 @@
   "selectedBuildConfiguration": "Default",
   "features": {},
   "objects": {
-    "[jetkvm.eez-project]:/userPages/0[flow-state]": {
+    "[xkvm.eez-project]:/userPages/0[flow-state]": {
       "selection": {
         "0": {
           "0": {
@@ -1072,7 +1072,7 @@
         "scrollLeft": 0
       }
     },
-    "[jetkvm.eez-project]:/userPages/1[flow-state]": {
+    "[xkvm.eez-project]:/userPages/1[flow-state]": {
       "selection": {
         "0": {
           "0": {
@@ -1096,7 +1096,7 @@
         "scrollLeft": 0
       }
     },
-    "[jetkvm.eez-project]:/lvglStyles/styles[tree-state]": {
+    "[xkvm.eez-project]:/lvglStyles/styles[tree-state]": {
       "0": {},
       "1": {},
       "2": {},
@@ -1117,7 +1117,7 @@
         "$selected": true
       }
     },
-    "[jetkvm.eez-project]:/userPages/2[flow-state]": {
+    "[xkvm.eez-project]:/userPages/2[flow-state]": {
       "selection": {
         "0": {
           "0": {
@@ -1158,7 +1158,7 @@
         "scrollLeft": 0
       }
     },
-    "[jetkvm.eez-project]:/userPages/3[flow-state]": {
+    "[xkvm.eez-project]:/userPages/3[flow-state]": {
       "selection": {
         "0": {
           "0": {
@@ -1195,7 +1195,7 @@
         "scrollLeft": 0
       }
     },
-    "[jetkvm.eez-project]:/userPages/4[flow-state]": {
+    "[xkvm.eez-project]:/userPages/4[flow-state]": {
       "selection": {
         "0": {
           "0": {
@@ -1228,7 +1228,7 @@
         "scrollLeft": 0
       }
     },
-    "[jetkvm.eez-project]:/userPages/5[flow-state]": {
+    "[xkvm.eez-project]:/userPages/5[flow-state]": {
       "selection": {
         "0": {
           "0": {
@@ -1259,7 +1259,7 @@
         "scrollLeft": 0
       }
     },
-    "[jetkvm.eez-project]:/userWidgets/0[flow-state]": {
+    "[xkvm.eez-project]:/userWidgets/0[flow-state]": {
       "selection": {},
       "transform": {
         "translate": {
@@ -1275,7 +1275,7 @@
         "scrollLeft": 0
       }
     },
-    "[jetkvm.eez-project]:/userPages/6[flow-state]": {
+    "[xkvm.eez-project]:/userPages/6[flow-state]": {
       "selection": {
         "0": {
           "0": {
@@ -1307,7 +1307,7 @@
         "scrollLeft": 0
       }
     },
-    "[jetkvm.eez-project]:/userPages/7[flow-state]": {
+    "[xkvm.eez-project]:/userPages/7[flow-state]": {
       "selection": {
         "0": {
           "0": {
@@ -1338,7 +1338,7 @@
         "scrollLeft": 0
       }
     },
-    "[jetkvm.eez-project]:/userPages/8[flow-state]": {
+    "[xkvm.eez-project]:/userPages/8[flow-state]": {
       "selection": {
         "0": {
           "0": {
@@ -1376,7 +1376,7 @@
         "scrollLeft": 0
       }
     },
-    "[jetkvm.eez-project]:/userPages/9[flow-state]": {
+    "[xkvm.eez-project]:/userPages/9[flow-state]": {
       "selection": {
         "0": {
           "0": {
@@ -1407,7 +1407,7 @@
         "scrollLeft": 0
       }
     },
-    "[jetkvm.eez-project]:/userPages/10[flow-state]": {
+    "[xkvm.eez-project]:/userPages/10[flow-state]": {
       "selection": {
         "0": {
           "0": {

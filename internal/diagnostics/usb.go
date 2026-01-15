@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const gadgetPath = "/sys/kernel/config/usb_gadget/jetkvm"
+const gadgetPath = "/sys/kernel/config/usb_gadget/xkvm"
 
 // LogUSBGadget logs comprehensive USB gadget state, controller info, and HID devices.
 func (d *Diagnostics) LogUSBGadget() {

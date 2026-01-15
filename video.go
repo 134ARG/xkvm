@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jetkvm/kvm/internal/native"
+	"github.com/xkvm/kvm/internal/native"
 )
 
 var (

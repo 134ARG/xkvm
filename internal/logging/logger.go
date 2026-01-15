@@ -103,7 +103,7 @@ func (l *Logger) updateLogLevel() {
 	finalDefaultLogLevel := l.defaultLogLevel
 
 	for name, level := range zerologLevels {
-		env := os.Getenv(fmt.Sprintf("JETKVM_LOG_%s", name))
+		env := os.Getenv(fmt.Sprintf("XKVM_LOG_%s", name))
 
 		if env == "" {
 			env = os.Getenv(fmt.Sprintf("PION_LOG_%s", name))

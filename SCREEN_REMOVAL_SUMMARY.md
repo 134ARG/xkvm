@@ -1,6 +1,6 @@
 # Screen/Display Removal Summary
 
-This document summarizes the removal of all screen/display-related functionality from JetKVM for headless operation.
+This document summarizes the removal of all screen/display-related functionality from XKVM for headless operation.
 
 ## Files Deleted
 

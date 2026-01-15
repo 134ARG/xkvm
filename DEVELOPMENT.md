@@ -1,24 +1,24 @@
-# JetKVM Development Guide
+# XKVM Development Guide
 
 <div align="center" width="100%">
-<img src="https://jetkvm.com/logo-blue.png" align="center" height="28px">
+<img src="https://xkvm.com/logo-blue.png" align="center" height="28px">
 
-[Discord](https://jetkvm.com/discord) | [Website](https://jetkvm.com) | [Issues](https://github.com/jetkvm/cloud-api/issues) | [Docs](https://jetkvm.com/docs)
-[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/jetkvm.svg?style=social&label=Follow%20%40JetKVM)](https://twitter.com/jetkvm)
-[![Go Report Card](https://goreportcard.com/badge/github.com/jetkvm/kvm)](https://goreportcard.com/report/github.com/jetkvm/kvm)
+[Discord](https://xkvm.com/discord) | [Website](https://xkvm.com) | [Issues](https://github.com/xkvm/cloud-api/issues) | [Docs](https://xkvm.com/docs)
+[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/xkvm.svg?style=social&label=Follow%20%40XKVM)](https://twitter.com/xkvm)
+[![Go Report Card](https://goreportcard.com/badge/github.com/xkvm/kvm)](https://goreportcard.com/report/github.com/xkvm/kvm)
 
 </div>
 
-Welcome to JetKVM development! This guide will help you get started quickly, whether you're fixing bugs, adding features, or just exploring the codebase.
+Welcome to XKVM development! This guide will help you get started quickly, whether you're fixing bugs, adding features, or just exploring the codebase.
 
 ## Get Started
 
 ### Prerequisites
 
-- **A JetKVM device** (for full development)
+- **A XKVM device** (for full development)
 - **[Go 1.24.4+](https://go.dev/doc/install)** and **[Node.js 22.15.0](https://nodejs.org/en/download/)**
 - **[Git](https://git-scm.com/downloads)** for version control
-- **[SSH access](https://jetkvm.com/docs/advanced-usage/developing#developer-mode)** to your JetKVM device
+- **[SSH access](https://xkvm.com/docs/advanced-usage/developing#developer-mode)** to your XKVM device
 
 ### Development Environment
 
@@ -36,7 +36,7 @@ This ensures compatibility with shell scripts and build tools used in the projec
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/jetkvm/kvm.git
+   git clone https://github.com/xkvm/kvm.git
    cd kvm
    ```
 
@@ -46,7 +46,7 @@ This ensures compatibility with shell scripts and build tools used in the projec
    go version && node --version
    ```
 
-3. **Find your JetKVM IP address** (check your router or device screen)
+3. **Find your XKVM IP address** (check your router or device screen)
 
 4. **Deploy and test:**
 
@@ -56,7 +56,7 @@ This ensures compatibility with shell scripts and build tools used in the projec
 
 5. **Open in browser:** `http://192.168.1.100`
 
-That's it! You're now running your own development version of JetKVM.
+That's it! You're now running your own development version of XKVM.
 
 ---
 
@@ -89,7 +89,7 @@ Now edit files in `ui/src/` and see changes live in your browser!
 
 ```bash
 ssh root@192.168.1.100
-tail -f /var/log/jetkvm.log
+tail -f /var/log/xkvm.log
 ```
 
 ---
@@ -122,7 +122,7 @@ tail -f /var/log/jetkvm.log
 └── static/                   #  (react client build output)
 └── ui/                       # React frontend
     ├── localization/         # Client UI localization (i18n)
-    │   ├── jetKVM.UI.inlang/ # Settings for inlang
+    │   ├── xKVM.UI.inlang/ # Settings for inlang
     │   └── messages/         # Messages localized
     ├── public/               # UI website static images and fonts
     └── src/                  # Client React UI
@@ -151,7 +151,7 @@ tail -f /var/log/jetkvm.log
 #### _Best for: Complete feature development_
 
 ```bash
-# Deploy everything to your JetKVM device
+# Deploy everything to your XKVM device
 ./dev_deploy.sh -r <YOUR_DEVICE_IP>
 ```
 
@@ -188,15 +188,15 @@ Please click the `Build` button in EEZ Studio then run `./dev_deploy.sh -r <YOUR
 # Test connection to device
 ping 192.168.1.100
 
-# Check if JetKVM is running
-ssh root@192.168.1.100 ps aux | grep jetkvm
+# Check if XKVM is running
+ssh root@192.168.1.100 ps aux | grep xkvm
 ```
 
 ### View live logs
 
 ```bash
 ssh root@192.168.1.100
-tail -f /var/log/jetkvm.log
+tail -f /var/log/xkvm.log
 ```
 
 ### Reset everything (if stuck)
@@ -204,12 +204,12 @@ tail -f /var/log/jetkvm.log
 ```bash
 ssh root@192.168.1.100
 rm /userdata/kvm_config.json
-systemctl restart jetkvm
+systemctl restart xkvm
 ```
 
 ### Debug native code with gdbserver
 
-Change the `TARGET_IP` in `.vscode/settings.json` to your JetKVM device IP, then set breakpoints in your native code and start the `Debug Native` configuration in VSCode.
+Change the `TARGET_IP` in `.vscode/settings.json` to your XKVM device IP, then set breakpoints in your native code and start the `Debug Native` configuration in VSCode.
 
 The code and GDB server will be deployed automatically.
 
@@ -222,7 +222,7 @@ The code and GDB server will be deployed automatically.
 1. Deploy your changes: `./dev_deploy.sh -r <IP>`
 2. Open browser: `http://<IP>`
 3. Test your feature
-4. Check logs: `ssh root@<IP> tail -f /var/log/jetkvm.log`
+4. Check logs: `ssh root@<IP> tail -f /var/log/xkvm.log`
 
 ### Automated Testing
 
@@ -251,7 +251,7 @@ curl -X POST http://<IP>/auth/password-local \
 
 ```bash
 # Fix permissions
-ssh root@<IP> chmod +x /userdata/jetkvm/bin/jetkvm_app_debug
+ssh root@<IP> chmod +x /userdata/xkvm/bin/xkvm_app_debug
 
 # Clean and rebuild
 go clean -modcache
@@ -349,20 +349,20 @@ Or if you want to manually create the symlink use:
 
 ```bash
 # Enable debug logging
-export LOG_TRACE_SCOPES="jetkvm,cloud,websocket,native,jsonrpc"
+export LOG_TRACE_SCOPES="xkvm,cloud,websocket,native,jsonrpc"
 
 # Frontend development
-export JETKVM_PROXY_URL="ws://<IP>"
+export XKVM_PROXY_URL="ws://<IP>"
 ```
 
 ---
 
 ## Need Help?
 
-1. **Check logs first:** `ssh root@<IP> tail -f /var/log/jetkvm.log`
-2. **Search issues:** [GitHub Issues](https://github.com/jetkvm/kvm/issues)
-3. **Ask on Discord:** [JetKVM Discord](https://jetkvm.com/discord)
-4. **Read docs:** [JetKVM Documentation](https://jetkvm.com/docs)
+1. **Check logs first:** `ssh root@<IP> tail -f /var/log/xkvm.log`
+2. **Search issues:** [GitHub Issues](https://github.com/xkvm/kvm/issues)
+3. **Ask on Discord:** [XKVM Discord](https://xkvm.com/discord)
+4. **Read docs:** [XKVM Documentation](https://xkvm.com/docs)
 
 ---
 
@@ -390,7 +390,7 @@ export JETKVM_PROXY_URL="ws://<IP>"
 
 ### Cross-Compilation for ARM64
 
-JetKVM supports cross-compilation from x86_64 development machines to ARM64 (RK3566) targets. This is useful for building release binaries or when you don't have direct access to an ARM64 machine.
+XKVM supports cross-compilation from x86_64 development machines to ARM64 (RK3566) targets. This is useful for building release binaries or when you don't have direct access to an ARM64 machine.
 
 #### Prerequisites
 
@@ -439,22 +439,22 @@ For detailed cross-compilation documentation, see [`internal/native/cgo/README_C
 
 ### Performance Profiling
 
-1. Enable `Developer Mode` on your JetKVM device
+1. Enable `Developer Mode` on your XKVM device
 2. Add a password on the `Access` tab
 
 ```bash
 # Access profiling
-curl http://api:$JETKVM_PASSWORD@YOUR_DEVICE_IP/developer/pprof/
+curl http://api:$XKVM_PASSWORD@YOUR_DEVICE_IP/developer/pprof/
 ```
 
 ### Advanced Environment Variables
 
 ```bash
 # Enable trace logging (useful for debugging)
-export LOG_TRACE_SCOPES="jetkvm,cloud,websocket,native,jsonrpc"
+export LOG_TRACE_SCOPES="xkvm,cloud,websocket,native,jsonrpc"
 
 # For frontend development
-export JETKVM_PROXY_URL="ws://<JETKVM_IP>"
+export XKVM_PROXY_URL="ws://<XKVM_IP>"
 
 # Enable SSL in development
 export USE_SSL=true
@@ -574,4 +574,4 @@ If you enable the [Sherlock](https://inlang.com/m/r7kp499g/app-inlang-ideExtensi
 
 **Happy coding!**
 
-For more information, visit the [JetKVM Documentation](https://jetkvm.com/docs) or join our [Discord Server](https://jetkvm.com/discord).
+For more information, visit the [XKVM Documentation](https://xkvm.com/docs) or join our [Discord Server](https://xkvm.com/discord).

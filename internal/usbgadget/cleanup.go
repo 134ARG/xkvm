@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const lockFilePath = "/var/lock/jetkvm-usb.lock"
+const lockFilePath = "/var/lock/xkvm-usb.lock"
 const lockTimeout = 10 * time.Second
 
 // cleanupStaleGadget removes any leftover USB gadget configuration from previous runs

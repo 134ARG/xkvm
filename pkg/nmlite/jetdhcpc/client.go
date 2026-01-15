@@ -8,17 +8,17 @@ import (
 
 	"time"
 
-	"github.com/jetkvm/kvm/internal/sync"
-	"github.com/jetkvm/kvm/pkg/nmlite/link"
+	"github.com/xkvm/kvm/internal/sync"
+	"github.com/xkvm/kvm/pkg/nmlite/link"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/insomniacslk/dhcp/dhcpv6"
-	"github.com/jetkvm/kvm/internal/network/types"
 	"github.com/rs/zerolog"
+	"github.com/xkvm/kvm/internal/network/types"
 )
 
 const (
-	VendorIdentifier = "jetkvm"
+	VendorIdentifier = "xkvm"
 )
 
 var (
@@ -138,7 +138,7 @@ func NewClient(ctx context.Context, ifaces []string, c *Config, l *zerolog.Logge
 		ifaces:   ifaces,
 		cfg:      cfg,
 		l:        l,
-		stateDir: "/run/jetkvm-dhcp",
+		stateDir: "/run/xkvm-dhcp",
 
 		currentLease4: nil,
 		currentLease6: nil,

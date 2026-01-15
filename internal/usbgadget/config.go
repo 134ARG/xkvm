@@ -43,8 +43,8 @@ var defaultGadgetConfig = map[string]gadgetConfigItem{
 		configPath: []string{"strings", "0x409"},
 		attrs: gadgetAttributes{
 			"serialnumber": "",
-			"manufacturer": "JetKVM",
-			"product":      "JetKVM USB Emulation Device",
+			"manufacturer": "XKVM",
+			"product":      "XKVM USB Emulation Device",
 		},
 		configAttrs: gadgetAttributes{
 			"configuration": "Config 1: HID",

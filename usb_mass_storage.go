@@ -19,7 +19,7 @@ import (
 	"github.com/pion/webrtc/v4"
 	"github.com/psanford/httpreadat"
 
-	"github.com/jetkvm/kvm/resource"
+	"github.com/xkvm/kvm/resource"
 )
 
 func writeFile(path string, data string) error {
@@ -99,7 +99,7 @@ func mountImage(imagePath string) error {
 
 var nbdDevice *NBDDevice
 
-const imagesFolder = "/userdata/jetkvm/images"
+const imagesFolder = "/userdata/xkvm/images"
 
 func initImagesFolder() error {
 	err := os.MkdirAll(imagesFolder, 0755)

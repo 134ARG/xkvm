@@ -10,8 +10,8 @@ ACTION="$3"      # "deploy", "restore", or "test"
 VERSION="$4"     # required for "test" action
 
 REMOTE_USER="root"
-REMOTE_BIN_PATH="/userdata/jetkvm/bin"
-REMOTE_UPDATE_PATH="/userdata/jetkvm"
+REMOTE_BIN_PATH="/userdata/xkvm/bin"
+REMOTE_UPDATE_PATH="/userdata/xkvm"
 SSH_OPTS="-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o ConnectTimeout=10 -o LogLevel=ERROR"
 
 ssh_cmd() { ssh $SSH_OPTS "${REMOTE_USER}@${DEVICE_IP}" "$@"; }
@@ -19,15 +19,15 @@ ssh_cmd() { ssh $SSH_OPTS "${REMOTE_USER}@${DEVICE_IP}" "$@"; }
 case "$ACTION" in
   deploy)
     echo "Backing up current binary..."
-    ssh_cmd "cp ${REMOTE_BIN_PATH}/jetkvm_app ${REMOTE_BIN_PATH}/jetkvm_app.pre_release_backup 2>/dev/null || true"
+    ssh_cmd "cp ${REMOTE_BIN_PATH}/xkvm_app ${REMOTE_BIN_PATH}/xkvm_app.pre_release_backup 2>/dev/null || true"
     echo "Deploying new binary via OTA update mechanism..."
-    ssh_cmd "cat > ${REMOTE_UPDATE_PATH}/jetkvm_app.update" < "$BINARY_PATH"
+    ssh_cmd "cat > ${REMOTE_UPDATE_PATH}/xkvm_app.update" < "$BINARY_PATH"
     echo "Rebooting device..."
     ssh_cmd "reboot" || true
     ;;
   restore)
     echo "Restoring backup..."
-    ssh_cmd "cp ${REMOTE_BIN_PATH}/jetkvm_app.pre_release_backup ${REMOTE_BIN_PATH}/jetkvm_app"
+    ssh_cmd "cp ${REMOTE_BIN_PATH}/xkvm_app.pre_release_backup ${REMOTE_BIN_PATH}/xkvm_app"
     echo "Rebooting device..."
     ssh_cmd "reboot" || true
     ;;
@@ -66,7 +66,7 @@ case "$ACTION" in
     echo ""
     echo "Step 3: Verifying deployed version..."
     # Get version from Prometheus metrics endpoint
-    DEPLOYED_VERSION=$(curl -sf "http://$DEVICE_IP/metrics" | grep 'jetkvm_build_info' | sed -n 's/.*version="\([^"]*\)".*/\1/p')
+    DEPLOYED_VERSION=$(curl -sf "http://$DEVICE_IP/metrics" | grep 'xkvm_build_info' | sed -n 's/.*version="\([^"]*\)".*/\1/p')
     echo "  Expected: $VERSION"
     echo "  Deployed: $DEPLOYED_VERSION"
 
@@ -81,7 +81,7 @@ case "$ACTION" in
     echo ""
     echo "Step 4: Running E2E tests..."
     E2E_RESULT=0
-    cd "$REPO_ROOT/ui" && NODE_NO_WARNINGS=1 JETKVM_URL="http://$DEVICE_IP" npm run test:e2e || E2E_RESULT=$?
+    cd "$REPO_ROOT/ui" && NODE_NO_WARNINGS=1 XKVM_URL="http://$DEVICE_IP" npm run test:e2e || E2E_RESULT=$?
 
     echo ""
     echo "Step 5: Restoring device to previous binary..."

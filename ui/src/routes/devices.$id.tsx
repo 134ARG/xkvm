@@ -964,7 +964,7 @@ export default function KvmIdRoute() {
             isLoggedIn={authMode === "password" || !!user}
             userEmail={user?.email}
             picture={user?.picture}
-            kvmName={deviceName ?? m.jetkvm_device()}
+            kvmName={deviceName ?? m.xkvm_device()}
           />
 
           <div className="relative flex h-full w-full overflow-hidden">

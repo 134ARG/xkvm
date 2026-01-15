@@ -7,13 +7,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jetkvm/kvm/internal/sync"
+	"github.com/xkvm/kvm/internal/sync"
 
-	"github.com/jetkvm/kvm/internal/logging"
-	"github.com/jetkvm/kvm/internal/network/types"
-	"github.com/jetkvm/kvm/pkg/nmlite/jetdhcpc"
-	"github.com/jetkvm/kvm/pkg/nmlite/link"
 	"github.com/rs/zerolog"
+	"github.com/xkvm/kvm/internal/logging"
+	"github.com/xkvm/kvm/internal/network/types"
+	"github.com/xkvm/kvm/pkg/nmlite/jetdhcpc"
+	"github.com/xkvm/kvm/pkg/nmlite/link"
 )
 
 // NetworkManager manages multiple network interfaces

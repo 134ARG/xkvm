@@ -49,21 +49,21 @@ if [ "$SKIP_CONFIRMATION" = false ]; then
 fi
 
 # Deploy versioned
-msg_info "Deploying /v/${VERSION}/ to r2://jetkvm-cloud-app/v/${VERSION}..."
+msg_info "Deploying /v/${VERSION}/ to r2://xkvm-cloud-app/v/${VERSION}..."
 rclone copyto --progress \
-  --header-upload="x-amz-meta-jetkvm-version: ${VERSION}" \
-  --header-upload="x-amz-meta-jetkvm-build-ref: ${GIT_COMMIT}" \
-  --header-upload="x-amz-meta-jetkvm-build-timestamp: ${BUILD_TIMESTAMP}" \
-  dist/v/${VERSION} r2://jetkvm-cloud-app/v/${VERSION}
+  --header-upload="x-amz-meta-xkvm-version: ${VERSION}" \
+  --header-upload="x-amz-meta-xkvm-build-ref: ${GIT_COMMIT}" \
+  --header-upload="x-amz-meta-xkvm-build-timestamp: ${BUILD_TIMESTAMP}" \
+  dist/v/${VERSION} r2://xkvm-cloud-app/v/${VERSION}
 
 # Deploy root if --set-as-default
 if [ "$SET_AS_DEFAULT" = true ]; then
-  msg_info "Deploying root to r2://jetkvm-cloud-app..."
+  msg_info "Deploying root to r2://xkvm-cloud-app..."
   rclone copyto --progress \
-    --header-upload="x-amz-meta-jetkvm-version: ${VERSION}" \
-    --header-upload="x-amz-meta-jetkvm-build-ref: ${GIT_COMMIT}" \
-    --header-upload="x-amz-meta-jetkvm-build-timestamp: ${BUILD_TIMESTAMP}" \
-    dist/root r2://jetkvm-cloud-app
+    --header-upload="x-amz-meta-xkvm-version: ${VERSION}" \
+    --header-upload="x-amz-meta-xkvm-build-ref: ${GIT_COMMIT}" \
+    --header-upload="x-amz-meta-xkvm-build-timestamp: ${BUILD_TIMESTAMP}" \
+    dist/root r2://xkvm-cloud-app
 fi
 
 msg_ok "Deployed cloud app v${VERSION}"

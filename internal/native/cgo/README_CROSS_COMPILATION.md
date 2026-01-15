@@ -1,6 +1,6 @@
-# Cross-Compilation Setup for JetKVM Native Components
+# Cross-Compilation Setup for XKVM Native Components
 
-This document describes the cross-compilation setup for building JetKVM native components for ARM64 (RK3566) from x86_64 development machines.
+This document describes the cross-compilation setup for building XKVM native components for ARM64 (RK3566) from x86_64 development machines.
 
 ## Overview
 

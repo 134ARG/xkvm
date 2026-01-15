@@ -64,7 +64,7 @@ export function UsbInfoSetting() {
         vendor_id: "0x1d6b",
         product_id: "0x0104",
         serial_number: deviceId,
-        manufacturer: "JetKVM",
+        manufacturer: "XKVM",
         product: "USB Emulation Device",
       },
       "Logitech USB Input Device": {

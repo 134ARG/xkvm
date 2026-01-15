@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/jetkvm/kvm/internal/network/types"
+	"github.com/xkvm/kvm/internal/network/types"
 )
 
 const (
 	// DefaultStateDir is the default state directory
 	DefaultStateDir = "/var/run/"
 	// DHCPStateFile is the name of the DHCP state file
-	DHCPStateFile = "jetkvm_dhcp_state.json"
+	DHCPStateFile = "xkvm_dhcp_state.json"
 )
 
 // DHCPState represents the persistent state of DHCP clients

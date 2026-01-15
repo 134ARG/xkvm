@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/jetkvm/kvm/internal/diagnostics"
 	"github.com/rs/zerolog"
+	"github.com/xkvm/kvm/internal/diagnostics"
 )
 
 type Native struct {

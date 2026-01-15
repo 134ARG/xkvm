@@ -46,7 +46,7 @@ export default function useKeyboard() {
   // Keepalive timer management
   const keepAliveTimerRef = useRef<number | null>(null);
 
-  // INTRODUCTION: The earlier version of the JetKVM device shipped with all keyboard state
+  // INTRODUCTION: The earlier version of the XKVM device shipped with all keyboard state
   // being tracked on the browser/client-side. When adding the keyPressReport API to the
   // device-side code, we have to still support the situation where the browser/client-side code
   // is running on the cloud against a device that has not been updated yet and thus does not

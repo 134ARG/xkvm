@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/jetkvm/kvm/internal/sync"
+	"github.com/xkvm/kvm/internal/sync"
 
 	"github.com/vishvananda/netlink"
 )

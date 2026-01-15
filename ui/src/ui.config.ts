@@ -11,5 +11,5 @@ export const CLOUD_ENABLE_VERSIONED_UI = toBoolean(import.meta.env.VITE_CLOUD_EN
 
 export const DOWNGRADE_VERSION = import.meta.env.VITE_DOWNGRADE_VERSION || "0.4.8";
 
-// In device mode, an empty string uses the current hostname (the JetKVM device's IP) as the API endpoint
+// In device mode, an empty string uses the current hostname (the XKVM device's IP) as the API endpoint
 export const DEVICE_API = "";

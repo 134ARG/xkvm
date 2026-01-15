@@ -13,7 +13,7 @@ git checkout main
 
 # Add 'public' remote if it doesn't exist
 if ! git remote | grep -q '^public$'; then
-    git remote add public https://github.com/jetkvm/kvm.git
+    git remote add public https://github.com/xkvm/kvm.git
 fi
 
 # Fetch the latest from the public repository

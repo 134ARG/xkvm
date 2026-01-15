@@ -29,7 +29,7 @@ show_help() {
 
 
 BUILD_VERSION=$1
-R2_PATH="r2://jetkvm-update/system"
+R2_PATH="r2://xkvm-update/system"
 PACK_BIN_PATH="./tools/linux/Linux_Pack_Firmware"
 UNPACK_BIN="${PACK_BIN_PATH}/mk-update_unpack.sh"
 
@@ -59,7 +59,7 @@ if rclone lsf $R2_PATH/$BUILD_VERSION/ | grep -q .; then
 fi
 
 # Check if the version exists in the github
-RELEASE_URL="https://api.github.com/repos/jetkvm/rv1106-system/releases/tags/v$BUILD_VERSION"
+RELEASE_URL="https://api.github.com/repos/xkvm/rv1106-system/releases/tags/v$BUILD_VERSION"
 
 # Download the release JSON
 RELEASE_JSON=$(curl -s $RELEASE_URL)
@@ -107,7 +107,7 @@ function get_file_by_name() {
 get_file_by_name "update_ota.tar"
 get_file_by_name "update.img"
 
-strings -d bin/jetkvm_app | grep -x '0.4.8'
+strings -d bin/xkvm_app | grep -x '0.4.8'
 
 # Ask for confirmation
 msg_info "Do you want to continue with the release? (y/n)"

@@ -1,8 +1,8 @@
 package kvm
 
 import (
-	"github.com/jetkvm/kvm/internal/logging"
 	"github.com/rs/zerolog"
+	"github.com/xkvm/kvm/internal/logging"
 )
 
 func ErrorfL(l *zerolog.Logger, format string, err error, args ...any) error {
@@ -10,7 +10,7 @@ func ErrorfL(l *zerolog.Logger, format string, err error, args ...any) error {
 }
 
 var (
-	logger          = logging.GetSubsystemLogger("jetkvm")
+	logger          = logging.GetSubsystemLogger("xkvm")
 	failsafeLogger  = logging.GetSubsystemLogger("failsafe")
 	networkLogger   = logging.GetSubsystemLogger("network")
 	cloudLogger     = logging.GetSubsystemLogger("cloud")

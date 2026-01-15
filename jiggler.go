@@ -7,7 +7,7 @@ import (
 	_ "time/tzdata"
 
 	"github.com/go-co-op/gocron/v2"
-	"github.com/jetkvm/kvm/internal/tzdata"
+	"github.com/xkvm/kvm/internal/tzdata"
 )
 
 type JigglerConfig struct {

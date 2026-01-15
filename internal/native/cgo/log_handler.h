@@ -1,7 +1,7 @@
 #ifndef LOG_HANDLER_H
 #define LOG_HANDLER_H
 
-typedef void (jetkvm_log_handler_t)(int level, const char *filename, const char *funcname, const int line, const char *message);
+typedef void (xkvm_log_handler_t)(int level, const char *filename, const char *funcname, const int line, const char *message);
 
 /**
  * @brief Log a message
@@ -21,6 +21,6 @@ void log_message(int level, const char *filename, const char *funcname, const in
  * @param handler The handler to set
  * @return void
  */
-void log_set_handler(jetkvm_log_handler_t *handler);
+void log_set_handler(xkvm_log_handler_t *handler);
 
 #endif

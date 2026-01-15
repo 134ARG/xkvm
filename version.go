@@ -7,12 +7,12 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/jetkvm/kvm/internal/native"
 	"github.com/prometheus/common/version"
+	"github.com/xkvm/kvm/internal/native"
 )
 
 var versionInfoTmpl = `
-JetKVM Application, version {{.version}} (branch: {{.branch}}, revision: {{.revision}})
+XKVM Application, version {{.version}} (branch: {{.branch}}, revision: {{.revision}})
   build date:       {{.buildDate}}
   go version:       {{.goVersion}}
   platform:         {{.platform}}

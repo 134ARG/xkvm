@@ -6,9 +6,9 @@ PROJECT_ROOT=$(realpath "$SCRIPT_DIR/..")
 
 cd "$PROJECT_ROOT"
 
-# Check if jetkvm_app exists
-if [ ! -f "bin/jetkvm_app" ]; then
-    echo "Error: bin/jetkvm_app not found. Run 'make build_release' first."
+# Check if xkvm_app exists
+if [ ! -f "bin/xkvm_app" ]; then
+    echo "Error: bin/xkvm_app not found. Run 'make build_release' first."
     exit 1
 fi
 
@@ -22,7 +22,7 @@ trap "rm -rf $TEMP_DIR" EXIT
 mkdir -p "$TEMP_DIR/lib"
 
 # Copy binary
-cp bin/jetkvm_app "$TEMP_DIR/"
+cp bin/xkvm_app "$TEMP_DIR/"
 
 # Copy vendor libraries
 cp internal/native/cgo/sdk/vendor/rockit/lib/lib64/librockit.so "$TEMP_DIR/lib/"
@@ -37,13 +37,13 @@ tar czf ../payload.tar.gz .
 cd ..
 
 PAYLOAD_FILE="$TEMP_DIR/../payload.tar.gz"
-OUTPUT_FILE="$PROJECT_ROOT/bin/jetkvm_installer.sh"
+OUTPUT_FILE="$PROJECT_ROOT/bin/xkvm_installer.sh"
 
 # Create self-extracting script
 cat > "$OUTPUT_FILE" << 'EOF'
 #!/bin/bash
-# JetKVM Self-Extracting Installer
-# This script extracts the JetKVM application and its dependencies
+# XKVM Self-Extracting Installer
+# This script extracts the XKVM application and its dependencies
 
 set -e
 
@@ -79,12 +79,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Check if already extracted
-if [ "$SKIP_EXTRACT" -eq 1 ] && [ -f "$EXTRACT_DIR/jetkvm_app" ] && [ -d "$EXTRACT_DIR/lib" ]; then
+if [ "$SKIP_EXTRACT" -eq 1 ] && [ -f "$EXTRACT_DIR/xkvm_app" ] && [ -d "$EXTRACT_DIR/lib" ]; then
     echo "Files already extracted, skipping extraction."
     exit 0
 fi
 
-echo "JetKVM Self-Extracting Installer"
+echo "XKVM Self-Extracting Installer"
 echo "================================="
 echo "Extracting to: $EXTRACT_DIR"
 echo ""
@@ -102,14 +102,14 @@ echo ""
 echo "✓ Extraction complete!"
 echo ""
 echo "Files extracted:"
-echo "  - jetkvm_app (main executable)"
+echo "  - xkvm_app (main executable)"
 echo "  - lib/librockit.so"
 echo "  - lib/libgraphic_lsf.so"
 echo "  - lib/librockchip_mpp.so*"
 echo ""
-echo "To run JetKVM:"
+echo "To run XKVM:"
 echo "  cd $EXTRACT_DIR"
-echo "  sudo ./jetkvm_app"
+echo "  sudo ./xkvm_app"
 echo ""
 
 exit 0
@@ -127,11 +127,11 @@ chmod +x "$OUTPUT_FILE"
 rm "$PAYLOAD_FILE"
 
 echo ""
-echo "✓ Self-extracting installer created: bin/jetkvm_installer.sh"
+echo "✓ Self-extracting installer created: bin/xkvm_installer.sh"
 echo ""
 echo "Usage:"
-echo "  ./bin/jetkvm_installer.sh              # Extract to current directory"
-echo "  ./bin/jetkvm_installer.sh --dir /opt   # Extract to /opt"
-echo "  ./bin/jetkvm_installer.sh --help       # Show help"
+echo "  ./bin/xkvm_installer.sh              # Extract to current directory"
+echo "  ./bin/xkvm_installer.sh --dir /opt   # Extract to /opt"
+echo "  ./bin/xkvm_installer.sh --help       # Show help"
 echo ""
 echo "File size: $(du -h "$OUTPUT_FILE" | cut -f1)"

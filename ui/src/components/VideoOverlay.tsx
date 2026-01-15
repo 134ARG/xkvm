@@ -135,7 +135,7 @@ export function ConnectionFailedOverlay({
                   </div>
                   <div className="flex items-center gap-x-2">
                     <LinkButton
-                      to={"https://jetkvm.com/docs/getting-started/troubleshooting"}
+                      to={"https://xkvm.com/docs/getting-started/troubleshooting"}
                       theme="primary"
                       text={m.video_overlay_troubleshooting_guide()}
                       TrailingIcon={ArrowRightIcon}
@@ -251,7 +251,7 @@ export function HDMIErrorOverlay({ show, hdmiState }: HDMIErrorOverlayProps) {
                     </div>
                     <div>
                       <LinkButton
-                        to={"https://jetkvm.com/docs/getting-started/troubleshooting"}
+                        to={"https://xkvm.com/docs/getting-started/troubleshooting"}
                         theme="light"
                         text={m.video_overlay_learn_more()}
                         TrailingIcon={ArrowRightIcon}
@@ -293,7 +293,7 @@ export function HDMIErrorOverlay({ show, hdmiState }: HDMIErrorOverlayProps) {
                     </div>
                     <div>
                       <LinkButton
-                        to={"https://jetkvm.com/docs/getting-started/troubleshooting"}
+                        to={"https://xkvm.com/docs/getting-started/troubleshooting"}
                         theme="light"
                         text={m.video_overlay_learn_more()}
                         TrailingIcon={ArrowRightIcon}

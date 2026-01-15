@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jetkvm/kvm/internal/usbgadget"
+	"github.com/xkvm/kvm/internal/usbgadget"
 )
 
 var gadget *usbgadget.UsbGadget
@@ -16,7 +16,7 @@ var gadget *usbgadget.UsbGadget
 func initUsbGadget() {
 	var err error
 	gadget, err = usbgadget.NewUsbGadget(
-		"jetkvm",
+		"xkvm",
 		config.UsbDevices,
 		config.UsbConfig,
 		usbLogger,

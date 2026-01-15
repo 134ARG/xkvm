@@ -6,11 +6,11 @@ VERSION := 0.5.1
 VERSION_DEV := $(VERSION)-dev$(shell date -u +%Y%m%d%H%M)
 
 PROMETHEUS_TAG := github.com/prometheus/common/version
-KVM_PKG_NAME := github.com/jetkvm/kvm
+KVM_PKG_NAME := github.com/xkvm/kvm
 
 BUILDKIT_FLAVOR := aarch64-linux-gnu
-BUILDKIT_PATH ?= /opt/jetkvm-native-buildkit
-DOCKER_BUILD_TAG ?= ghcr.io/jetkvm/buildkit:latest
+BUILDKIT_PATH ?= /opt/xkvm-native-buildkit
+DOCKER_BUILD_TAG ?= ghcr.io/xkvm/buildkit:latest
 SKIP_NATIVE_IF_EXISTS ?= 0
 SKIP_UI_BUILD ?= 0
 ENABLE_SYNC_TRACE ?= 0
@@ -63,7 +63,7 @@ test:
 test_e2e:
 	@read -p "Device IP: " device_ip; \
 	cd ui && npm install && npx playwright install --with-deps chromium && \
-	NODE_NO_WARNINGS=1 JETKVM_URL="http://$$device_ip" npm run test:e2e
+	NODE_NO_WARNINGS=1 XKVM_URL="http://$$device_ip" npm run test:e2e
 
 lint:
 	go vet ./...
@@ -96,7 +96,7 @@ _build_dev_inner: build_native
 	$(GO_CMD) build \
 		-ldflags="$(GO_LDFLAGS) -X $(KVM_PKG_NAME).builtAppVersion=$(VERSION_DEV)" \
 		$(GO_RELEASE_BUILD_ARGS) \
-		-o $(BIN_DIR)/jetkvm_app -v cmd/main.go
+		-o $(BIN_DIR)/xkvm_app -v cmd/main.go
 
 build_test2json:
 	$(GO_CMD) build -o $(BIN_DIR)/test2json cmd/test2json
@@ -178,16 +178,16 @@ dev_release: git_check_dev
 		read -p "Device IP: " device_ip; \
 		echo "Installing Playwright dependencies..."; \
 		cd ui && npm ci && npx playwright install --with-deps chromium && cd ..; \
-		./scripts/test_release_on_device.sh "$$device_ip" bin/jetkvm_app test $(VERSION_DEV) || exit 1; \
+		./scripts/test_release_on_device.sh "$$device_ip" bin/xkvm_app test $(VERSION_DEV) || exit 1; \
 	fi
 	@echo "Uploading device app to R2..."
-	@shasum -a 256 bin/jetkvm_app | cut -d ' ' -f 1 > bin/jetkvm_app.sha256
-	rclone copyto bin/jetkvm_app r2://jetkvm-update/app/$(VERSION_DEV)/jetkvm_app
-	rclone copyto bin/jetkvm_app.sha256 r2://jetkvm-update/app/$(VERSION_DEV)/jetkvm_app.sha256
+	@shasum -a 256 bin/xkvm_app | cut -d ' ' -f 1 > bin/xkvm_app.sha256
+	rclone copyto bin/xkvm_app r2://xkvm-update/app/$(VERSION_DEV)/xkvm_app
+	rclone copyto bin/xkvm_app.sha256 r2://xkvm-update/app/$(VERSION_DEV)/xkvm_app.sha256
 	./scripts/deploy_cloud_app.sh -v $(VERSION_DEV) --skip-confirmation
 	@git tag release/$(VERSION_DEV)
 	@git push origin release/$(VERSION_DEV)
-	gh release create release/$(VERSION_DEV) bin/jetkvm_app bin/jetkvm_app.sha256 --prerelease --generate-notes
+	gh release create release/$(VERSION_DEV) bin/xkvm_app bin/xkvm_app.sha256 --prerelease --generate-notes
 	@echo "✓ Released: release/$(VERSION_DEV)"
 
 # NOTE: VERSION is passed explicitly for consistency with build_dev (see comment above).
@@ -222,15 +222,15 @@ _build_release_inner: build_native
 	$(GO_CMD) build \
 		-ldflags="$(GO_LDFLAGS) -X $(KVM_PKG_NAME).builtAppVersion=$(VERSION)" \
 		$(GO_RELEASE_BUILD_ARGS) \
-		-o bin/jetkvm_app cmd/main.go
+		-o bin/xkvm_app cmd/main.go
 	@echo "Creating self-extracting installer..."
 	@./scripts/create_self_extract.sh
 
 release: git_check_dev
-	@if rclone lsf r2://jetkvm-update/app/$(VERSION)/ 2>/dev/null | grep -q "jetkvm_app"; then \
+	@if rclone lsf r2://xkvm-update/app/$(VERSION)/ 2>/dev/null | grep -q "xkvm_app"; then \
 		echo "Error: Version $(VERSION) already exists in R2"; exit 1; \
 	fi
-	@latest_dev=$$(curl -s "https://api.jetkvm.com/releases?deviceId=123&prerelease=true" | jq -r '.appVersion // ""'); \
+	@latest_dev=$$(curl -s "https://api.xkvm.com/releases?deviceId=123&prerelease=true" | jq -r '.appVersion // ""'); \
 		if ! echo "$$latest_dev" | grep -q "^$(VERSION)-dev"; then \
 			echo ""; \
 			echo "⚠️  Warning: No dev release found for $(VERSION)"; \
@@ -254,17 +254,17 @@ release: git_check_dev
 		read -p "Device IP: " device_ip; \
 		echo "Installing Playwright dependencies..."; \
 		cd ui && npm ci && npx playwright install --with-deps chromium && cd ..; \
-		./scripts/test_release_on_device.sh "$$device_ip" bin/jetkvm_app test $(VERSION) || exit 1; \
+		./scripts/test_release_on_device.sh "$$device_ip" bin/xkvm_app test $(VERSION) || exit 1; \
 	fi
 	@echo "Uploading device app to R2..."
-	@shasum -a 256 bin/jetkvm_app | cut -d ' ' -f 1 > bin/jetkvm_app.sha256
-	rclone copyto bin/jetkvm_app r2://jetkvm-update/app/$(VERSION)/jetkvm_app
-	rclone copyto bin/jetkvm_app.sha256 r2://jetkvm-update/app/$(VERSION)/jetkvm_app.sha256
+	@shasum -a 256 bin/xkvm_app | cut -d ' ' -f 1 > bin/xkvm_app.sha256
+	rclone copyto bin/xkvm_app r2://xkvm-update/app/$(VERSION)/xkvm_app
+	rclone copyto bin/xkvm_app.sha256 r2://xkvm-update/app/$(VERSION)/xkvm_app.sha256
 	./scripts/deploy_cloud_app.sh -v $(VERSION) --set-as-default --skip-confirmation
 	@git tag release/$(VERSION)
 	@git push origin release/$(VERSION)
 	prev_prod=$$(gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName'); \
-	gh release create release/$(VERSION) bin/jetkvm_app bin/jetkvm_app.sha256 \
+	gh release create release/$(VERSION) bin/xkvm_app bin/xkvm_app.sha256 \
 		--title "$(VERSION)" \
 		--generate-notes \
 		--notes-start-tag "$$prev_prod" \

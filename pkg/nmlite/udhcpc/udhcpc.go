@@ -9,11 +9,11 @@ import (
 
 	"time"
 
-	"github.com/jetkvm/kvm/internal/sync"
+	"github.com/xkvm/kvm/internal/sync"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/jetkvm/kvm/internal/network/types"
 	"github.com/rs/zerolog"
+	"github.com/xkvm/kvm/internal/network/types"
 )
 
 const (

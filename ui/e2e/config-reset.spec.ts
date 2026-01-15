@@ -72,8 +72,8 @@ test.describe("Config Reset and Welcome Screen Tests", () => {
     // Wait for animations to complete
     await page.waitForTimeout(ANIMATION_DELAY);
 
-    // === Step 6: Click "Set up your JetKVM" button to go to /welcome/mode ===
-    const setupButton = page.getByRole("link", { name: /Set up your JetKVM/i });
+    // === Step 6: Click "Set up your XKVM" button to go to /welcome/mode ===
+    const setupButton = page.getByRole("link", { name: /Set up your XKVM/i });
     await expect(setupButton).toBeVisible({ timeout: 10000 });
     await setupButton.click();
 
