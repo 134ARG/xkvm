@@ -176,8 +176,6 @@ func setupRouter() *gin.Engine {
 		 */
 		protected.POST("/webrtc/session", handleWebRTCSession)
 		protected.GET("/webrtc/signaling/client", handleLocalWebRTCSignal)
-		protected.POST("/cloud/register", handleCloudRegister)
-		protected.GET("/cloud/state", handleCloudState)
 		protected.GET("/device", handleDevice)
 		protected.POST("/auth/logout", handleLogout)
 
@@ -301,9 +299,6 @@ func handleWebRTCSignalWsMessages(
 ) error {
 	runCtx, cancelRun := context.WithCancel(context.Background())
 	defer func() {
-		if isCloudConnection {
-			setCloudConnectionState(CloudConnectionStateDisconnected)
-		}
 		cancelRun()
 	}()
 
@@ -359,24 +354,6 @@ func handleWebRTCSignalWsMessages(
 			l.Trace().Str("duration", duration.String()).Msg("received pong frame")
 		}
 	}()
-
-	if isCloudConnection {
-		// create a channel to receive the disconnect event, once received, we cancelRun
-		cloudDisconnectChan = make(chan error)
-		defer func() {
-			close(cloudDisconnectChan)
-			cloudDisconnectChan = nil
-		}()
-		go func() {
-			for err := range cloudDisconnectChan {
-				if err == nil {
-					continue
-				}
-				cloudLogger.Info().Err(err).Msg("disconnecting from cloud due to")
-				cancelRun()
-			}
-		}()
-	}
 
 	for {
 		typ, msg, err := wsCon.Read(runCtx)
@@ -741,16 +718,6 @@ func handleDeviceStatus(c *gin.Context) {
 
 	response := DeviceStatus{
 		IsSetup: config.LocalAuthMode != "",
-	}
-
-	c.JSON(http.StatusOK, response)
-}
-
-func handleCloudState(c *gin.Context) {
-	response := CloudState{
-		Connected: config.CloudToken != "",
-		URL:       config.CloudURL,
-		AppURL:    config.CloudAppURL,
 	}
 
 	c.JSON(http.StatusOK, response)

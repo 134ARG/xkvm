@@ -942,26 +942,6 @@ func rpcSetUsbDeviceState(device string, enabled bool) error {
 	return updateUsbRelatedConfig()
 }
 
-func rpcSetCloudUrl(apiUrl string, appUrl string) error {
-	currentCloudURL := config.CloudURL
-	config.CloudURL = apiUrl
-	config.CloudAppURL = appUrl
-
-	if currentCloudURL != apiUrl {
-		disconnectCloud(fmt.Errorf("cloud url changed from %s to %s", currentCloudURL, apiUrl))
-	}
-
-	if publicIPState != nil {
-		publicIPState.SetCloudflareEndpoint(apiUrl)
-	}
-
-	if err := SaveConfig(); err != nil {
-		return fmt.Errorf("failed to save config: %w", err)
-	}
-
-	return nil
-}
-
 func rpcGetKeyboardLayout() (string, error) {
 	return config.KeyboardLayout, nil
 }
@@ -1184,12 +1164,10 @@ func rpcDoExecuteKeyboardMacro(ctx context.Context, macro []hidrpc.KeyboardMacro
 }
 
 var rpcHandlers = map[string]RPCHandler{
-	"ping":             {Func: rpcPing},
-	"reboot":           {Func: rpcReboot, Params: []string{"force"}},
-	"getDeviceID":      {Func: rpcGetDeviceID},
-	"deregisterDevice": {Func: rpcDeregisterDevice},
-	"getCloudState":    {Func: rpcGetCloudState},
-	"getNetworkState":  {Func: rpcGetNetworkState},
+	"ping":            {Func: rpcPing},
+	"reboot":          {Func: rpcReboot, Params: []string{"force"}},
+	"getDeviceID":     {Func: rpcGetDeviceID},
+	"getNetworkState": {Func: rpcGetNetworkState},
 	// "getNetworkSettings" is deprecated - network config is read-only, use getNetworkState instead
 	"getNetworkSettings":     {Func: rpcGetNetworkSettingsDeprecated},
 	"setNetworkSettings":     {Func: rpcSetNetworkSettings, Params: []string{"settings"}},
@@ -1268,7 +1246,6 @@ var rpcHandlers = map[string]RPCHandler{
 	"getUsbDevices":          {Func: rpcGetUsbDevices},
 	"setUsbDevices":          {Func: rpcSetUsbDevices, Params: []string{"devices"}},
 	"setUsbDeviceState":      {Func: rpcSetUsbDeviceState, Params: []string{"device", "enabled"}},
-	"setCloudUrl":            {Func: rpcSetCloudUrl, Params: []string{"apiUrl", "appUrl"}},
 	"getKeyboardLayout":      {Func: rpcGetKeyboardLayout},
 	"setKeyboardLayout":      {Func: rpcSetKeyboardLayout, Params: []string{"layout"}},
 	"getKeyboardMacros":      {Func: getKeyboardMacros},

@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { useLoaderData, useNavigate, type LoaderFunction } from "react-router";
-import { ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { useLoaderData, type LoaderFunction } from "react-router";
 
 import { useDeviceUiNavigation } from "@hooks/useAppNavigation";
 import { JsonRpcResponse, useJsonRpc } from "@hooks/useJsonRpc";
-import { GridCard } from "@components/Card";
-import { Button, LinkButton } from "@components/Button";
-import { InputFieldWithLabel } from "@components/InputField";
+import { Button } from "@components/Button";
 import { SelectMenuBasic } from "@components/SelectMenuBasic";
 import { SettingsItem } from "@components/SettingsItem";
 import { SettingsPageHeader } from "@components/SettingsPageheader";
@@ -20,7 +17,6 @@ import { isOnDevice } from "@/main";
 import { m } from "@localizations/messages.js";
 
 import { LocalDevice } from "./devices.$id";
-import { CloudState } from "./adopt";
 
 export interface TLSState {
   mode: "self-signed" | "custom" | "disabled";
@@ -42,41 +38,12 @@ export default function SettingsAccessIndexRoute() {
   const loaderData = useLoaderData() as LocalDevice | null;
 
   const { navigateTo } = useDeviceUiNavigation();
-  const navigate = useNavigate();
 
   const { send } = useJsonRpc();
 
-  const [isAdopted, setAdopted] = useState(false);
-  const [deviceId, setDeviceId] = useState<string | null>(null);
-  const [cloudApiUrl, setCloudApiUrl] = useState("");
-  const [cloudAppUrl, setCloudAppUrl] = useState("");
-
-  // Use a simple string identifier for the selected provider
-  const [selectedProvider, setSelectedProvider] = useState<string>("xkvm");
   const [tlsMode, setTlsMode] = useState<string>("unknown");
   const [tlsCert, setTlsCert] = useState<string>("");
   const [tlsKey, setTlsKey] = useState<string>("");
-
-  const getCloudState = useCallback(() => {
-    send("getCloudState", {}, (resp: JsonRpcResponse) => {
-      if ("error" in resp) return console.error(resp.error);
-      const cloudState = resp.result as CloudState;
-      setAdopted(cloudState.connected);
-      setCloudApiUrl(cloudState.url);
-
-      if (cloudState.appUrl) setCloudAppUrl(cloudState.appUrl);
-
-      // Find if the API URL matches any of our predefined providers
-      const isAPIXKVMProd = cloudState.url === "https://api.xkvm.com";
-      const isAppXKVMProd = cloudState.appUrl === "https://app.xkvm.com";
-
-      if (isAPIXKVMProd && isAppXKVMProd) {
-        setSelectedProvider("xkvm");
-      } else {
-        setSelectedProvider("custom");
-      }
-    });
-  }, [send]);
 
   const getTLSState = useCallback(() => {
     send("getTLSState", {}, (resp: JsonRpcResponse) => {
@@ -88,63 +55,6 @@ export default function SettingsAccessIndexRoute() {
       if (tlsState.privateKey) setTlsKey(tlsState.privateKey);
     });
   }, [send]);
-
-  const deregisterDevice = () => {
-    send("deregisterDevice", {}, (resp: JsonRpcResponse) => {
-      if ("error" in resp) {
-        notifications.error(
-          m.access_failed_deregister({ error: resp.error.data || m.unknown_error() }),
-        );
-        return;
-      }
-
-      getCloudState();
-      // In cloud mode, we need to navigate to the device overview page, as we don't have a connection anymore
-      if (!isOnDevice) navigate("/");
-      return;
-    });
-  };
-
-  const onCloudAdoptClick = useCallback(
-    (cloudApiUrl: string, cloudAppUrl: string) => {
-      if (!deviceId) {
-        notifications.error(m.access_no_device_id());
-        return;
-      }
-
-      send("setCloudUrl", { apiUrl: cloudApiUrl, appUrl: cloudAppUrl }, (resp: JsonRpcResponse) => {
-        if ("error" in resp) {
-          notifications.error(
-            m.access_failed_update_cloud_url({ error: resp.error.data || m.unknown_error() }),
-          );
-          return;
-        }
-
-        const returnTo = new URL(window.location.href);
-        returnTo.pathname = "/adopt";
-        returnTo.search = "";
-        returnTo.hash = "";
-        window.location.href =
-          cloudAppUrl + "/signup?deviceId=" + deviceId + `&returnTo=${returnTo.toString()}`;
-      });
-    },
-    [deviceId, send],
-  );
-
-  // Handle provider selection change
-  const handleProviderChange = (value: string) => {
-    setSelectedProvider(value);
-
-    // If selecting a predefined provider, update both URLs
-    if (value === "xkvm") {
-      setCloudApiUrl("https://api.xkvm.com");
-      setCloudAppUrl("https://app.xkvm.com");
-    } else {
-      if (cloudApiUrl || cloudAppUrl) return;
-      setCloudApiUrl("");
-      setCloudAppUrl("");
-    }
-  };
 
   // Function to update TLS state - accepts a mode parameter
   const updateTlsState = useCallback(
@@ -192,16 +102,10 @@ export default function SettingsAccessIndexRoute() {
     updateTlsState(tlsMode, tlsCert, tlsKey);
   };
 
-  // Fetch device ID and cloud state on component mount
+  // Fetch TLS state on component mount
   useEffect(() => {
-    getCloudState();
     getTLSState();
-
-    send("getDeviceID", {}, (resp: JsonRpcResponse) => {
-      if ("error" in resp) return console.error(resp.error);
-      setDeviceId(resp.result as string);
-    });
-  }, [send, getCloudState, getTLSState]);
+  }, [send, getTLSState]);
 
   return (
     <div className="space-y-4">
@@ -311,140 +215,8 @@ export default function SettingsAccessIndexRoute() {
               </SettingsItem>
             )}
           </div>
-          <div className="h-px w-full bg-slate-800/10 dark:bg-slate-300/20" />
         </>
       )}
-
-      <div className="space-y-4">
-        <SettingsSectionHeader title="Remote" description={m.access_remote_description()} />
-
-        <div className="space-y-4">
-          {!isAdopted && (
-            <>
-              <SettingsItem
-                title={m.access_cloud_provider_title()}
-                description={m.access_cloud_provider_description()}
-              >
-                <SelectMenuBasic
-                  size="SM"
-                  value={selectedProvider}
-                  onChange={e => handleProviderChange(e.target.value)}
-                  options={[
-                    { value: "xkvm", label: m.access_provider_xkvm() },
-                    { value: "custom", label: m.access_provider_custom() },
-                  ]}
-                />
-              </SettingsItem>
-
-              {selectedProvider === "custom" && (
-                <NestedSettingsGroup className="mt-4">
-                  <div className="flex items-end gap-x-2">
-                    <InputFieldWithLabel
-                      size="SM"
-                      label={m.access_cloud_api_url_label()}
-                      value={cloudApiUrl}
-                      onChange={e => setCloudApiUrl(e.target.value)}
-                      placeholder="https://api.example.com"
-                    />
-                  </div>
-                  <div className="flex items-end gap-x-2">
-                    <InputFieldWithLabel
-                      size="SM"
-                      label={m.access_cloud_app_url_label()}
-                      value={cloudAppUrl}
-                      onChange={e => setCloudAppUrl(e.target.value)}
-                      placeholder="https://app.example.com"
-                    />
-                  </div>
-                </NestedSettingsGroup>
-              )}
-            </>
-          )}
-
-          {/* Show security info for XKVM Cloud */}
-          {selectedProvider === "xkvm" && (
-            <GridCard>
-              <div className="flex items-start gap-x-4 p-4">
-                <ShieldCheckIcon className="mt-1 h-8 w-8 shrink-0 text-blue-600 dark:text-blue-500" />
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                      {m.access_cloud_security_title()}
-                    </h3>
-                    <div>
-                      <ul className="list-disc space-y-1 pl-5 text-xs text-slate-700 dark:text-slate-300">
-                        <li>{m.access_security_encryption()}</li>
-                        <li>{m.access_security_zero_trust()}</li>
-                        <li>{m.access_security_oidc()}</li>
-                        <li>{m.access_security_streams()}</li>
-                      </ul>
-                    </div>
-
-                    <div className="text-xs text-slate-700 dark:text-slate-300">
-                      {m.access_security_open_source()}{" "}
-                      <a
-                        href="https://github.com/xkvm"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium text-blue-600 hover:text-blue-800 dark:text-blue-500 dark:hover:text-blue-400"
-                      >
-                        {m.access_github_link()}
-                      </a>
-                      .
-                    </div>
-                  </div>
-                  <hr className="block w-full border-slate-800/20 dark:border-slate-300/20" />
-
-                  <div>
-                    <LinkButton
-                      to="https://xkvm.com/docs/networking/remote-access"
-                      size="SM"
-                      theme="light"
-                      text={m.access_learn_security()}
-                    />
-                  </div>
-                </div>
-              </div>
-            </GridCard>
-          )}
-
-          {!isAdopted ? (
-            <div className="flex items-end gap-x-2">
-              <Button
-                onClick={() => onCloudAdoptClick(cloudApiUrl, cloudAppUrl)}
-                size="SM"
-                theme="primary"
-                text={m.access_adopt_kvm()}
-              />
-            </div>
-          ) : (
-            <div>
-              <div className="space-y-2">
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  {m.access_adopted_message()}
-                </p>
-                <div>
-                  <Button
-                    size="SM"
-                    theme="light"
-                    text={m.access_deregister()}
-                    className="text-red-600"
-                    onClick={() => {
-                      if (deviceId) {
-                        if (window.confirm(m.access_confirm_deregister())) {
-                          deregisterDevice();
-                        }
-                      } else {
-                        notifications.error(m.access_no_device_id());
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

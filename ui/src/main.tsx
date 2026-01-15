@@ -24,9 +24,7 @@ import WelcomeRoute, { DeviceStatus } from "@routes/welcome-local";
 import LoginLocalRoute from "@routes/login-local";
 import WelcomeLocalModeRoute from "@routes/welcome-local.mode";
 import WelcomeLocalPasswordRoute from "@routes/welcome-local.password";
-import AdoptRoute from "@routes/adopt";
 import SetupRoute from "@routes/devices.$id.setup";
-import DevicesIdDeregister from "@routes/devices.$id.deregister";
 import DeviceIdRename from "@routes/devices.$id.rename";
 import DevicesRoute from "@routes/devices";
 import SettingsIndexRoute from "@routes/devices.$id.settings._index";
@@ -34,7 +32,6 @@ import SettingsAccessIndexRoute from "@routes/devices.$id.settings.access._index
 import Notifications from "@/notifications";
 const SignupRoute = lazy(() => import("@routes/signup"));
 const LoginRoute = lazy(() => import("@routes/login"));
-const DevicesAlreadyAdopted = lazy(() => import("@routes/devices.already-adopted"));
 const OtherSessionRoute = lazy(() => import("@routes/devices.$id.other-session"));
 const MountRoute = lazy(() => import("@routes/devices.$id.mount"));
 const SettingsRoute = lazy(() => import("@routes/devices.$id.settings"));
@@ -230,12 +227,6 @@ if (isOnDevice) {
       errorElement: <ErrorBoundary />,
       HydrateFallback: () => <div className="p-4">{m.loading()}</div>,
     }),
-    {
-      path: "/adopt",
-      element: <AdoptRoute />,
-      loader: AdoptRoute.loader,
-      errorElement: <ErrorBoundary />,
-    },
   ]);
 } else {
   const routeObjects: RouteObject[] = [
@@ -261,19 +252,9 @@ if (isOnDevice) {
               action: SetupRoute.action,
               loader: SetupRoute.loader,
             },
-            {
-              path: "devices/already-adopted",
-              element: <DevicesAlreadyAdopted />,
-            },
             getDeviceRoute({
               path: "devices/:id",
             }),
-            {
-              path: "devices/:id/deregister",
-              element: <DevicesIdDeregister />,
-              loader: DevicesIdDeregister.loader,
-              action: DevicesIdDeregister.action,
-            },
             {
               path: "devices/:id/rename",
               element: <DeviceIdRename />,
