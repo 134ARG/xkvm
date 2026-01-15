@@ -97,8 +97,9 @@ func NewNative(opts NativeOptions) *Native {
 	sleepModeSupported := isSleepModeSupported()
 
 	defaultQualityFactor := opts.DefaultQualityFactor
-	if defaultQualityFactor <= 0 || defaultQualityFactor > 1 {
-		defaultQualityFactor = 1.0
+	// Validate bitrate range (1000-20000 kbps)
+	if defaultQualityFactor < 1000 || defaultQualityFactor > 20000 {
+		defaultQualityFactor = 5000.0 // Default to 5000 kbps
 	}
 
 	return &Native{
