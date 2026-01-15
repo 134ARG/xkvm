@@ -1,8 +1,36 @@
 #!/bin/bash
 set -e
 
+HAS_TTY=true
+if [ -z "$TERM" ] || [ "$TERM" = "dumb" ]; then
+    HAS_TTY=false
+fi
+
+# default colors
+C_RST=$(echo -e "\e[0m")
+C_ERR=$(echo -e "\e[31m")
+C_OK=$(echo -e "\e[32m")
+C_WARN=$(echo -e "\e[33m")
+C_INFO=$(echo -e "\e[35m")
+
+# if TTY is available, use colors
+if [ "$HAS_TTY" = true ]; then
+    C_RST="$(tput sgr0)"
+    C_ERR="$(tput setaf 1)"
+    C_OK="$(tput setaf 2)"
+    C_WARN="$(tput setaf 3)"
+    C_INFO="$(tput setaf 5)"
+fi
+
+msg() { printf '%s%s%s\n' $2 "$1" $C_RST; }
+
+msg_info() { msg "$1" $C_INFO; }
+msg_ok() { msg "$1" $C_OK; }
+msg_err() { msg "$1" $C_ERR; }
+msg_warn() { msg "$1" $C_WARN; }
+
 SCRIPT_PATH=$(realpath "$(dirname $(realpath "${BASH_SOURCE[0]}"))")
-source ${SCRIPT_PATH}/build_utils.sh
+# source ${SCRIPT_PATH}/build_utils.sh
 
 CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE:-Release}
 CROSS_COMPILE=${CROSS_COMPILE:-auto}

@@ -46,17 +46,36 @@ This ensures compatibility with shell scripts and build tools used in the projec
    go version && node --version
    ```
 
-3. **Find your XKVM IP address** (check your router or device screen)
-
-4. **Deploy and test:**
+3. **Set up ARM64 cross-compilation sysroot** (one-time):
 
    ```bash
-   ./dev_deploy.sh -r 192.168.1.100  # Replace with your device IP
+   export ARM64_SYSROOT="/opt/arm64-sysroot"
+   ./scripts/setup_arm64_sysroot.sh
    ```
 
-5. **Open in browser:** `http://192.168.1.100`
+4. **Build the project:**
 
-That's it! You're now running your own development version of XKVM.
+   ```bash
+   make frontend                                    # Build UI
+   ARM64_SYSROOT=/opt/arm64-sysroot make build_release  # Build backend + installer
+   ```
+
+5. **Deploy to device:**
+
+   ```bash
+   # Copy installer to device
+   scp bin/xkvm_installer.sh user@device:/tmp/
+   
+   # SSH to device and install
+   ssh user@device
+   cd /opt
+   sudo /tmp/xkvm_installer.sh --dir /opt/xkvm
+   sudo /opt/xkvm/xkvm_app
+   ```
+
+6. **Open in browser:** `http://<device-ip>`
+
+That's it! You're now running your own build of XKVM.
 
 ---
 
@@ -67,25 +86,22 @@ That's it! You're now running your own development version of XKVM.
 ```bash
 cd ui
 npm install
-./dev_device.sh 192.168.1.100  # Replace with your device IP
+npm run dev  # Development server with hot reload
 ```
 
-Now edit files in `ui/src/` and see changes live in your browser!
+Edit files in `ui/src/` and see changes live in your browser at `http://localhost:5173`
 
 ### Modify the backend
 
 ```bash
 # Edit Go files (config.go, web.go, etc.)
-./dev_deploy.sh -r 192.168.1.100 --skip-ui-build
+# Then rebuild and redeploy
+make frontend
+ARM64_SYSROOT=/opt/arm64-sysroot make build_release
+# Copy bin/xkvm_installer.sh to device and run
 ```
 
 ### Run tests
-
-```bash
-./dev_deploy.sh -r 192.168.1.100 --run-go-tests
-```
-
-### View logs
 
 ```bash
 ssh root@192.168.1.100
@@ -151,8 +167,10 @@ tail -f /var/log/xkvm.log
 #### _Best for: Complete feature development_
 
 ```bash
-# Deploy everything to your XKVM device
-./dev_deploy.sh -r <YOUR_DEVICE_IP>
+# Build and deploy to device
+make frontend
+ARM64_SYSROOT=/opt/arm64-sysroot make build_release
+scp bin/xkvm_installer.sh user@device:/tmp/
 ```
 
 ### Frontend Only
@@ -219,16 +237,20 @@ The code and GDB server will be deployed automatically.
 
 ### Manual Testing
 
-1. Deploy your changes: `./dev_deploy.sh -r <IP>`
-2. Open browser: `http://<IP>`
+1. Build and deploy your changes (see Quick Start above)
+2. Open browser: `http://<device-ip>`
 3. Test your feature
-4. Check logs: `ssh root@<IP> tail -f /var/log/xkvm.log`
+4. Check logs on device: `journalctl -u xkvm -f` (if running as systemd service)
 
 ### Automated Testing
 
 ```bash
-# Run all tests
-./dev_deploy.sh -r <IP> --run-go-tests
+# Run Go tests locally
+make test
+
+# Run E2E tests (requires running device)
+cd ui
+XKVM_URL="http://<device-ip>" npm run test:e2e
 
 # Frontend linting
 cd ui && npm run lint
@@ -238,7 +260,7 @@ cd ui && npm run lint
 
 ```bash
 # Test login endpoint
-curl -X POST http://<IP>/auth/password-local \
+curl -X POST http://<device-ip>/auth/password-local \
   -H "Content-Type: application/json" \
   -d '{"password": "test123"}'
 ```
@@ -336,7 +358,7 @@ Or if you want to manually create the symlink use:
 1. **Backend:** Add API endpoint in `web.go`
 2. **Config:** Add settings in `config.go`
 3. **Frontend:** Add UI in `ui/src/routes/`
-4. **Test:** Deploy and test with `./dev_deploy.sh`
+4. **Test:** Build and deploy to test device
 
 ### Code Style
 

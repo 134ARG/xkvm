@@ -8,9 +8,6 @@ VERSION_DEV := $(VERSION)-dev$(shell date -u +%Y%m%d%H%M)
 PROMETHEUS_TAG := github.com/prometheus/common/version
 KVM_PKG_NAME := github.com/xkvm/kvm
 
-BUILDKIT_FLAVOR := aarch64-linux-gnu
-BUILDKIT_PATH ?= /opt/xkvm-native-buildkit
-DOCKER_BUILD_TAG ?= ghcr.io/xkvm/buildkit:latest
 SKIP_NATIVE_IF_EXISTS ?= 0
 SKIP_UI_BUILD ?= 0
 ENABLE_SYNC_TRACE ?= 0
@@ -40,16 +37,6 @@ GO_ARGS := GOOS=linux GOARCH=arm64 CGO_ENABLED=1 ARCHFLAGS="-arch arm64" \
 	ARM64_SYSROOT=$(ARM64_SYSROOT) \
 	CGO_CFLAGS="--sysroot=$(ARM64_SYSROOT) -I$(ARM64_SYSROOT)/usr/include/aarch64-linux-gnu" \
 	CGO_LDFLAGS="--sysroot=$(ARM64_SYSROOT) -B$(ARM64_SYSROOT)/lib64 -L$(ARM64_SYSROOT)/lib64 -L$(ARM64_SYSROOT)/usr/lib/aarch64-linux-gnu -L$(shell pwd)/internal/native/cgo/sdk/vendor/rockit/lib/lib64 -L$(shell pwd)/internal/native/cgo/sdk/mpp/lib"
-# if BUILDKIT_PATH exists, use buildkit to build
-ifneq ($(wildcard $(BUILDKIT_PATH)),)
-	GO_ARGS := $(GO_ARGS) \
-		CGO_CFLAGS="-I$(BUILDKIT_PATH)/$(BUILDKIT_FLAVOR)/include -I$(BUILDKIT_PATH)/$(BUILDKIT_FLAVOR)/sysroot/usr/include" \
-		CGO_LDFLAGS="-L$(BUILDKIT_PATH)/$(BUILDKIT_FLAVOR)/lib -L$(BUILDKIT_PATH)/$(BUILDKIT_FLAVOR)/sysroot/usr/lib -lrockit -lrockchip_mpp -lrga -lpthread -lm" \
-		CC="$(BUILDKIT_PATH)/bin/$(BUILDKIT_FLAVOR)-gcc" \
-		LD="$(BUILDKIT_PATH)/bin/$(BUILDKIT_FLAVOR)-ld" \
-		CGO_ENABLED=1
-	# GO_RELEASE_BUILD_ARGS := $(GO_RELEASE_BUILD_ARGS) -x -work
-endif
 
 GO_CMD := $(GO_ARGS) go
 
@@ -75,21 +62,34 @@ build_native:
 		echo "libjknative.a already exists, skipping native build..."; \
 	else \
 		echo "Building native..."; \
-			CC="$(BUILDKIT_PATH)/bin/$(BUILDKIT_FLAVOR)-gcc" \
-			LD="$(BUILDKIT_PATH)/bin/$(BUILDKIT_FLAVOR)-ld" \
-			CMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) \
-			./scripts/build_cgo.sh; \
+		CMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) ./scripts/build_cgo.sh; \
 	fi
 
 build_dev:
-	@if [ ! -d "$(BUILDKIT_PATH)" ]; then \
-		echo "Toolchain not found, running build_dev in Docker..."; \
-		rm -rf internal/native/cgo/build; \
-		docker run --rm -v "$$(pwd):/build" \
-			$(DOCKER_BUILD_TAG) make _build_dev_inner VERSION_DEV=$(VERSION_DEV); \
-	else \
-		$(MAKE) _build_dev_inner VERSION_DEV=$(VERSION_DEV); \
+	@if [ -z "$(ARM64_SYSROOT)" ]; then \
+		echo "❌ Error: ARM64 cross-compilation requires ARM64_SYSROOT environment variable"; \
+		echo "💡 Set ARM64_SYSROOT to your ARM64 sysroot path:"; \
+		echo "   export ARM64_SYSROOT=\"/path/to/your/arm64-sysroot\""; \
+		echo "   make build_dev"; \
+		echo ""; \
+		echo "💡 Or create a sysroot with:"; \
+		echo "   ./scripts/setup_arm64_sysroot.sh"; \
+		exit 1; \
+	elif [ ! -d "$(ARM64_SYSROOT)" ]; then \
+		echo "❌ Error: ARM64_SYSROOT path does not exist: $(ARM64_SYSROOT)"; \
+		echo "💡 Create the sysroot with:"; \
+		echo "   ARM64_SYSROOT=\"$(ARM64_SYSROOT)\" ./scripts/setup_arm64_sysroot.sh"; \
+		exit 1; \
 	fi
+	$(MAKE) _build_dev_inner VERSION_DEV=$(VERSION_DEV)
+		exit 1; \
+	elif [ ! -d "$(ARM64_SYSROOT)" ]; then \
+		echo "❌ Error: ARM64_SYSROOT path does not exist: $(ARM64_SYSROOT)"; \
+		echo "💡 Create the sysroot with:"; \
+		echo "   ARM64_SYSROOT=\"$(ARM64_SYSROOT)\" ./scripts/setup_arm64_sysroot.sh"; \
+		exit 1; \
+	fi
+	$(MAKE) _build_dev_inner VERSION_DEV=$(VERSION_DEV)
 
 _build_dev_inner: build_native
 	@echo "Building... $(VERSION_DEV)"
@@ -147,54 +147,8 @@ frontend:
 			\) -exec sh -c 'gzip -9 -kfv {}' \; ;\
 	fi
 
-git_check_dev:
-	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "dev" ]; then \
-		echo "Error: Must be on 'dev' branch"; exit 1; \
-	fi
-	@if [ -n "$$(git status --porcelain)" ]; then \
-		echo "Error: Working tree is dirty. Commit or stash changes."; exit 1; \
-	fi
-	@git fetch origin dev
-	@if [ "$$(git rev-parse HEAD)" != "$$(git rev-parse origin/dev)" ]; then \
-		echo "Error: Local dev is not up-to-date with origin/dev"; exit 1; \
-	fi
-	@command -v gh >/dev/null 2>&1 || { echo "Error: gh CLI not installed"; exit 1; }
-	@gh auth status >/dev/null 2>&1 || { echo "Error: gh CLI not authenticated. Run 'gh auth login'"; exit 1; }
-
-dev_release: git_check_dev
-	@echo "═══════════════════════════════════════════════════════"
-	@echo "  DEV Release"
-	@echo "═══════════════════════════════════════════════════════"
-	@echo "  Version: $(VERSION_DEV)"
-	@echo "  Tag:     release/$(VERSION_DEV)"
-	@echo "  Branch:  $$(git rev-parse --abbrev-ref HEAD)"
-	@echo "  Commit:  $$(git rev-parse --short HEAD)"
-	@echo "  Time:    $$(date -u +%FT%T%z)"
-	@echo "═══════════════════════════════════════════════════════"
-	@read -p "Proceed? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
-	$(MAKE) check frontend build_dev VERSION_DEV=$(VERSION_DEV)
-	@read -p "Test on device before release? [y/N] " test_confirm; \
-	if [ "$$test_confirm" = "y" ]; then \
-		read -p "Device IP: " device_ip; \
-		echo "Installing Playwright dependencies..."; \
-		cd ui && npm ci && npx playwright install --with-deps chromium && cd ..; \
-		./scripts/test_release_on_device.sh "$$device_ip" bin/xkvm_app test $(VERSION_DEV) || exit 1; \
-	fi
-	@echo "Uploading device app to R2..."
-	@shasum -a 256 bin/xkvm_app | cut -d ' ' -f 1 > bin/xkvm_app.sha256
-	rclone copyto bin/xkvm_app r2://xkvm-update/app/$(VERSION_DEV)/xkvm_app
-	rclone copyto bin/xkvm_app.sha256 r2://xkvm-update/app/$(VERSION_DEV)/xkvm_app.sha256
-	./scripts/deploy_cloud_app.sh -v $(VERSION_DEV) --skip-confirmation
-	@git tag release/$(VERSION_DEV)
-	@git push origin release/$(VERSION_DEV)
-	gh release create release/$(VERSION_DEV) bin/xkvm_app bin/xkvm_app.sha256 --prerelease --generate-notes
-	@echo "✓ Released: release/$(VERSION_DEV)"
-
-# NOTE: VERSION is passed explicitly for consistency with build_dev (see comment above).
-# While VERSION is static, passing it explicitly ensures the pattern is consistent
-# and prevents issues if VERSION ever becomes dynamic.
 build_release:
-	@if [ ! -d "$(BUILDKIT_PATH)" ] && [ -z "$(ARM64_SYSROOT)" ]; then \
+	@if [ -z "$(ARM64_SYSROOT)" ]; then \
 		echo "❌ Error: ARM64 cross-compilation requires ARM64_SYSROOT environment variable"; \
 		echo "💡 Set ARM64_SYSROOT to your ARM64 sysroot path:"; \
 		echo "   export ARM64_SYSROOT=\"/path/to/your/arm64-sysroot\""; \
@@ -203,19 +157,13 @@ build_release:
 		echo "💡 Or create a sysroot with:"; \
 		echo "   ./scripts/setup_arm64_sysroot.sh"; \
 		exit 1; \
-	elif [ ! -d "$(BUILDKIT_PATH)" ] && [ ! -d "$(ARM64_SYSROOT)" ]; then \
+	elif [ ! -d "$(ARM64_SYSROOT)" ]; then \
 		echo "❌ Error: ARM64_SYSROOT path does not exist: $(ARM64_SYSROOT)"; \
 		echo "💡 Create the sysroot with:"; \
 		echo "   ARM64_SYSROOT=\"$(ARM64_SYSROOT)\" ./scripts/setup_arm64_sysroot.sh"; \
 		exit 1; \
-	elif [ ! -d "$(BUILDKIT_PATH)" ]; then \
-		$(MAKE) _build_release_inner VERSION=$(VERSION); \
-	else \
-		echo "Toolchain not found, running build_release in Docker..."; \
-		rm -rf internal/native/cgo/build; \
-		docker run --rm -v "$$(pwd):/build" \
-			$(DOCKER_BUILD_TAG) make _build_release_inner VERSION=$(VERSION); \
 	fi
+	$(MAKE) _build_release_inner VERSION=$(VERSION)
 
 _build_release_inner: build_native
 	@echo "Building release..."
@@ -226,65 +174,3 @@ _build_release_inner: build_native
 	@echo "Creating self-extracting installer..."
 	@./scripts/create_self_extract.sh
 
-release: git_check_dev
-	@if rclone lsf r2://xkvm-update/app/$(VERSION)/ 2>/dev/null | grep -q "xkvm_app"; then \
-		echo "Error: Version $(VERSION) already exists in R2"; exit 1; \
-	fi
-	@latest_dev=$$(curl -s "https://api.xkvm.com/releases?deviceId=123&prerelease=true" | jq -r '.appVersion // ""'); \
-		if ! echo "$$latest_dev" | grep -q "^$(VERSION)-dev"; then \
-			echo ""; \
-			echo "⚠️  Warning: No dev release found for $(VERSION)"; \
-			echo "   Latest pre-release: $$latest_dev"; \
-			echo ""; \
-			read -p "Release production without prior dev release? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1; \
-		fi
-	@echo "═══════════════════════════════════════════════════════"
-	@echo "  PRODUCTION Release"
-	@echo "═══════════════════════════════════════════════════════"
-	@echo "  Version: $(VERSION)"
-	@echo "  Tag:     release/$(VERSION)"
-	@echo "  Branch:  $$(git rev-parse --abbrev-ref HEAD)"
-	@echo "  Commit:  $$(git rev-parse --short HEAD)"
-	@echo "  Time:    $$(date -u +%FT%T%z)"
-	@echo "═══════════════════════════════════════════════════════"
-	@read -p "Proceed with PRODUCTION release? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
-	$(MAKE) check frontend _build_release_inner VERSION=$(VERSION)
-	@read -p "Test on device before release? [y/N] " test_confirm; \
-	if [ "$$test_confirm" = "y" ]; then \
-		read -p "Device IP: " device_ip; \
-		echo "Installing Playwright dependencies..."; \
-		cd ui && npm ci && npx playwright install --with-deps chromium && cd ..; \
-		./scripts/test_release_on_device.sh "$$device_ip" bin/xkvm_app test $(VERSION) || exit 1; \
-	fi
-	@echo "Uploading device app to R2..."
-	@shasum -a 256 bin/xkvm_app | cut -d ' ' -f 1 > bin/xkvm_app.sha256
-	rclone copyto bin/xkvm_app r2://xkvm-update/app/$(VERSION)/xkvm_app
-	rclone copyto bin/xkvm_app.sha256 r2://xkvm-update/app/$(VERSION)/xkvm_app.sha256
-	./scripts/deploy_cloud_app.sh -v $(VERSION) --set-as-default --skip-confirmation
-	@git tag release/$(VERSION)
-	@git push origin release/$(VERSION)
-	prev_prod=$$(gh release list --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName'); \
-	gh release create release/$(VERSION) bin/xkvm_app bin/xkvm_app.sha256 \
-		--title "$(VERSION)" \
-		--generate-notes \
-		--notes-start-tag "$$prev_prod" \
-		--draft
-	@echo ""
-	@echo "✓ Released: release/$(VERSION)"
-	@echo ""
-	@echo "Next: Run 'make bump-version' to prepare for next release cycle"
-
-bump-version:
-	@next_default=$$(echo $(VERSION) | awk -F. '{print $$1"."$$2"."$$3+1}'); \
-		echo "Current version: $(VERSION)"; \
-		read -p "Next version [$$next_default]: " next_ver; \
-		next_ver=$${next_ver:-$$next_default}; \
-		if ! echo "$$next_ver" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$$'; then \
-			echo "Error: Invalid version '$$next_ver'. Must be semver format (e.g., 1.2.3)"; \
-			exit 1; \
-		fi; \
-		sed -i 's/^VERSION := .*/VERSION := '"$$next_ver"'/' Makefile && \
-		git add Makefile && \
-		git commit -m "Bump version to $$next_ver" && \
-		git push && \
-		echo "✓ Bumped to $$next_ver"

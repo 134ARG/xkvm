@@ -44,10 +44,23 @@ The web UI displays system status in read-only mode. Configuration changes shoul
 
 XKVM is written in Go, TypeScript, and C. See **[DEVELOPMENT.md](DEVELOPMENT.md)** for comprehensive development information including setup, testing, and debugging.
 
-Quick device deployment:
+### Building
+
+To build XKVM for deployment:
+
 ```bash
-./dev_deploy.sh --help
+# Set up ARM64 sysroot (one-time setup)
+export ARM64_SYSROOT="/path/to/sysroot"
+./scripts/setup_arm64_sysroot.sh
+
+# Build everything (frontend + backend + installer)
+make frontend
+ARM64_SYSROOT=/path/to/sysroot make build_release
+
+# Output: bin/xkvm_installer.sh (self-extracting installer)
 ```
+
+See `build.sh` for a complete example.
 
 ## Changes from JetKVM
 
