@@ -25,6 +25,7 @@ endif
 GO_RELEASE_BUILD_ARGS := -trimpath $(GO_BUILD_ARGS)
 GO_LDFLAGS := \
   -s -w \
+  -extldflags '-Wl,-rpath,\$$ORIGIN/lib' \
   -X $(PROMETHEUS_TAG).Branch=$(BRANCH) \
   -X $(PROMETHEUS_TAG).BuildDate=$(BUILDDATE) \
   -X $(PROMETHEUS_TAG).Revision=$(REVISION) \
@@ -222,6 +223,8 @@ _build_release_inner: build_native
 		-ldflags="$(GO_LDFLAGS) -X $(KVM_PKG_NAME).builtAppVersion=$(VERSION)" \
 		$(GO_RELEASE_BUILD_ARGS) \
 		-o bin/jetkvm_app cmd/main.go
+	@echo "Creating self-extracting installer..."
+	@./scripts/create_self_extract.sh
 
 release: git_check_dev
 	@if rclone lsf r2://jetkvm-update/app/$(VERSION)/ 2>/dev/null | grep -q "jetkvm_app"; then \
