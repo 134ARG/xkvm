@@ -20,10 +20,10 @@ import (
 	"github.com/rs/zerolog"
 	"go.bug.st/serial"
 
-	"github.com/xkvm/kvm/internal/diagnostics"
-	"github.com/xkvm/kvm/internal/hidrpc"
-	"github.com/xkvm/kvm/internal/supervisor"
-	"github.com/xkvm/kvm/internal/usbgadget"
+	"github.com/134ARG/xkvm/internal/diagnostics"
+	"github.com/134ARG/xkvm/internal/hidrpc"
+	"github.com/134ARG/xkvm/internal/supervisor"
+	"github.com/134ARG/xkvm/internal/usbgadget"
 )
 
 // ansiRegex matches ANSI escape sequences for stripping from log output

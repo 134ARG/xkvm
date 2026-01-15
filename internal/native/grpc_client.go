@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
-	pb "github.com/xkvm/kvm/internal/native/proto"
+	pb "github.com/134ARG/xkvm/internal/native/proto"
 )
 
 // GRPCClient wraps the gRPC client for the native service

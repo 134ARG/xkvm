@@ -19,7 +19,7 @@ import (
 	"github.com/pion/webrtc/v4"
 	"github.com/psanford/httpreadat"
 
-	"github.com/xkvm/kvm/resource"
+	"github.com/134ARG/xkvm/resource"
 )
 
 func writeFile(path string, data string) error {

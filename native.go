@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/134ARG/xkvm/internal/diagnostics"
+	"github.com/134ARG/xkvm/internal/native"
 	"github.com/Masterminds/semver/v3"
 	"github.com/pion/webrtc/v4/pkg/media"
-	"github.com/xkvm/kvm/internal/diagnostics"
-	"github.com/xkvm/kvm/internal/native"
 )
 
 var (

@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/134ARG/xkvm/internal/logging"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	gin_logger "github.com/gin-contrib/logger"
@@ -26,7 +27,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/vearutop/statigz"
-	"github.com/xkvm/kvm/internal/logging"
 	"golang.org/x/crypto/bcrypt"
 )
 

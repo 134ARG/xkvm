@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 	certSigner = NewSelfSigner(
 		certStore,
 		nil,
-		"ci.xkvm.com",
+		"ci.example.com",
 		"XKVM",
 		"XKVM",
 		"XKVM",
@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestSaveEd25519Certificate(t *testing.T) {
-	err, _ := certStore.ValidateAndSaveCertificate("ed25519-test.xkvm.com", fixtureEd25519Certificate, fixtureEd25519PrivateKey, true)
+	err, _ := certStore.ValidateAndSaveCertificate("ed25519-test.example.com", fixtureEd25519Certificate, fixtureEd25519PrivateKey, true)
 	if err != nil {
 		t.Fatalf("failed to save certificate: %v", err)
 	}

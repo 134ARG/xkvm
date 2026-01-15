@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package native;
 
-option go_package = "github.com/xkvm/kvm/internal/native/proto";
+option go_package = "github.com/134ARG/xkvm/internal/native/proto";
 
 // NativeService provides methods to interact with the native layer
 service NativeService {

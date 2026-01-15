@@ -86,7 +86,7 @@ export function JigglerSetting({
             />
           ))}
           <LinkButton
-            to="https://crontab.guru/examples.html"
+            to="#"
             size="XS"
             theme="light"
             text={m.jiggler_more_examples()}

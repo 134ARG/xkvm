@@ -1,4 +1,4 @@
-module github.com/xkvm/kvm
+module github.com/134ARG/xkvm
 
 go 1.24.4
 

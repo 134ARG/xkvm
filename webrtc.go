@@ -9,15 +9,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/134ARG/xkvm/internal/diagnostics"
+	"github.com/134ARG/xkvm/internal/hidrpc"
+	"github.com/134ARG/xkvm/internal/logging"
+	"github.com/134ARG/xkvm/internal/usbgadget"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"github.com/gin-gonic/gin"
 	"github.com/pion/webrtc/v4"
 	"github.com/rs/zerolog"
-	"github.com/xkvm/kvm/internal/diagnostics"
-	"github.com/xkvm/kvm/internal/hidrpc"
-	"github.com/xkvm/kvm/internal/logging"
-	"github.com/xkvm/kvm/internal/usbgadget"
 )
 
 type Session struct {

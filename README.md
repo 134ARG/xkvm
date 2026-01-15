@@ -76,7 +76,7 @@ See **[CHANGELOG.md](CHANGELOG.md)** for detailed change history.
 
 ## Contributing
 
-Contributions are welcome. Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing.
+Contributions are welcome.
 
 ## License
 

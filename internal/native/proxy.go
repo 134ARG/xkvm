@@ -16,11 +16,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/134ARG/xkvm/internal/diagnostics"
+	"github.com/134ARG/xkvm/internal/supervisor"
+	"github.com/134ARG/xkvm/internal/utils"
 	"github.com/Masterminds/semver/v3"
 	"github.com/rs/zerolog"
-	"github.com/xkvm/kvm/internal/diagnostics"
-	"github.com/xkvm/kvm/internal/supervisor"
-	"github.com/xkvm/kvm/internal/utils"
 )
 
 const (

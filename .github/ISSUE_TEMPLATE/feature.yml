@@ -16,8 +16,7 @@ body:
     attributes:
       label: Disclaimer
       description: |
-        Before requesting a feature, check it does not already exist in the [documentation](https://xkvm.com/docs) or our [roadmap](https://xkvm.com/roadmap).
-        You are quite welcome opening a feature request before spending time to implement it yourself.
+        You are welcome to open a feature request before spending time to implement it yourself.
       options:
         - label: I have read and understood the disclaimer.
           required: true

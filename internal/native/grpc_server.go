@@ -9,7 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 
-	pb "github.com/xkvm/kvm/internal/native/proto"
+	pb "github.com/134ARG/xkvm/internal/native/proto"
 )
 
 // grpcServer wraps the Native instance and implements the gRPC service

@@ -1,8 +1,8 @@
 package kvm
 
 import (
+	"github.com/134ARG/xkvm/internal/logging"
 	"github.com/rs/zerolog"
-	"github.com/xkvm/kvm/internal/logging"
 )
 
 func ErrorfL(l *zerolog.Logger, format string, err error, args ...any) error {

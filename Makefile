@@ -6,7 +6,7 @@ VERSION := 0.5.1
 VERSION_DEV := $(VERSION)-dev$(shell date -u +%Y%m%d%H%M)
 
 PROMETHEUS_TAG := github.com/prometheus/common/version
-KVM_PKG_NAME := github.com/xkvm/kvm
+KVM_PKG_NAME := github.com/134ARG/xkvm
 
 SKIP_NATIVE_IF_EXISTS ?= 0
 SKIP_UI_BUILD ?= 0

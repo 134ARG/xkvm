@@ -177,7 +177,7 @@ sudo ./xkvm_app
 ./bin/xkvm_installer.sh
 
 # Users download and run
-wget https://releases.xkvm.com/xkvm_installer.sh
+wget https://example.com/xkvm_installer.sh
 chmod +x xkvm_installer.sh
 sudo ./xkvm_installer.sh --dir /opt/xkvm
 ```

@@ -7,14 +7,14 @@ import (
 
 	"time"
 
-	"github.com/xkvm/kvm/internal/sync"
+	"github.com/134ARG/xkvm/internal/sync"
 
+	"github.com/134ARG/xkvm/internal/confparser"
+	"github.com/134ARG/xkvm/internal/logging"
+	"github.com/134ARG/xkvm/internal/network/types"
+	"github.com/134ARG/xkvm/pkg/nmlite/link"
 	"github.com/rs/zerolog"
 	"github.com/vishvananda/netlink"
-	"github.com/xkvm/kvm/internal/confparser"
-	"github.com/xkvm/kvm/internal/logging"
-	"github.com/xkvm/kvm/internal/network/types"
-	"github.com/xkvm/kvm/pkg/nmlite/link"
 )
 
 type ResolvConfChangeCallback func(family int, resolvConf *types.InterfaceResolvConf) error

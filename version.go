@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/134ARG/xkvm/internal/native"
 	"github.com/prometheus/common/version"
-	"github.com/xkvm/kvm/internal/native"
 )
 
 var versionInfoTmpl = `

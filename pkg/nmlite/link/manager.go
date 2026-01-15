@@ -1,7 +1,7 @@
 package link
 
 import (
-	"github.com/xkvm/kvm/internal/sync"
+	"github.com/134ARG/xkvm/internal/sync"
 
 	"github.com/rs/zerolog"
 	"github.com/vishvananda/netlink"

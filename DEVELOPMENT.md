@@ -1,599 +1,410 @@
 # XKVM Development Guide
 
-<div align="center" width="100%">
-<img src="https://xkvm.com/logo-blue.png" align="center" height="28px">
+This guide covers building, testing, and developing XKVM.
 
-[Discord](https://xkvm.com/discord) | [Website](https://xkvm.com) | [Issues](https://github.com/xkvm/cloud-api/issues) | [Docs](https://xkvm.com/docs)
-[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/xkvm.svg?style=social&label=Follow%20%40XKVM)](https://twitter.com/xkvm)
-[![Go Report Card](https://goreportcard.com/badge/github.com/xkvm/kvm)](https://goreportcard.com/report/github.com/xkvm/kvm)
+## Prerequisites
 
-</div>
+- **Go 1.24.4+** - [Download](https://go.dev/doc/install)
+- **Node.js 22.15.0+** - [Download](https://nodejs.org/en/download/)
+- **Git** - [Download](https://git-scm.com/downloads)
+- **ARM64 cross-compilation toolchain** (for building)
+- **XKVM device** (for testing)
 
-Welcome to XKVM development! This guide will help you get started quickly, whether you're fixing bugs, adding features, or just exploring the codebase.
+### Platform Support
 
-## Get Started
+Development works best on Linux or macOS. Windows users should use WSL (Windows Subsystem for Linux).
 
-### Prerequisites
+## Quick Start
 
-- **A XKVM device** (for full development)
-- **[Go 1.24.4+](https://go.dev/doc/install)** and **[Node.js 22.15.0](https://nodejs.org/en/download/)**
-- **[Git](https://git-scm.com/downloads)** for version control
-- **[SSH access](https://xkvm.com/docs/advanced-usage/developing#developer-mode)** to your XKVM device
+### 1. Clone Repository
 
-### Development Environment
+```bash
+git clone https://github.com/134ARG/xkvm.git
+cd kvm
+```
 
-**Recommended:** Development is best done on **Linux** or **macOS**.
+### 2. Set Up ARM64 Sysroot
 
-If you're using Windows, we strongly recommend using **WSL (Windows Subsystem for Linux)** for the best development experience:
+XKVM requires cross-compilation to ARM64. Set up the sysroot once:
 
-- [Install WSL on Windows](https://docs.microsoft.com/en-us/windows/wsl/install)
-- [WSL Setup Guide](https://docs.microsoft.com/en-us/windows/wsl/setup/environment)
+```bash
+export ARM64_SYSROOT="/opt/arm64-sysroot"
+./scripts/setup_arm64_sysroot.sh
+```
 
-This ensures compatibility with shell scripts and build tools used in the project.
+This downloads and configures the necessary ARM64 libraries for cross-compilation.
 
-### Project Setup
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/xkvm/kvm.git
-   cd kvm
-   ```
-
-2. **Check your tools:**
-
-   ```bash
-   go version && node --version
-   ```
-
-3. **Set up ARM64 cross-compilation sysroot** (one-time):
-
-   ```bash
-   export ARM64_SYSROOT="/opt/arm64-sysroot"
-   ./scripts/setup_arm64_sysroot.sh
-   ```
-
-4. **Build the project:**
-
-   ```bash
-   make frontend                                    # Build UI
-   ARM64_SYSROOT=/opt/arm64-sysroot make build_release  # Build backend + installer
-   ```
-
-5. **Deploy to device:**
-
-   ```bash
-   # Copy installer to device
-   scp bin/xkvm_installer.sh user@device:/tmp/
-   
-   # SSH to device and install
-   ssh user@device
-   cd /opt
-   sudo /tmp/xkvm_installer.sh --dir /opt/xkvm
-   sudo /opt/xkvm/xkvm_app
-   ```
-
-6. **Open in browser:** `http://<device-ip>`
-
-That's it! You're now running your own build of XKVM.
-
----
-
-## Common Tasks
-
-### Modify the UI
+### 3. Build Frontend
 
 ```bash
 cd ui
 npm install
-npm run dev  # Development server with hot reload
+npm run build:device
+cd ..
 ```
 
-Edit files in `ui/src/` and see changes live in your browser at `http://localhost:5173`
-
-### Modify the backend
+Or use the Makefile:
 
 ```bash
-# Edit Go files (config.go, web.go, etc.)
-# Then rebuild and redeploy
 make frontend
-ARM64_SYSROOT=/opt/arm64-sysroot make build_release
-# Copy bin/xkvm_installer.sh to device and run
 ```
 
-### Run tests
+### 4. Build Backend
 
 ```bash
-ssh root@192.168.1.100
-tail -f /var/log/xkvm.log
+ARM64_SYSROOT=/opt/arm64-sysroot make build_release
 ```
 
----
+This creates:
+- `bin/xkvm_app` - The main executable
+- `bin/xkvm_installer.sh` - Self-extracting installer
 
-## Project Layout
+### 5. Deploy to Device
 
-```plaintext
+```bash
+# Copy installer to device
+scp bin/xkvm_installer.sh root@<device-ip>:/tmp/
+
+# SSH to device and install
+ssh root@<device-ip>
+cd /opt
+sudo /tmp/xkvm_installer.sh --dir /opt/xkvm
+sudo /opt/xkvm/xkvm_app
+```
+
+### 6. Access Web UI
+
+Open `http://<device-ip>` in your browser.
+
+## Project Structure
+
+```
 /kvm/
-├── main.go                   # App entry point
-├── config.go                 # Settings & configuration
-├── display.go                # Device UI control
-├── web.go                    # API endpoints
-├── cmd/                      # Command line main
-├── internal/                 # Internal Go packages
-│   ├── confparser/           # Configuration file implementation
-│   ├── hidrpc/               # HIDRPC implementation for HID devices (keyboard, mouse, etc.)
-│   ├── logging/              # Logging implementation
-│   ├── mdns/                 # mDNS implementation
-│   ├── native/               # CGO / Native code glue layer (on-device hardware)
-│   │   ├── cgo/              # C files for the native library (HDMI, Touchscreen, etc.)
-│   │   └── eez/              # EEZ Studio Project files (for Touchscreen)
-│   ├── network/              # Network implementation
-│   ├── tzdata/               # Timezone data and generation
-│   ├── udhcpc/               # DHCP implementation
-│   ├── usbgadget/            # USB gadget
-│   ├── utils/                # SSH handling
-│   └── websecure/            # TLS certificate management
-├── resource/                 # netboot iso and other resources
-├── scripts/                  # Bash shell scripts for building and deploying
-└── static/                   #  (react client build output)
-└── ui/                       # React frontend
-    ├── localization/         # Client UI localization (i18n)
-    │   ├── xKVM.UI.inlang/ # Settings for inlang
-    │   └── messages/         # Messages localized
-    ├── public/               # UI website static images and fonts
-    └── src/                  # Client React UI
-        ├── assets/           # UI in-page images
-        ├── components/       # UI components
-        ├── hooks/            # Hooks (stores, RPC handling, virtual devices)
-        ├── keyboardLayouts/  # Keyboard layout definitions
-        ├── paraglide/        #  (localization compiled messages output)
-        ├── providers/        # Feature flags
-        └── routes/           # Pages (login, settings, etc.)
+├── main.go                   # Application entry point
+├── cmd/                      # Command-line tools
+├── internal/                 # Internal packages
+│   ├── native/               # Native C code interface
+│   │   ├── cgo/              # C implementation (video, HDMI, etc.)
+│   │   └── proto/            # gRPC protocol definitions
+│   ├── usbgadget/            # USB gadget management
+│   ├── network/              # Network monitoring
+│   ├── ota/                  # Update system (legacy)
+│   └── ...                   # Other internal packages
+├── pkg/                      # Public packages
+│   ├── nmlite/               # Network monitoring lite
+│   └── myip/                 # IP detection
+├── ui/                       # React frontend
+│   ├── src/                  # Source code
+│   │   ├── routes/           # Pages
+│   │   ├── components/       # UI components
+│   │   └── hooks/            # React hooks
+│   └── localization/         # i18n translations
+├── scripts/                  # Build scripts
+├── static/                   # Built frontend (generated)
+└── resource/                 # Embedded resources
 ```
 
-**Key files for beginners:**
+## Development Workflows
 
-- `web.go` - Add new API endpoints here
-- `config.go` - Add new settings here
-- `ui/src/routes/` - Add new pages here
-- `ui/src/components/` - Add new UI components here
+### Frontend Development
 
----
-
-## Development Modes
-
-### Full Development (Recommended)
-
-#### _Best for: Complete feature development_
+For rapid UI development without rebuilding the backend:
 
 ```bash
-# Build and deploy to device
-make frontend
-ARM64_SYSROOT=/opt/arm64-sysroot make build_release
-scp bin/xkvm_installer.sh user@device:/tmp/
+cd ui
+npm install
+npm run dev
 ```
+
+This starts a development server at `http://localhost:5173` with hot reload.
+
+To connect to a real device, set the proxy:
+
+```bash
+cd ui
+./dev_device.sh <device-ip>
+```
+
+### Backend Development
+
+For backend changes:
+
+```bash
+# Make your changes to Go files
+# Rebuild
+ARM64_SYSROOT=/opt/arm64-sysroot make build_dev
+
+# Deploy to device
+scp bin/xkvm_app root@<device-ip>:/opt/xkvm/
+ssh root@<device-ip> "systemctl restart xkvm"
+```
+
+### Native Code Development
+
+The native layer (C code) handles video capture and hardware control:
+
+```bash
+# Build native library only
+CMAKE_BUILD_TYPE=Debug ./scripts/build_cgo.sh
+
+# Full rebuild
+ARM64_SYSROOT=/opt/arm64-sysroot make build_dev
+```
+
+For debugging native code with GDB:
+
+1. Update `TARGET_IP` in `.vscode/settings.json`
+2. Set breakpoints in C code
+3. Start "Debug Native" configuration in VSCode
+
+## Build Targets
+
+### Development Build
+
+```bash
+ARM64_SYSROOT=/opt/arm64-sysroot make build_dev
+```
+
+Creates `bin/xkvm_app` with version `0.5.1-dev<timestamp>`.
+
+### Release Build
+
+```bash
+ARM64_SYSROOT=/opt/arm64-sysroot make build_release
+```
+
+Creates:
+- `bin/xkvm_app` - Release binary
+- `bin/xkvm_installer.sh` - Self-extracting installer with embedded libraries
 
 ### Frontend Only
 
-#### _Best for: UI changes without device_
-
 ```bash
-cd ui
-npm install
-./dev_device.sh <YOUR_DEVICE_IP>
+make frontend
 ```
 
-### Touchscreen Changes
+Builds the React UI and places output in `static/`.
 
-Please click the `Build` button in EEZ Studio then run `./dev_deploy.sh -r <YOUR_DEVICE_IP> --skip-ui-build` to deploy the changes to your device. Initial build might take more than 10 minutes as it will also need to fetch and build LVGL and other dependencies.
-
-### Quick Backend Changes
-
-#### _Best for: API or backend logic changes_
+### Skip Builds
 
 ```bash
-# Skip frontend build for faster deployment
-./dev_deploy.sh -r <YOUR_DEVICE_IP> --skip-ui-build
+# Skip frontend if already built
+SKIP_UI_BUILD=1 make build_dev
+
+# Skip native if already built
+SKIP_NATIVE_IF_EXISTS=1 make build_dev
 ```
 
----
+## Testing
 
-## Debugging Made Easy
-
-### Check if everything is working
+### Unit Tests
 
 ```bash
-# Test connection to device
-ping 192.168.1.100
-
-# Check if XKVM is running
-ssh root@192.168.1.100 ps aux | grep xkvm
-```
-
-### View live logs
-
-```bash
-ssh root@192.168.1.100
-tail -f /var/log/xkvm.log
-```
-
-### Reset everything (if stuck)
-
-```bash
-ssh root@192.168.1.100
-rm /userdata/kvm_config.json
-systemctl restart xkvm
-```
-
-### Debug native code with gdbserver
-
-Change the `TARGET_IP` in `.vscode/settings.json` to your XKVM device IP, then set breakpoints in your native code and start the `Debug Native` configuration in VSCode.
-
-The code and GDB server will be deployed automatically.
-
----
-
-## Testing Your Changes
-
-### Manual Testing
-
-1. Build and deploy your changes (see Quick Start above)
-2. Open browser: `http://<device-ip>`
-3. Test your feature
-4. Check logs on device: `journalctl -u xkvm -f` (if running as systemd service)
-
-### Automated Testing
-
-```bash
-# Run Go tests locally
 make test
-
-# Run E2E tests (requires running device)
-cd ui
-XKVM_URL="http://<device-ip>" npm run test:e2e
-
-# Frontend linting
-cd ui && npm run lint
 ```
 
-### API Testing
+Runs all Go unit tests.
+
+### E2E Tests
 
 ```bash
-# Test login endpoint
-curl -X POST http://<device-ip>/auth/password-local \
-  -H "Content-Type: application/json" \
-  -d '{"password": "test123"}'
+make test_e2e
 ```
 
----
+Prompts for device IP and runs Playwright end-to-end tests against the device.
 
-## Common Issues & Solutions
-
-### "Build failed" or "Permission denied"
+### Linting
 
 ```bash
-# Fix permissions
-ssh root@<IP> chmod +x /userdata/xkvm/bin/xkvm_app_debug
-
-# Clean and rebuild
-go clean -modcache
-go mod tidy
-make build_dev
+make lint
 ```
 
-### "Can't connect to device"
+Runs `go vet` on all packages.
 
-```bash
-# Check network
-ping <IP>
+## Configuration
 
-# Check SSH
-ssh root@<IP> echo "Connection OK"
-```
+### Application Config
 
-### "Frontend not updating"
+Configuration is stored in `/userdata/kvm_config.json` on the device. The config includes:
 
-```bash
-# Clear cache and rebuild
-cd ui
-npm cache clean --force
-rm -rf node_modules
-npm install
-```
-
-### "Device UI Fails to Build"
-
-If while trying to build you run into an error message similar to :
-
-```plaintext
-In file included from /workspaces/kvm/internal/native/cgo/ctrl.c:15:
-/workspaces/kvm/internal/native/cgo/ui_index.h:4:10: fatal error: ui/ui.h: No such file or directory
- #include "ui/ui.h"
-          ^~~~~~~~~
-compilation terminated.
-```
-
-This means that your system didn't create the directory-link to from _./internal/native/cgo/ui_ to ./internal/native/eez/src/ui when the repository was checked out. You can verify this is the case if _./internal/native/cgo/ui_ appears as a plain text file with only the textual contents:
-
-```plaintext
-../eez/src/ui
-```
-
-If this happens to you need to [enable git creation of symbolic links](https://stackoverflow.com/a/59761201/2076) either globally or for the KVM repository:
-
-```bash
-   # Globally enable git to create symlinks
-   git config --global core.symlinks true
-   git restore internal/native/cgo/ui
-```
-
-```bash
-   # Enable git to create symlinks only in this project
-   git config core.symlinks true
-   git restore internal/native/cgo/ui
-```
-
-Or if you want to manually create the symlink use:
-
-```bash
-   # linux
-   cd internal/native/cgo
-   rm ui
-   ln -s ../eez/src/ui ui
-```
-
-```batch
-   rem Windows
-   cd internal/native/cgo
-   del ui
-   mklink /d ui ..\eez\src\ui
-```
-
----
-
-## Next Steps
-
-### Adding a New Feature
-
-1. **Backend:** Add API endpoint in `web.go`
-2. **Config:** Add settings in `config.go`
-3. **Frontend:** Add UI in `ui/src/routes/`
-4. **Test:** Build and deploy to test device
-
-### Code Style
-
-- **Go:** Follow standard Go conventions
-- **TypeScript:** Use TypeScript for type safety
-- **React:** Keep components small and reusable
-- **Localization:** Ensure all user-facing strings in the frontend are [localized](#localization)
+- Network settings (read-only display)
+- USB gadget configuration
+- Video codec preferences
+- Access credentials
 
 ### Environment Variables
 
+Development environment variables:
+
 ```bash
-# Enable debug logging
+# Enable trace logging
 export LOG_TRACE_SCOPES="xkvm,cloud,websocket,native,jsonrpc"
 
-# Frontend development
-export XKVM_PROXY_URL="ws://<IP>"
+# Frontend proxy URL
+export XKVM_PROXY_URL="ws://<device-ip>"
+
+# Enable SSL in development
+export USE_SSL=true
+
+# Enable sync tracing (debugging)
+export ENABLE_SYNC_TRACE=1
 ```
 
----
+## Cross-Compilation
 
-## Need Help?
+XKVM uses cross-compilation from x86_64 to ARM64 (RK3566).
 
-1. **Check logs first:** `ssh root@<IP> tail -f /var/log/xkvm.log`
-2. **Search issues:** [GitHub Issues](https://github.com/xkvm/kvm/issues)
-3. **Ask on Discord:** [XKVM Discord](https://xkvm.com/discord)
-4. **Read docs:** [XKVM Documentation](https://xkvm.com/docs)
+### Toolchain Setup
 
----
+Install the cross-compilation toolchain:
+
+```bash
+# Fedora/RHEL
+sudo dnf install gcc-aarch64-linux-gnu gcc-c++-aarch64-linux-gnu
+
+# Ubuntu/Debian
+sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+```
+
+### Sysroot Setup
+
+The sysroot provides ARM64 system libraries:
+
+```bash
+export ARM64_SYSROOT="/opt/arm64-sysroot"
+./scripts/setup_arm64_sysroot.sh
+```
+
+This creates a minimal ARM64 root filesystem with required libraries.
+
+### Build Process
+
+The Makefile automatically configures cross-compilation when `ARM64_SYSROOT` is set:
+
+- Sets `CC=aarch64-linux-gnu-gcc`
+- Sets `CXX=aarch64-linux-gnu-g++`
+- Configures CGO with sysroot paths
+- Links against Rockchip vendor libraries
+
+See `internal/native/cgo/README_CROSS_COMPILATION.md` for details.
+
+## Embedded Libraries
+
+XKVM uses vendor-provided libraries for video encoding:
+
+- `librockit.so` - Rockchip video encoding
+- `libgraphic_lsf.so` - Graphics layer composition
+- `librockchip_mpp.so*` - Media Process Platform
+
+These are embedded in the self-extracting installer. See `EMBEDDED_LIBRARIES.md` for details.
+
+## Localization
+
+The UI uses [paraglide-js](https://inlang.com/m/gerre34r/library-inlang-paraglideJs) for internationalization.
+
+### Adding Translations
+
+1. Add key/value to `ui/localization/messages/en.json`
+2. Run `npm run i18n` to validate and sort
+3. Use in code: `m.your_key_name()`
+4. Run `npm run i18n:machine-translate` to auto-translate other languages
+
+### Translation Commands
+
+```bash
+cd ui
+
+# Validate translations
+npm run i18n:validate
+
+# Find unused keys
+npm run i18n:find-unused
+
+# Find duplicate values
+npm run i18n:find-dupes
+
+# Machine translate missing keys
+npm run i18n:machine-translate
+
+# Full audit
+npm run i18n:audit
+```
+
+## Debugging
+
+### View Logs
+
+```bash
+# On device
+ssh root@<device-ip>
+tail -f /var/log/xkvm.log
+
+# Or if running as systemd service
+journalctl -u xkvm -f
+```
+
+### Common Issues
+
+**Build fails with "ARM64_SYSROOT not set"**
+```bash
+export ARM64_SYSROOT="/opt/arm64-sysroot"
+./scripts/setup_arm64_sysroot.sh
+```
+
+**"cannot open shared object file" on device**
+- Ensure installer extracted properly
+- Check `lib/` directory exists next to `xkvm_app`
+- Verify RPATH: `readelf -d xkvm_app | grep RPATH`
+
+**Frontend not updating**
+```bash
+cd ui
+rm -rf node_modules dist
+npm install
+npm run build:device
+```
+
+**USB gadget not working**
+```bash
+# On device
+ssh root@<device-ip>
+rm -rf /sys/kernel/config/usb_gadget/xkvm
+systemctl restart xkvm
+```
+
+### Performance Profiling
+
+Enable developer mode on the device, then access profiling at:
+
+```
+http://api:<password>@<device-ip>/developer/pprof/
+```
+
+## Code Style
+
+- **Go**: Follow standard Go conventions, use `gofmt`
+- **TypeScript**: Use TypeScript for type safety
+- **React**: Keep components small and focused
+- **C**: Follow Linux kernel style for native code
 
 ## Contributing
-
-### Ready to contribute?
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Test thoroughly
+4. Test thoroughly on device
 5. Submit a pull request
 
-### Before submitting
+### Pull Request Checklist
 
-- [ ] Code works on device
-- [ ] Tests pass
-- [ ] Code follows style guidelines
-- [ ] Frontend user-facing strings [localized](#localization)
-- [ ] Documentation updated (if needed)
+- [ ] Code builds successfully
+- [ ] Tests pass (`make test`)
+- [ ] Tested on actual device
+- [ ] UI strings are localized
+- [ ] Documentation updated if needed
 
----
+## Additional Resources
 
-## Advanced Topics
-
-### Cross-Compilation for ARM64
-
-XKVM supports cross-compilation from x86_64 development machines to ARM64 (RK3566) targets. This is useful for building release binaries or when you don't have direct access to an ARM64 machine.
-
-#### Prerequisites
-
-1. **Install cross-compilation toolchain:**
-   ```bash
-   # Fedora/RHEL
-   sudo dnf install gcc-aarch64-linux-gnu gcc-c++-aarch64-linux-gnu
-   
-   # Ubuntu/Debian  
-   sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
-   ```
-
-2. **Set up ARM64 sysroot (required for cross-compilation):**
-   ```bash
-   # Set sysroot location
-   export ARM64_SYSROOT="/opt/arm64-sysroot"
-   
-   # Use the provided script to create a sysroot
-   ./scripts/setup_arm64_sysroot.sh
-   ```
-
-#### Building for ARM64
-
-```bash
-# Set up sysroot first (required)
-export ARM64_SYSROOT="/opt/arm64-sysroot"
-./scripts/setup_arm64_sysroot.sh
-
-# Cross-compile native components only
-./scripts/cross_build.sh
-
-# Cross-compile full release
-make build_release
-
-# Or use inline environment variable
-ARM64_SYSROOT="/opt/arm64-sysroot" make build_release
-```
-
-#### Environment Variables
-
-- `ARM64_SYSROOT`: **Required** - Path to ARM64 sysroot for cross-compilation
-- `CROSS_COMPILE`: Force cross-compilation (`yes`/`no`/`auto`)
-- `TARGET_ARCH`: Target architecture (`aarch64`/`x86_64`)
-
-For detailed cross-compilation documentation, see [`internal/native/cgo/README_CROSS_COMPILATION.md`](internal/native/cgo/README_CROSS_COMPILATION.md).
-
-### Performance Profiling
-
-1. Enable `Developer Mode` on your XKVM device
-2. Add a password on the `Access` tab
-
-```bash
-# Access profiling
-curl http://api:$XKVM_PASSWORD@YOUR_DEVICE_IP/developer/pprof/
-```
-
-### Advanced Environment Variables
-
-```bash
-# Enable trace logging (useful for debugging)
-export LOG_TRACE_SCOPES="xkvm,cloud,websocket,native,jsonrpc"
-
-# For frontend development
-export XKVM_PROXY_URL="ws://<XKVM_IP>"
-
-# Enable SSL in development
-export USE_SSL=true
-```
-
-### Configuration Management
-
-The application uses a JSON configuration file stored at `/userdata/kvm_config.json`.
-
-#### Adding New Configuration Options
-
-1. **Update the Config struct in `config.go`:**
-
-   ```go
-   type Config struct {
-       // ... existing fields
-       NewFeatureEnabled bool `json:"new_feature_enabled"`
-   }
-   ```
-
-2. **Update the default configuration:**
-
-   ```go
-   var defaultConfig = &Config{
-       // ... existing defaults
-       NewFeatureEnabled: false,
-   }
-   ```
-
-3. **Add migration logic if needed for existing installations**
-
-### LVGL Build
-
-We modified the LVGL code a little bit to remove unused fonts and examples.
-The patches are generated by
-
-```bash
-git diff --cached --diff-filter=d > ../internal/native/cgo/lvgl-minify.patch && \
-git diff --name-only --diff-filter=D --cached > ../internal/native/cgo/lvgl-minify.del
-```
-
-### Localization
-
-The browser/client frontend uses the [paraglide-js](https://inlang.com/m/gerre34r/library-inlang-paraglideJs) plug-in from the [inlang.com](https://inlang.com/) project to allow compile-time validated localization of all user-facing UI strings in the browser/client UI. This includes `title`, `text`, `name`, `description`, `placeholder`, `label`, `aria-label`, _message attributes_ (such as `confirmText`, `unit`, `badge`, `tag`, or `flag`), HTML _element text_ (such as `<h?>`, `<span>`, or `<p>` elements), _notifications messages_, and option _label_ strings, etc.
-
-We **do not** translate the console log messages, CSS class names, theme names, nor the various _value_ strings (e.g. for value/label pair options), nor URL routes.
-
-The localizations are stored in _.json_ files in the `ui/localizations/messages` directory, with one language-per-file using the [ISO 3166-1 alpha-2 country code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) (e.g. en for English, de for German, etc.)
-
-#### m-function-matcher
-
-The translations are extracted into language files (e.g. _en.json_ for English) and then paraglide-js compiles them into helpers for use with the [m-function-matcher](https://inlang.com/m/632iow21/plugin-inlang-mFunctionMatcher). An example:
-
-```tsx
-<SettingsPageHeader
-  title={m.extensions_atx_power_control()}
-  description={m.extensions_atx_power_control_description()}
-/>
-```
-
-#### shakespere plug-in
-
-If you enable the [Sherlock](https://inlang.com/m/r7kp499g/app-inlang-ideExtension) plug-in, the localized text "tooltip" is shown in the VSCode editor after any localized text in the language you've selected for preview. In this image, it's the blue text at the end of the line :
-
-![Showing the translation preview](https://github.com/user-attachments/assets/f6d6dae6-919f-4319-b7bf-500cb1fd458d)
-
-#### Process
-
-##### Localizing a UI
-
-1. Locate a string that is visible to the end user on the client/browser
-2. Assign that string a "key" that reflects the logical meaning of the string in snake-case (look at existing localizations for examples), for example if there's a string `This is a test` on the _thing edit page_ it would be "thing_edit_this_is_a_test"
-
-   ```json
-   "thing_edit_this_is_a_test": "This is a test",
-   ```
-
-3. Add the key and string to the _en.json_ like this:
-
-   - **Note** if the string has replacement parameters (line a user-entered name), the syntax for the localized string has `{ }` around the replacement token (e.g. _This is your name: {name}_). An complex example:
-
-   ```react
-   {m.mount_button_showing_results({
-      from: indexOfFirstFile + 1,
-      to: Math.min(indexOfLastFile, onStorageFiles.length),
-      total: onStorageFiles.length
-   })}
-   ```
-
-4. Save the _en.json_ file and execute `npm run i18n` to resort the language files, validate the translations, and create the m-functions
-5. Edit the _.tsx_ file and replace the string with the calls to the new m-function which will be the key-string you chose in snake-case. For example `This is a test` in _thing edit page_ turns into `m.thing_edit_this_is_a_test()`
-   - **Note** if the string has a replacement token, supply that to the m-function, for example for the literal `I will call you {name}`, use `m.profile_i_will_call_you({ name: edit.value })`
-6. When all your strings are extracted, run `npm run i18n:machine-translate` to get a first-stab at the translations for the other supported languages. Make sure you use an LLM (you can use [aifiesta](https://chat.aifiesta.ai/chat/) to use multiple LLMs) or a [translator](https://translate.google.com) of some form to back-translate each **new** machine-generation in each _language_ to ensure those terms translate reasonably.
-
-### Adding a new language
-
-1. Get the [ISO 3166-1 alpha-2 country code](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) (for example AT for Austria)
-2. Create a new file in the _ui/localization/messages_ directory (example _at.json_)
-3. Add the new country code to the _ui/localizations/settings.json_ file in both the `"locales"` and the `"languageTags"` section (inlang and Sherlock aren't exactly current to each other, so we need it in both places).
-4. That file also declares the baseLocale/sourceLanguageTag which is `"en"` because this project started out in English. Do NOT change that.
-5. Run `npm run i18n:machine-translate` to do an initial pass at localizing all existing messages to the new language.
-   - **Note** you will get an error _DB has been closed_, ignore that message, we're not using a database.
-   - **Note** you likely will get errors while running this command due to rate limits and such (it uses anonymous Google Translate). Just keep running the command over and over... it'll translate a bunch each time until it says _Machine translate complete_
-
-### Other notes
-
-- Run `npm run i18n:validate` to ensure that language files and settings are well-formed.
-- Run `npm run i18n:find-excess` to look for extra keys in other language files that have been deleted from the master-list in _en.json_.
-- Run `npm run i18n:find-dupes` to look for multiple keys in _en.json_ that have the same translated value (this is normal)
-- Run `npm run i18n:find-unused` to look for keys in _en.json_ that are not referenced in the UI anywhere.
-  - **Note** there are a few that are not currently used, only concern yourself with ones you obsoleted.
-- Run `npm run i18n:audit` to do all the above checks.
-- Using [inlang CLI](https://inlang.com/m/2qj2w8pu/app-inlang-cli) to support the npm commands.
-- You can install the [Sherlock VS Code extension](https://marketplace.visualstudio.com/items?itemName=inlang.vs-code-extension) in your devcontainer.
-
----
-
-**Happy coding!**
-
-For more information, visit the [XKVM Documentation](https://xkvm.com/docs) or join our [Discord Server](https://xkvm.com/discord).
+- **CHANGELOG.md** - Version history and changes
+- **EMBEDDED_LIBRARIES.md** - Third-party library information
+- **internal/native/cgo/README_CROSS_COMPILATION.md** - Cross-compilation details

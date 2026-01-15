@@ -10,7 +10,6 @@ import { useDeviceUiNavigation } from "@hooks/useAppNavigation";
 import { useVersion } from "@hooks/useVersion";
 import { useDeviceStore } from "@hooks/stores";
 import notifications from "@/notifications";
-import { DOWNGRADE_VERSION } from "@/ui.config";
 
 interface FailSafeModeOverlayProps {
   reason: string;
@@ -32,9 +31,9 @@ function OverlayContent({ children }: OverlayContentProps) {
 
 export function FailSafeModeOverlay({ reason }: FailSafeModeOverlayProps) {
   const { send } = useJsonRpc();
-  const { navigateTo } = useDeviceUiNavigation();
-  const { appVersion } = useVersion();
-  const { systemVersion } = useDeviceStore();
+  useDeviceUiNavigation();
+  useVersion();
+  useDeviceStore();
   const [isDownloadingLogs, setIsDownloadingLogs] = useState(false);
 
   const getReasonCopy = () => {
@@ -85,28 +84,8 @@ export function FailSafeModeOverlay({ reason }: FailSafeModeOverlayProps) {
       notifications.success("Crash logs downloaded successfully");
 
       // Open GitHub issue
-      const issueBody = `## Issue Description
-The \`${reason}\` process encountered an error and failsafe mode was activated.
 
-**Reason:** \`${reason}\`
-**Timestamp:** ${new Date().toISOString()}
-**App Version:** ${appVersion || "Unknown"}
-**System Version:** ${systemVersion || "Unknown"}
-
-## Logs
-Please attach the recovery logs file that was downloaded to your computer:
-\`${filename}\`
-
-> [!NOTE]
-> Please remove any sensitive information from the logs. The reports are public and can be viewed by anyone.
-
-## Additional Context
-[Please describe what you were doing when this occurred]`;
-
-      const issueUrl =
-        `https://github.com/xkvm/kvm/issues/new?` +
-        `title=${encodeURIComponent(`Recovery Mode: ${reason} process issue`)}&` +
-        `body=${encodeURIComponent(issueBody)}`;
+      const issueUrl = "#";
 
       window.open(issueUrl, "_blank");
     });

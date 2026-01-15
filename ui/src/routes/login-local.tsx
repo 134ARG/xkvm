@@ -120,10 +120,7 @@ export default function LoginLocalRoute() {
                   />
 
                   <div className="mt-4 flex justify-start text-xs text-slate-500 dark:text-slate-400">
-                    <ExtLink
-                      href="https://xkvm.com/docs/networking/local-access#reset-password"
-                      className="hover:underline"
-                    >
+                    <ExtLink href="#" className="hover:underline">
                       {m.login_forgot_password()}
                     </ExtLink>
                   </div>

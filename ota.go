@@ -3,8 +3,8 @@ package kvm
 import (
 	"fmt"
 
+	"github.com/134ARG/xkvm/internal/ota"
 	"github.com/Masterminds/semver/v3"
-	"github.com/xkvm/kvm/internal/ota"
 )
 
 var builtAppVersion = "0.1.0+dev"

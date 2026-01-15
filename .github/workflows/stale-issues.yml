@@ -50,7 +50,7 @@ jobs:
 
             If this still applies:
             - Add a comment with **reproduction steps**, **environment details**, and **XKVM version**.
-            - Verify whether it still occurs with the current build: see [OTA / Updates](https://xkvm.com/docs/advanced-usage/ota-updates).
+            - Verify whether it still occurs with the current build.
             - Any new comment or update will remove the *Stale* label automatically.
 
             Issues not updated within 14 days after being marked stale may be closed.
@@ -60,7 +60,7 @@ jobs:
 
             To continue:
             - Push a commit or add a comment about next steps — this removes the *Stale* label automatically.
-            - Ensure the changes work with the current build: see [OTA / Updates](https://xkvm.com/docs/advanced-usage/ota-updates).
+            - Ensure the changes work with the current build.
             - If this is blocked or awaiting review, mention that for visibility.
 
             PRs not updated within 14 days after being marked stale may be closed.
@@ -72,7 +72,7 @@ jobs:
 
             If the problem persists:
             - Reopen this issue, or open a new one with **reproduction steps**, **logs**, **environment**, and **XKVM version**.
-            - Confirm behavior with the current build: [OTA / Updates](https://xkvm.com/docs/advanced-usage/ota-updates).
+            - Confirm behavior with the current build.
 
           close-pr-message: |
             **Closing this pull request due to extended inactivity.**
@@ -81,7 +81,7 @@ jobs:
 
             If the changes are still relevant:
             - Reopen this PR or submit a refreshed PR rebased on the latest code.
-            - Confirm that it builds and works with the current build: [OTA / Updates](https://xkvm.com/docs/advanced-usage/ota-updates).
+            - Confirm that it builds and works with the current build.
 
           # ── SAFETY / ROLLOUT ────────────────────────────────────────────────
           # DRY-RUN: log what would happen, but do NOT write labels/comments/close.

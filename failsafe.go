@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/xkvm/kvm/internal/supervisor"
+	"github.com/134ARG/xkvm/internal/supervisor"
 )
 
 const (

@@ -3,7 +3,7 @@ package hidrpc
 import (
 	"fmt"
 
-	"github.com/xkvm/kvm/internal/usbgadget"
+	"github.com/134ARG/xkvm/internal/usbgadget"
 )
 
 // MessageType is the type of the HID RPC message

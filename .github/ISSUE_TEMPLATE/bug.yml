@@ -9,16 +9,7 @@ body:
     attributes:
       label: Disclaimer
       description: |
-        For support questions, please use the [discussions][] or [Discord][] instead. Before
-        opening a bug report, ensure you have read the [documentation][],
-        [Troubleshooting][] and [Device FAQs][]. Only use bug reports for actual
-        bugs.
-
-        [documentation]: https://xkvm.com/docs
-        [Troubleshooting]: https://xkvm.com/docs/getting-started/troubleshooting
-        [Device FAQs]: https://xkvm.com/docs/getting-started/faq
-        [discussions]: https://github.com/xkvm/kvm/discussions
-        [Discord]: https://xkvm.com/discord
+        Please provide detailed information about the bug to help us investigate and resolve the issue.
       options:
         - label: I have read and understood the disclaimer.
           required: true

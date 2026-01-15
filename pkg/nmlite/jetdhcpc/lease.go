@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/134ARG/xkvm/internal/network/types"
 	"github.com/insomniacslk/dhcp/dhcpv4"
 	"github.com/insomniacslk/dhcp/dhcpv4/nclient4"
 	"github.com/insomniacslk/dhcp/dhcpv6"
-	"github.com/xkvm/kvm/internal/network/types"
 )
 
 var (

@@ -6,16 +6,16 @@ import (
 	"os"
 	"sync"
 
+	"github.com/134ARG/xkvm/internal/confparser"
+	"github.com/134ARG/xkvm/internal/logging"
+	"github.com/134ARG/xkvm/internal/network/types"
+	"github.com/134ARG/xkvm/internal/usbgadget"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/xkvm/kvm/internal/confparser"
-	"github.com/xkvm/kvm/internal/logging"
-	"github.com/xkvm/kvm/internal/network/types"
-	"github.com/xkvm/kvm/internal/usbgadget"
 )
 
 const (
-	DefaultAPIURL = "https://api.xkvm.com"
+	DefaultAPIURL = ""
 )
 
 type WakeOnLanDevice struct {
