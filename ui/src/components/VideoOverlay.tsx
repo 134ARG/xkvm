@@ -13,8 +13,7 @@ import { useRTCStore, PostRebootAction } from "@/hooks/stores";
 import LogoBlue from "@/assets/logo-blue.svg";
 import LogoWhite from "@/assets/logo-white.svg";
 import { isOnDevice } from "@/main";
-import { sleep, buildCloudUrl } from "@/utils";
-import { getLocalVersion } from "@/utils/jsonrpc";
+import { sleep } from "@/utils";
 
 interface OverlayContentProps {
   readonly children: React.ReactNode;
@@ -490,43 +489,6 @@ export function RebootingOverlay({ show, postRebootAction, deviceId }: Rebooting
       isCheckingRef.current = false;
     };
   }, [show, postRebootAction, hasSeenDisconnect, redirectTo]);
-
-  // Cloud mode: wait for WebRTC reconnection via RPC, then redirect with versioned URL
-  useEffect(() => {
-    if (isOnDevice) return;
-    if (!postRebootAction || !deviceId || !show || !hasSeenDisconnect) return;
-
-    let cancelled = false;
-
-    const waitForReconnectAndRedirect = async () => {
-      if (isCheckingRef.current) return;
-      isCheckingRef.current = true;
-
-      try {
-        const { appVersion } = await getLocalVersion({
-          attemptTimeoutMs: 2000,
-        });
-
-        if (cancelled) return;
-
-        clearInterval(intervalId);
-        const targetUrl = buildCloudUrl(deviceId, appVersion, postRebootAction.redirectTo);
-        await redirectTo(targetUrl);
-      } catch (err) {
-        console.debug("Cloud reconnect check failed:", err);
-        isCheckingRef.current = false;
-      }
-    };
-
-    const intervalId = setInterval(waitForReconnectAndRedirect, 3000);
-    waitForReconnectAndRedirect();
-
-    return () => {
-      cancelled = true;
-      clearInterval(intervalId);
-      isCheckingRef.current = false;
-    };
-  }, [show, postRebootAction, deviceId, hasSeenDisconnect, redirectTo]);
 
   return (
     <AnimatePresence>

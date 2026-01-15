@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -84,10 +83,6 @@ func (m *KeyboardMacro) Validate() error {
 
 type Config struct {
 	CloudURL           string               `json:"cloud_url"`
-	UpdateAPIURL       string               `json:"update_api_url"`
-	CloudAppURL        string               `json:"cloud_app_url"`
-	CloudToken         string               `json:"cloud_token"`
-	GoogleIdentity     string               `json:"google_identity"`
 	JigglerEnabled     bool                 `json:"jiggler_enabled"`
 	JigglerConfig      *JigglerConfig       `json:"jiggler_config"`
 	AutoUpdateEnabled  bool                 `json:"auto_update_enabled"`
@@ -109,14 +104,6 @@ type Config struct {
 	VideoSleepAfterSec int                  `json:"video_sleep_after_sec"`
 	VideoQualityFactor float64              `json:"video_quality_factor"`
 	NativeMaxRestart   uint                 `json:"native_max_restart_attempts"`
-}
-
-// GetUpdateAPIURL returns the update API URL
-func (c *Config) GetUpdateAPIURL() string {
-	if c.UpdateAPIURL == "" {
-		return DefaultAPIURL
-	}
-	return strings.TrimSuffix(c.UpdateAPIURL, "/") + "/releases"
 }
 
 const configPath = "/userdata/kvm_config.json"
@@ -148,8 +135,6 @@ var (
 func getDefaultConfig() Config {
 	return Config{
 		CloudURL:          DefaultAPIURL,
-		UpdateAPIURL:      DefaultAPIURL,
-		CloudAppURL:       "https://app.xkvm.com",
 		AutoUpdateEnabled: true, // Set a default value
 		ActiveExtension:   "",
 		KeyboardMacros:    []KeyboardMacro{},
