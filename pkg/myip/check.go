@@ -142,19 +142,7 @@ func (ps *PublicIPState) checkIPs(ctx context.Context, checkIPv4, checkIPv6 bool
 }
 
 func (ps *PublicIPState) checkIPForFamily(ctx context.Context, family int) (*PublicIP, error) {
-	if ps.apiEndpoint != "" {
-		ip, err := ps.checkAPI(ctx, family)
-		if err == nil && ip != nil {
-			return ip, nil
-		}
-	}
-
-	if ps.cloudflareEndpoint != "" {
-		ip, err := ps.checkCloudflare(ctx, family)
-		if err == nil && ip != nil {
-			return ip, nil
-		}
-	}
-
-	return nil, fmt.Errorf("all IP check methods failed for family %d", family)
+	// Cloud service calls disabled - no external IP checking
+	// This prevents any outbound requests to cloud services
+	return nil, fmt.Errorf("external IP check disabled for family %d", family)
 }

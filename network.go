@@ -205,23 +205,46 @@ func rpcToggleDHCPClient() error {
 }
 
 func rpcGetPublicIPAddresses(refresh bool) ([]myip.PublicIP, error) {
-	if publicIPState == nil {
-		return nil, fmt.Errorf("public IP state not initialized")
+	// Return local IP addresses from network interface instead of external services
+	state, err := networkManager.GetInterfaceState(NetIfName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get network state: %w", err)
 	}
 
-	if refresh {
-		if err := publicIPState.ForceUpdate(); err != nil {
-			return nil, err
+	var ips []myip.PublicIP
+	now := time.Now()
+
+	// Add IPv4 addresses
+	for _, ipStr := range state.IPv4Addresses {
+		// Parse CIDR to get just the IP
+		ip, _, err := net.ParseCIDR(ipStr)
+		if err != nil {
+			// Try parsing as plain IP
+			ip = net.ParseIP(ipStr)
+		}
+		if ip != nil && !ip.IsLoopback() && !ip.IsLinkLocalUnicast() {
+			ips = append(ips, myip.PublicIP{
+				IPAddress:   ip,
+				LastUpdated: now,
+			})
 		}
 	}
 
-	return publicIPState.GetAddresses(), nil
+	// Add IPv6 addresses (global unicast only)
+	for _, addr := range state.IPv6Addresses {
+		if addr.Address.IsGlobalUnicast() && !addr.Address.IsLinkLocalUnicast() {
+			ips = append(ips, myip.PublicIP{
+				IPAddress:   addr.Address,
+				LastUpdated: now,
+			})
+		}
+	}
+
+	return ips, nil
 }
 
 func rpcCheckPublicIPAddresses() error {
-	if publicIPState == nil {
-		return fmt.Errorf("public IP state not initialized")
-	}
-
-	return publicIPState.ForceUpdate()
+	// Cloud service calls disabled - return local IPs instead
+	// This is now a no-op since we read from local network state
+	return nil
 }

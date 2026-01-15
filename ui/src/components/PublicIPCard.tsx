@@ -26,7 +26,7 @@ export default function PublicIPCard() {
 
   const [publicIPs, setPublicIPs] = useState<PublicIP[]>([]);
   const refreshPublicIPs = useCallback(() => {
-    send("getPublicIPAddresses", { refresh: true }, (resp: JsonRpcResponse) => {
+    send("getPublicIPAddresses", { refresh: false }, (resp: JsonRpcResponse) => {
       setPublicIPs([]);
       if ("error" in resp) {
         notifications.error(

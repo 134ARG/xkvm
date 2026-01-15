@@ -160,37 +160,10 @@ func (ps *PublicIPState) ForceUpdate() error {
 
 // timerLoop runs the periodic IP check loop
 func (ps *PublicIPState) timerLoop(ctx context.Context) {
-	timer := time.NewTimer(5 * time.Minute)
-	defer timer.Stop()
+	// Cloud service calls disabled - no periodic external IP checking
+	// This prevents any background outbound requests to cloud services
+	ps.logger.Info().Msg("external IP checking disabled - no periodic checks will be performed")
 
-	// Store timer reference for Stop() to access
-	ps.mu.Lock()
-	ps.timer = timer
-	checkIPv4 := ps.ipv4
-	checkIPv6 := ps.ipv6
-	ps.mu.Unlock()
-
-	// Perform initial check immediately
-	checkIPs := func() {
-		if err := ps.checkIPs(ctx, checkIPv4, checkIPv6); err != nil {
-			ps.logger.Error().Err(err).Msg("failed to check public IP addresses")
-		}
-	}
-
-	checkIPs()
-
-	for {
-		select {
-		case <-timer.C:
-			// Perform the check
-			checkIPs()
-
-			// Reset the timer for the next check
-			timer.Reset(5 * time.Minute)
-
-		case <-ctx.Done():
-			// Timer was stopped
-			return
-		}
-	}
+	// Just wait for context cancellation
+	<-ctx.Done()
 }
