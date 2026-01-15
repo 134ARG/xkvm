@@ -2,6 +2,29 @@
 
 This document summarizes the major changes made to XKVM during its evolution from the original JetKVM embedded system to a full Linux-based KVM-over-IP solution.
 
+## Recent Updates
+
+### Video Codec Selection (H.265 Support)
+Added support for H.265 (HEVC) video encoding alongside the existing H.264 (AVC) codec. Users can now select their preferred codec from the video settings page.
+
+**Features:**
+- Selectable H.264/H.265 codec via web UI (Settings → Video)
+- Hardware-accelerated encoding for both codecs using Rockchip MPP
+- Automatic stream restart when codec is changed
+- Codec preference persists across reboots
+- Full GRPC proxy mode support for remote codec switching
+
+**Technical Details:**
+- H.265 provides better compression efficiency (up to 50% bitrate reduction)
+- H.264 remains the default for maximum browser compatibility
+- Both codecs use 60 fps GOP and configurable bitrate (1000-20000 kbps)
+- H.265 uses 16-byte alignment, H.264 uses 2-byte alignment
+- WebRTC track dynamically created based on selected codec
+
+**Browser Compatibility:**
+- H.264: Universal support across all modern browsers
+- H.265: Best support in Safari, limited support in Chrome/Firefox
+
 ## Architecture Changes
 
 ### Full Linux Migration

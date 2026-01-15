@@ -8,7 +8,7 @@ XKVM has evolved from an embedded system to a full Linux-based solution, enablin
 
 ## Key Features
 
-- **Low-latency Video** - H.264 hardware encoding for smooth remote control
+- **Low-latency Video** - H.264/H.265 hardware encoding for smooth remote control with selectable codec
 - **USB Gadget Emulation** - Keyboard, mouse, and mass storage device emulation
 - **Web Interface** - Modern React-based UI for device management
 - **Network Monitoring** - Real-time network status and DHCP lease information
