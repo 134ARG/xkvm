@@ -1,3 +1,37 @@
+/*
+ * Supported Pixel Formats (Camera video-camera0 → Rockchip Encoder)
+ * ===================================================================
+ * 
+ * Format    | V4L2 Constant          | Rockchip Constant        | bpp | Notes
+ * ----------|------------------------|--------------------------|-----|---------------------------
+ * YUV 4:2:2 Formats (16 bpp)
+ * ----------|------------------------|--------------------------|-----|---------------------------
+ * UYVY  [0] | V4L2_PIX_FMT_UYVY      | RK_FMT_YUV422_UYVY       | 16  | Default
+ * 422P  [1] | V4L2_PIX_FMT_YUV422P   | RK_FMT_YUV422P           | 16  | Planar Y/U/V
+ * NV16  [2] | V4L2_PIX_FMT_NV16      | RK_FMT_YUV422SP          | 16  | Semi-planar Y/UV
+ * NV61  [3] | V4L2_PIX_FMT_NV61      | RK_FMT_YUV422SP_VU       | 16  | Semi-planar Y/VU
+ * YM16  [4] | V4L2_PIX_FMT_NV16M     | RK_FMT_YUV422SP          | 16  | Multi-planar Y/UV
+ * ----------|------------------------|--------------------------|-----|---------------------------
+ * YUV 4:2:0 Formats (12 bpp - Best for encoding)
+ * ----------|------------------------|--------------------------|-----|---------------------------
+ * NV21  [5] | V4L2_PIX_FMT_NV21      | RK_FMT_YUV420SP_VU       | 12  | Best for encoding
+ * NV12  [6] | V4L2_PIX_FMT_NV12      | RK_FMT_YUV420SP          | 12  | Best for encoding
+ * NM21  [7] | V4L2_PIX_FMT_NV21M     | RK_FMT_YUV420SP_VU       | 12  | Multi-planar Y/VU
+ * NM12  [8] | V4L2_PIX_FMT_NV12M     | RK_FMT_YUV420SP          | 12  | Multi-planar Y/UV
+ * YU12  [9] | V4L2_PIX_FMT_YUV420    | RK_FMT_YUV420P           | 12  | Planar Y/U/V (I420)
+ * ----------|------------------------|--------------------------|-----|---------------------------
+ * YUV 4:4:4 Formats (24 bpp - Highest quality)
+ * ----------|------------------------|--------------------------|-----|---------------------------
+ * YM24 [10] | V4L2_PIX_FMT_YUV444M   | RK_FMT_YUV444P           | 24  | Planar 4:4:4, max quality
+ * ----------|------------------------|--------------------------|-----|---------------------------
+ * 
+ * Recommendations:
+ *   - NV12/NV21: Best for H.264/H.265 encoding (industry standard, 25% less bandwidth than 4:2:2)
+ *   - UYVY:      Default choice (good quality, simple packed format)
+ *   - NV16/NV61: Alternative 4:2:2 (better memory layout than UYVY)
+ *   - YM24:      Maximum quality (2x bandwidth of 4:2:2, no chroma subsampling)
+ */
+
 #define _GNU_SOURCE
 #include <unistd.h>
 #include <time.h>
@@ -35,6 +69,10 @@
 #define RK_ALIGN_2(x) RK_ALIGN(x, 2)
 #define RK_ALIGN_16(x) RK_ALIGN(x, 16)
 #define RK_ALIGN_32(x) RK_ALIGN(x, 32)
+
+// #define RK_PIXEL_FORMAT RK_FMT_YUV422_UYVY
+#define RK_PIXEL_FORMAT RK_FMT_YUV420SP
+#define V4L2_PIXEL_FORMAT V4L2_PIX_FMT_NV12
 
 int sub_dev_fd = -1;
 #define VENC_CHANNEL 0
@@ -142,7 +180,7 @@ static void populate_venc_attr(VENC_CHN_ATTR_S *stAttr, RK_U32 bitrate, RK_U32 m
         stAttr->stVencAttr.enType = RK_VIDEO_ID_AVC;
     }
     
-    stAttr->stVencAttr.enPixelFormat = RK_FMT_YUV422_UYVY;
+    stAttr->stVencAttr.enPixelFormat = RK_PIXEL_FORMAT;
     
     // Set profile based on encoder type
     if (rk_encoder == 1) {
@@ -466,7 +504,7 @@ void *run_video_stream(void *arg)
         fmt.type = type;
         fmt.fmt.pix_mp.width = width;
         fmt.fmt.pix_mp.height = height;
-        fmt.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_UYVY;
+        fmt.fmt.pix_mp.pixelformat = V4L2_PIXEL_FORMAT;
         fmt.fmt.pix_mp.field = V4L2_FIELD_ANY;
 
         if (ioctl(video_dev_fd, VIDIOC_S_FMT, &fmt) < 0)
@@ -644,7 +682,7 @@ void *run_video_stream(void *arg)
             
             stFrame.stVFrame.u32TimeRef = num; // frame number
             stFrame.stVFrame.u64PTS = get_us();
-            stFrame.stVFrame.enPixelFormat = RK_FMT_YUV422_UYVY;
+            stFrame.stVFrame.enPixelFormat = RK_PIXEL_FORMAT;
             stFrame.stVFrame.u32FrameFlag |= 0;
             stFrame.stVFrame.enCompressMode = COMPRESS_MODE_NONE;
             bool retried = false;
