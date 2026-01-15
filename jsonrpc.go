@@ -179,12 +179,6 @@ func rpcGetDeviceID() (string, error) {
 	return GetDeviceID(), nil
 }
 
-func rpcReboot(force bool) error {
-	logger.Info().Msg("Got reboot request via RPC")
-	// return hwReboot(force, nil, 0)
-	return nil
-}
-
 func rpcGetStreamQualityFactor() (float64, error) {
 	return config.VideoQualityFactor, nil
 }
@@ -1166,7 +1160,6 @@ func rpcDoExecuteKeyboardMacro(ctx context.Context, macro []hidrpc.KeyboardMacro
 
 var rpcHandlers = map[string]RPCHandler{
 	"ping":            {Func: rpcPing},
-	"reboot":          {Func: rpcReboot, Params: []string{"force"}},
 	"getDeviceID":     {Func: rpcGetDeviceID},
 	"getNetworkState": {Func: rpcGetNetworkState},
 	// "getNetworkSettings" is deprecated - network config is read-only, use getNetworkState instead

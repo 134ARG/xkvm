@@ -41,9 +41,6 @@ const SettingsAdvancedRoute = lazy(() => import("@routes/devices.$id.settings.ad
 const SettingsVideoRoute = lazy(() => import("@routes/devices.$id.settings.video"));
 const SettingsAppearanceRoute = lazy(() => import("@routes/devices.$id.settings.appearance"));
 const SettingsGeneralIndexRoute = lazy(() => import("@routes/devices.$id.settings.general._index"));
-const SettingsGeneralRebootRoute = lazy(
-  () => import("@routes/devices.$id.settings.general.reboot"),
-);
 // OTA update route disabled
 // const SettingsGeneralUpdateRoute = lazy(
 //   () => import("@routes/devices.$id.settings.general.update"),
@@ -126,11 +123,6 @@ const getDeviceRoute = (r: Omit<RouteObject, "children" | "index">): RouteObject
             {
               index: true,
               element: <SettingsGeneralIndexRoute />,
-            },
-            // was previously only present on device routes
-            {
-              path: "reboot",
-              element: <SettingsGeneralRebootRoute />,
             },
             // OTA update route disabled
             // {

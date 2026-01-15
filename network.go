@@ -31,11 +31,6 @@ func (s *RpcNetworkSettings) ToNetworkConfig() *types.NetworkConfig {
 	return &s.NetworkConfig
 }
 
-type PostRebootAction struct {
-	HealthCheck string `json:"healthCheck"`
-	RedirectTo  string `json:"redirectTo"`
-}
-
 func toRpcNetworkSettings(config *types.NetworkConfig) *RpcNetworkSettings {
 	return &RpcNetworkSettings{
 		NetworkConfig: *config,

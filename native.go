@@ -52,10 +52,6 @@ func initNative(systemVersion *semver.Version, appVersion *semver.Version) {
 				if err != nil {
 					nativeLogger.Warn().Err(err).Msg("error resetting config")
 				}
-				_ = rpcReboot(true)
-			case "reboot":
-				nativeLogger.Info().Msg("Reboot request via native rpc event")
-				_ = rpcReboot(true)
 			case "toggleDHCPClient":
 				nativeLogger.Warn().Msg("DHCP client toggle disabled - network management is read-only")
 				// Don't call rpcToggleDHCPClient() - it's now disabled

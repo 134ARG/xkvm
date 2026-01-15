@@ -15,11 +15,6 @@ interface JsonRpcResponse {
   id: number | string | null;
 }
 
-export type PostRebootAction = {
-  healthCheck: string;
-  redirectTo: string;
-} | null;
-
 // Utility function to append stats to a Map
 const appendStatToMap = <T extends { timestamp: number }>(
   stat: T,
@@ -70,11 +65,6 @@ export interface UIState {
 
   terminalType: AvailableTerminalTypes;
   setTerminalType: (type: UIState["terminalType"]) => void;
-
-  rebootState: { isRebooting: boolean; postRebootAction: PostRebootAction } | null;
-  setRebootState: (
-    state: { isRebooting: boolean; postRebootAction: PostRebootAction } | null,
-  ) => void;
 }
 
 export const useUiStore = create<UIState>(set => ({
@@ -102,9 +92,6 @@ export const useUiStore = create<UIState>(set => ({
   isAttachedVirtualKeyboardVisible: true,
   setAttachedVirtualKeyboardVisibility: (enabled: boolean) =>
     set({ isAttachedVirtualKeyboardVisible: enabled }),
-
-  rebootState: null,
-  setRebootState: state => set({ rebootState: state }),
 }));
 
 export interface RTCState {

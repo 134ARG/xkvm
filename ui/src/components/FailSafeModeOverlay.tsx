@@ -154,15 +154,6 @@ Please attach the recovery logs file that was downloaded to your computer:
                       }
                     />
 
-                    <div className="block h-8 w-px bg-slate-200 dark:bg-slate-700" />
-
-                    <Button
-                      onClick={() => navigateTo("/settings/general/reboot")}
-                      theme="light"
-                      size="SM"
-                      text="Reboot Device"
-                    />
-
                     {/* OTA downgrade button disabled
                     <Button
                       size="SM"

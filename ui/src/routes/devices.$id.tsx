@@ -6,7 +6,6 @@ import {
   useNavigate,
   useOutlet,
   useParams,
-  useSearchParams,
 } from "react-router";
 import type { LoaderFunction, LoaderFunctionArgs, Params } from "react-router";
 import { useInterval } from "usehooks-ts";
@@ -22,15 +21,12 @@ import {
   KeyboardLedState,
   KeysDownState,
   NetworkState,
-  OtaState,
-  PostRebootAction,
   USBStates,
   useHidStore,
   useNetworkStateStore,
   User,
   useRTCStore,
   useUiStore,
-  useUpdateStore,
   useVideoStore,
   VideoState,
   useFailsafeModeStore,
@@ -50,7 +46,6 @@ import {
   ConnectionFailedOverlay,
   LoadingConnectionOverlay,
   PeerConnectionDisconnectedOverlay,
-  RebootingOverlay,
 } from "@components/VideoOverlay";
 import { FeatureFlagProvider } from "@providers/FeatureFlagProvider";
 import { m } from "@localizations/messages.js";
@@ -116,9 +111,8 @@ export default function KvmIdRoute() {
   const authMode = "authMode" in loaderResp ? loaderResp.authMode : null;
 
   const params = useParams() as { id: string };
-  const { sidebarView, setSidebarView, disableVideoFocusTrap, rebootState, setRebootState } =
-    useUiStore();
-  const [queryParams, setQueryParams] = useSearchParams();
+  const { sidebarView, setSidebarView, disableVideoFocusTrap } = useUiStore();
+  // const [] = useSearchParams();
 
   const {
     peerConnection,
@@ -269,18 +263,7 @@ export default function KvmIdRoute() {
 
       onOpen() {
         console.debug("[Websocket] onOpen");
-        // We want to clear the reboot state when the websocket connection is opened
-        // Currently the flow is:
-        // 1. User clicks reboot
-        // 2. Device sends event 'willReboot'
-        // 3. We set the reboot state
-        // 4. Reboot modal is shown
-        // 5. WS tries to reconnect
-        // 6. WS reconnects
-        // 7. This function is called and now we clear the reboot state
-        setRebootState({ isRebooting: false, postRebootAction: null });
       },
-
       onMessage(event: WebSocketEventMap["message"]) {
         const message = event;
         if (message.data === "pong") return;
@@ -647,7 +630,7 @@ export default function KvmIdRoute() {
   // Mouse handler for E2E tests
   const { reportAbsMouseEvent, rpcHidReady } = useHidRpc();
 
-  const [hasUpdated, setHasUpdated] = useState(false);
+  // const [hasUpdated, setHasUpdated] = useState(false);
   const { navigateTo } = useDeviceUiNavigation();
 
   function onJsonRpcRequest(resp: JsonRpcRequest) {
@@ -708,7 +691,6 @@ export default function KvmIdRoute() {
         // We've recently implemented a new general rebooting flow, so we don't need to handle this specific ota-rebooting case
         // However, with old devices, we wont get the `willReboot` message, so we need to keep this for backwards compatibility
         // only for the cloud version with an old device
-        if (rebootState?.isRebooting) return;
 
         const currentUrl = new URL(window.location.href);
         currentUrl.search = "";
@@ -717,17 +699,6 @@ export default function KvmIdRoute() {
       }
     }
     */
-    if (resp.method === "willReboot") {
-      const action = resp.params as PostRebootAction | undefined;
-      setRebootState({
-        isRebooting: true,
-        postRebootAction: {
-          healthCheck: action?.healthCheck || "/device/status",
-          redirectTo: action?.redirectTo || "/",
-        },
-      });
-      navigateTo("/");
-    }
 
     if (resp.method === "failsafeMode") {
       const { active, reason } = resp.params as { active: boolean; reason: string };
@@ -876,17 +847,6 @@ export default function KvmIdRoute() {
     const isOtherSession = location.pathname.includes("other-session");
     if (isOtherSession) return null;
 
-    // Rebooting takes priority over connection status
-    if (rebootState?.isRebooting) {
-      return (
-        <RebootingOverlay
-          show={true}
-          postRebootAction={rebootState.postRebootAction}
-          deviceId={params.id}
-        />
-      );
-    }
-
     if (isFailsafeMode && failsafeReason) {
       return <FailSafeModeOverlay reason={failsafeReason} />;
     }
@@ -914,9 +874,6 @@ export default function KvmIdRoute() {
     return null;
   }, [
     location.pathname,
-    rebootState?.isRebooting,
-    rebootState?.postRebootAction,
-    params.id,
     isFailsafeMode,
     failsafeReason,
     connectionFailed,

@@ -142,20 +142,6 @@ export default function SettingsGeneralRoute() {
             </SettingsItem>
           </div>
           */}
-          <div className="mt-2 flex items-center justify-between gap-x-2">
-            <SettingsItem
-              title={m.general_reboot_device()}
-              description={m.general_reboot_device_description()}
-            />
-            <div>
-              <Button
-                size="SM"
-                theme="light"
-                text={m.general_reboot_device()}
-                onClick={() => navigateTo("./reboot")}
-              />
-            </div>
-          </div>
         </div>
       </div>
     </div>
