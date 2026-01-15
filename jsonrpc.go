@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -25,7 +24,6 @@ import (
 	"github.com/xkvm/kvm/internal/hidrpc"
 	"github.com/xkvm/kvm/internal/supervisor"
 	"github.com/xkvm/kvm/internal/usbgadget"
-	"github.com/xkvm/kvm/internal/utils"
 )
 
 // ansiRegex matches ANSI escape sequences for stripping from log output
@@ -238,108 +236,6 @@ func rpcSetEDID(edid string) error {
 
 func rpcGetVideoLogStatus() (string, error) {
 	return nativeInstance.VideoLogStatus()
-}
-
-const (
-	devModeFile = "/userdata/xkvm/devmode.enable"
-	sshKeyDir   = "/userdata/dropbear/.ssh"
-	sshKeyFile  = "/userdata/dropbear/.ssh/authorized_keys"
-)
-
-type DevModeState struct {
-	Enabled bool `json:"enabled"`
-}
-
-type SSHKeyState struct {
-	SSHKey string `json:"sshKey"`
-}
-
-func rpcGetDevModeState() (DevModeState, error) {
-	devModeEnabled := false
-	if _, err := os.Stat(devModeFile); err != nil {
-		if !os.IsNotExist(err) {
-			return DevModeState{}, fmt.Errorf("error checking dev mode file: %w", err)
-		}
-	} else {
-		devModeEnabled = true
-	}
-
-	return DevModeState{
-		Enabled: devModeEnabled,
-	}, nil
-}
-
-func rpcSetDevModeState(enabled bool) error {
-	if enabled {
-		if _, err := os.Stat(devModeFile); os.IsNotExist(err) {
-			if err := os.MkdirAll(filepath.Dir(devModeFile), 0755); err != nil {
-				return fmt.Errorf("failed to create directory for devmode file: %w", err)
-			}
-			if err := os.WriteFile(devModeFile, []byte{}, 0644); err != nil {
-				return fmt.Errorf("failed to create devmode file: %w", err)
-			}
-		} else {
-			logger.Debug().Msg("dev mode already enabled")
-			return nil
-		}
-	} else {
-		if _, err := os.Stat(devModeFile); err == nil {
-			if err := os.Remove(devModeFile); err != nil {
-				return fmt.Errorf("failed to remove devmode file: %w", err)
-			}
-		} else if os.IsNotExist(err) {
-			logger.Debug().Msg("dev mode already disabled")
-			return nil
-		} else {
-			return fmt.Errorf("error checking dev mode file: %w", err)
-		}
-	}
-
-	cmd := exec.Command("dropbear.sh")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		logger.Warn().Err(err).Bytes("output", output).Msg("Failed to start/stop SSH")
-		return fmt.Errorf("failed to start/stop SSH, you may need to reboot for changes to take effect")
-	}
-
-	return nil
-}
-
-func rpcGetSSHKeyState() (string, error) {
-	keyData, err := os.ReadFile(sshKeyFile)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return "", fmt.Errorf("error reading SSH key file: %w", err)
-		}
-	}
-	return string(keyData), nil
-}
-
-func rpcSetSSHKeyState(sshKey string) error {
-	if sshKey == "" {
-		// Remove SSH key file if empty string is provided
-		if err := os.Remove(sshKeyFile); err != nil && !os.IsNotExist(err) {
-			return fmt.Errorf("failed to remove SSH key file: %w", err)
-		}
-		return nil
-	}
-
-	// Validate SSH key
-	if err := utils.ValidateSSHKey(sshKey); err != nil {
-		return err
-	}
-
-	// Create directory if it doesn't exist
-	if err := os.MkdirAll(sshKeyDir, 0700); err != nil {
-		return fmt.Errorf("failed to create SSH key directory: %w", err)
-	}
-
-	// Write SSH key to file
-	if err := os.WriteFile(sshKeyFile, []byte(sshKey), 0600); err != nil {
-		return fmt.Errorf("failed to write SSH key: %w", err)
-	}
-
-	return nil
 }
 
 func rpcGetTLSState() TLSState {
@@ -1202,10 +1098,7 @@ var rpcHandlers = map[string]RPCHandler{
 	// "getUpdateStatusChannel": {Func: rpcGetUpdateStatusChannel},
 	// "tryUpdate":              {Func: rpcTryUpdate},
 	// "tryUpdateComponents":    {Func: rpcTryUpdateComponents, Params: []string{"params", "includePreRelease", "resetConfig"}},
-	"getDevModeState":    {Func: rpcGetDevModeState},
-	"setDevModeState":    {Func: rpcSetDevModeState, Params: []string{"enabled"}},
-	"getSSHKeyState":     {Func: rpcGetSSHKeyState},
-	"setSSHKeyState":     {Func: rpcSetSSHKeyState, Params: []string{"sshKey"}},
+	// Developer mode and SSH key management RPC handlers removed - not needed on full Linux systems
 	"getTLSState":        {Func: rpcGetTLSState},
 	"setTLSState":        {Func: rpcSetTLSState, Params: []string{"state"}},
 	"setMassStorageMode": {Func: rpcSetMassStorageMode, Params: []string{"mode"}},

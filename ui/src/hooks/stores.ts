@@ -322,10 +322,6 @@ export interface SettingsState {
   debugMode: boolean;
   setDebugMode: (enabled: boolean) => void;
 
-  // Add new developer mode state
-  developerMode: boolean;
-  setDeveloperMode: (enabled: boolean) => void;
-
   keyboardLayout: string;
   setKeyboardLayout: (layout: string) => void;
 
@@ -357,10 +353,6 @@ export const useSettingsStore = create(
 
       debugMode: import.meta.env.DEV,
       setDebugMode: (enabled: boolean) => set({ debugMode: enabled }),
-
-      // Add developer mode with default value
-      developerMode: false,
-      setDeveloperMode: (enabled: boolean) => set({ developerMode: enabled }),
 
       keyboardLayout: "en-US",
       setKeyboardLayout: (layout: string) => set({ keyboardLayout: layout }),

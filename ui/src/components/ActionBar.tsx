@@ -6,7 +6,7 @@ import { Popover, PopoverButton, PopoverPanel } from "@headlessui/react";
 import { CommandLineIcon } from "@heroicons/react/20/solid";
 
 import { cx } from "@/cva.config";
-import { useHidStore, useMountMediaStore, useSettingsStore, useUiStore } from "@hooks/stores";
+import { useHidStore, useMountMediaStore, useUiStore } from "@hooks/stores";
 import { useDeviceUiNavigation } from "@hooks/useAppNavigation";
 import { Button } from "@components/Button";
 import Container from "@components/Container";
@@ -26,7 +26,6 @@ export default function Actionbar({
   const { setDisableVideoFocusTrap, terminalType, setTerminalType, toggleSidebarView } =
     useUiStore();
   const { remoteVirtualMediaState } = useMountMediaStore();
-  const { developerMode } = useSettingsStore();
 
   // This is the only way to get a reliable state change for the popover
   // at time of writing this there is no mount, or unmount event for the popover
@@ -54,15 +53,13 @@ export default function Actionbar({
         className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-1.5"
       >
         <div className="relative flex flex-wrap items-center gap-x-2 gap-y-2">
-          {developerMode && (
-            <Button
-              size="XS"
-              theme="light"
-              text={m.action_bar_web_terminal()}
-              LeadingIcon={({ className }) => <CommandLineIcon className={className} />}
-              onClick={() => setTerminalType(terminalType === "kvm" ? "none" : "kvm")}
-            />
-          )}
+          <Button
+            size="XS"
+            theme="light"
+            text={m.action_bar_web_terminal()}
+            LeadingIcon={({ className }) => <CommandLineIcon className={className} />}
+            onClick={() => setTerminalType(terminalType === "kvm" ? "none" : "kvm")}
+          />
           <Popover>
             <PopoverButton as={Fragment}>
               <Button

@@ -118,8 +118,8 @@ This removal was done after the OTA (Over-The-Air update) functionality was remo
 
 Other system administration functions that may need similar treatment:
 - Reset Configuration (`resetConfig`) - Should use standard Linux config management
-- SSH Key Management (`setSSHKeyState`) - Should use standard SSH configuration files
-- Developer Mode (`setDevModeState`) - May be embedded-device-specific
+- SSH Key Management (`setSSHKeyState`) - **REMOVED** - Use standard SSH configuration files
+- Developer Mode (`setDevModeState`) - **REMOVED** - Not needed on full Linux systems
 - Loopback-Only Mode (`setLocalLoopbackOnly`) - Should use standard firewall tools
 - USB Emulation Control (`setUsbEmulationState`) - Depends on whether USB gadget functionality is retained
 

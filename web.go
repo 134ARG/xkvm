@@ -134,25 +134,25 @@ func setupRouter() *gin.Engine {
 	// A Prometheus metrics endpoint.
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
-	// Developer mode protected routes
-	developerModeRouter := r.Group("/developer/")
-	developerModeRouter.Use(basicAuthProtectedMiddleware(true))
+	// Debug/profiling routes protected by password
+	debugRouter := r.Group("/developer/")
+	debugRouter.Use(basicAuthProtectedMiddleware())
 	{
 		// pprof
-		developerModeRouter.GET("/pprof/", gin.WrapF(pprof.Index))
-		developerModeRouter.GET("/pprof/cmdline", gin.WrapF(pprof.Cmdline))
-		developerModeRouter.GET("/pprof/profile", gin.WrapF(pprof.Profile))
-		developerModeRouter.POST("/pprof/symbol", gin.WrapF(pprof.Symbol))
-		developerModeRouter.GET("/pprof/symbol", gin.WrapF(pprof.Symbol))
-		developerModeRouter.GET("/pprof/trace", gin.WrapF(pprof.Trace))
-		developerModeRouter.GET("/pprof/allocs", gin.WrapH(pprof.Handler("allocs")))
-		developerModeRouter.GET("/pprof/block", gin.WrapH(pprof.Handler("block")))
-		developerModeRouter.GET("/pprof/goroutine", gin.WrapH(pprof.Handler("goroutine")))
-		developerModeRouter.GET("/pprof/heap", gin.WrapH(pprof.Handler("heap")))
-		developerModeRouter.GET("/pprof/mutex", gin.WrapH(pprof.Handler("mutex")))
-		developerModeRouter.GET("/pprof/threadcreate", gin.WrapH(pprof.Handler("threadcreate")))
+		debugRouter.GET("/pprof/", gin.WrapF(pprof.Index))
+		debugRouter.GET("/pprof/cmdline", gin.WrapF(pprof.Cmdline))
+		debugRouter.GET("/pprof/profile", gin.WrapF(pprof.Profile))
+		debugRouter.POST("/pprof/symbol", gin.WrapF(pprof.Symbol))
+		debugRouter.GET("/pprof/symbol", gin.WrapF(pprof.Symbol))
+		debugRouter.GET("/pprof/trace", gin.WrapF(pprof.Trace))
+		debugRouter.GET("/pprof/allocs", gin.WrapH(pprof.Handler("allocs")))
+		debugRouter.GET("/pprof/block", gin.WrapH(pprof.Handler("block")))
+		debugRouter.GET("/pprof/goroutine", gin.WrapH(pprof.Handler("goroutine")))
+		debugRouter.GET("/pprof/heap", gin.WrapH(pprof.Handler("heap")))
+		debugRouter.GET("/pprof/mutex", gin.WrapH(pprof.Handler("mutex")))
+		debugRouter.GET("/pprof/threadcreate", gin.WrapH(pprof.Handler("threadcreate")))
 
-		logging.AttachSSEHandler(developerModeRouter)
+		logging.AttachSSEHandler(debugRouter)
 	}
 
 	// Protected routes (allows both password and noPassword modes)
@@ -503,20 +503,8 @@ func sendErrorJsonThenAbort(c *gin.Context, status int, message string) {
 	c.Abort()
 }
 
-func basicAuthProtectedMiddleware(requireDeveloperMode bool) gin.HandlerFunc {
+func basicAuthProtectedMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if requireDeveloperMode {
-			devModeState, err := rpcGetDevModeState()
-			if err != nil {
-				sendErrorJsonThenAbort(c, http.StatusInternalServerError, "Failed to get developer mode state")
-				return
-			}
-
-			if !devModeState.Enabled {
-				sendErrorJsonThenAbort(c, http.StatusUnauthorized, "Developer mode is not enabled")
-				return
-			}
-		}
 
 		if config.LocalAuthMode == "noPassword" {
 			sendErrorJsonThenAbort(c, http.StatusForbidden, "The resource is not available in noPassword mode")
