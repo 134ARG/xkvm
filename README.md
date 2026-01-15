@@ -1,50 +1,70 @@
-<div align="center">
-    <img alt="XKVM logo" src="https://xkvm.com/logo-blue.png" height="28">
+# XKVM
 
-### KVM
+XKVM is a high-performance, open-source KVM-over-IP solution running on full Linux. It provides remote keyboard, video, and mouse control for efficient management of computers, servers, and workstations.
 
-[Discord](https://xkvm.com/discord) | [Website](https://xkvm.com) | [Issues](https://github.com/xkvm/cloud-api/issues) | [Docs](https://xkvm.com/docs)
+## Overview
 
-[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/xkvm.svg?style=social&label=Follow%20%40XKVM)](https://twitter.com/xkvm)
+XKVM has evolved from an embedded system to a full Linux-based solution, enabling standard system administration practices and better integration with existing infrastructure. The system focuses on core KVM functionality with a clean, maintainable codebase.
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/xkvm/kvm)](https://goreportcard.com/report/github.com/xkvm/kvm)
+## Key Features
 
-</div>
+- **Low-latency Video** - H.264 hardware encoding for smooth remote control
+- **USB Gadget Emulation** - Keyboard, mouse, and mass storage device emulation
+- **Web Interface** - Modern React-based UI for device management
+- **Network Monitoring** - Real-time network status and DHCP lease information
+- **Standard Linux** - Full Linux OS enables standard administration tools
 
-XKVM is a high-performance, open-source KVM over IP (Keyboard, Video, Mouse) solution designed for efficient remote management of computers, servers, and workstations. Whether you're dealing with boot failures, installing a new operating system, adjusting BIOS settings, or simply taking control of a machine from afar, XKVM provides the tools to get it done effectively.
+## Architecture
 
-## Features
+XKVM consists of:
+- **Backend** (Go) - Device management, video capture, USB gadget control, JSON-RPC API
+- **Frontend** (React/TypeScript) - Web-based management interface
+- **Native Layer** (C) - Hardware video capture and control via Rockchip SDK
 
-- **Ultra-low Latency** - 1080p@60FPS video with 30-60ms latency using H.264 encoding. Smooth mouse and keyboard interaction for responsive remote control.
-- **Free & Optional Remote Access** - Remote management via XKVM Cloud using WebRTC.
-- **Open-source software** - Written in Golang on Linux. Easily customizable through SSH access to the XKVM device.
+## System Management
+
+XKVM integrates with standard Linux tools:
+
+- **Network Configuration** - Use `nmcli`, `nmtui`, or `/etc/network/interfaces`
+- **SSH Access** - Configure via `ssh-copy-id` or `/etc/ssh/authorized_keys`
+- **System Control** - Use `systemctl` for service management
+- **Updates** - Manage via standard Linux package managers
+
+The web UI displays system status in read-only mode. Configuration changes should be made through standard Linux tools.
+
+## USB Gadget Features
+
+- Automatic recovery from crashes and stale state
+- Health monitoring with automatic recovery
+- Stable HID device operation during reconfiguration
+- Mass storage mounting (disk mode)
+- File-based locking prevents concurrent access issues
+
+## Development
+
+XKVM is written in Go, TypeScript, and C. See **[DEVELOPMENT.md](DEVELOPMENT.md)** for comprehensive development information including setup, testing, and debugging.
+
+Quick device deployment:
+```bash
+./dev_deploy.sh --help
+```
+
+## Changes from JetKVM
+
+XKVM has been significantly refactored from the original JetKVM embedded system. Major changes include:
+
+- **Full Linux Migration** - Standard OS instead of embedded system
+- **Network Read-Only** - Network managed by OS, not application (1,260 lines removed)
+- **Removed Features** - Cloud integration UI, display controls, developer mode toggle, OTA updates
+- **USB Improvements** - Enhanced stability, health monitoring, automatic recovery
+- **Simplified UI** - Focus on core KVM functionality
+
+See **[CHANGELOG.md](CHANGELOG.md)** for detailed change history.
 
 ## Contributing
 
-We welcome contributions from the community! Whether it's improving the firmware, adding new features, or enhancing documentation, your input is valuable. We also have some rules and taboos here, so please read this page and our [Code of Conduct](/CODE_OF_CONDUCT.md) carefully.
+Contributions are welcome. Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing.
 
-## I need help
+## License
 
-The best place to search for answers is our [Documentation](https://xkvm.com/docs). If you can't find the answer there, check our [Discord Server](https://xkvm.com/discord).
-
-## I want to report an issue
-
-If you've found an issue and want to report it, please check our [Issues](https://github.com/xkvm/kvm/issues) page. Make sure the description contains information about the firmware version you're using, your platform, and a clear explanation of the steps to reproduce the issue.
-
-# Development
-
-XKVM is written in Go & TypeScript. with some bits and pieces written in C. An intermediate level of Go & TypeScript knowledge is recommended for comfortable programming.
-
-The project contains two main parts, the backend software that runs on the KVM device and the frontend software that is served by the KVM device, and also the cloud.
-
-For comprehensive development information, including setup, testing, debugging, and contribution guidelines, see **[DEVELOPMENT.md](DEVELOPMENT.md)**.
-
-For quick device development, use the `./dev_deploy.sh` script. It will build the frontend and backend and deploy them to the local KVM device. Run `./dev_deploy.sh --help` for more information.
-
-## Backend
-
-The backend is written in Go and is responsible for the KVM device management, the cloud API and the cloud web.
-
-## Frontend
-
-The frontend is written in React and TypeScript and is served by the KVM device. It has three build targets: `device`, `development` and `production`. Development is used for development of the cloud version on your local machine, device is used for building the frontend for the KVM device and production is used for building the frontend for the cloud.
+See [LICENSE](LICENSE) for details.
