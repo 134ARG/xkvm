@@ -60,6 +60,8 @@ void xkvm_video_stop();
 uint8_t xkvm_video_get_streaming_status();
 int xkvm_video_set_quality_factor(float quality_factor);
 float xkvm_video_get_quality_factor();
+void xkvm_video_set_encoder(int32_t encoder);
+int32_t xkvm_video_get_encoder();
 int xkvm_video_set_edid(const char *edid_hex);
 char *xkvm_video_get_edid_hex();
 char *xkvm_video_log_status();

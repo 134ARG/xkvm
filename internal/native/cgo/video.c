@@ -43,6 +43,7 @@ MB_POOL memPool = MB_INVALID_POOLID;
 bool sleep_mode_available = false;
 bool should_exit = false;
 float bitrate_kbps = 5000.0f; // Store bitrate in kbps (1000-20000)
+int32_t rk_encoder = 0; // 0=H.264, 1=H.265
 
 static void *venc_read_stream(void *arg);
 
@@ -119,7 +120,13 @@ static void populate_venc_attr(VENC_CHN_ATTR_S *stAttr, RK_U32 bitrate, RK_U32 m
 {
     memset(stAttr, 0, sizeof(VENC_CHN_ATTR_S));
 
-    stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H264VBR;
+    // Set RC mode based on encoder type
+    if (rk_encoder == 1) {
+        stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H265VBR;
+    } else {
+        stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H264VBR;
+    }
+    
     stAttr->stRcAttr.stH264Vbr.u32BitRate = bitrate;
     stAttr->stRcAttr.stH264Vbr.u32MaxBitRate = max_bitrate;
     stAttr->stRcAttr.stH264Vbr.u32MinBitRate = bitrate / 2;  // Set minimum bitrate
@@ -128,15 +135,36 @@ static void populate_venc_attr(VENC_CHN_ATTR_S *stAttr, RK_U32 bitrate, RK_U32 m
     stAttr->stRcAttr.stH264Vbr.fr32DstFrameRateDen = 1;
     stAttr->stRcAttr.stH264Vbr.u32StatTime = 3;  // Statistics time window
 
-    stAttr->stVencAttr.enType = RK_VIDEO_ID_AVC;
+    // Set video type based on encoder
+    if (rk_encoder == 1) {
+        stAttr->stVencAttr.enType = RK_VIDEO_ID_HEVC;
+    } else {
+        stAttr->stVencAttr.enType = RK_VIDEO_ID_AVC;
+    }
+    
     stAttr->stVencAttr.enPixelFormat = RK_FMT_YUV422_UYVY;
-    stAttr->stVencAttr.u32Profile = H264E_PROFILE_HIGH;
+    
+    // Set profile based on encoder type
+    if (rk_encoder == 1) {
+        stAttr->stVencAttr.u32Profile = H265E_PROFILE_MAIN;
+    } else {
+        stAttr->stVencAttr.u32Profile = H264E_PROFILE_HIGH;
+    }
+    
     stAttr->stVencAttr.u32PicWidth = width;
     stAttr->stVencAttr.u32PicHeight = height;
-    // stAttr->stVencAttr.u32VirWidth = (width + 15) & (~15);
-    // stAttr->stVencAttr.u32VirHeight = (height + 15) & (~15);
-    stAttr->stVencAttr.u32VirWidth = RK_ALIGN_2(width);
-    stAttr->stVencAttr.u32VirHeight = RK_ALIGN_2(height);
+    
+    // Set virtual width/height based on encoder alignment requirements
+    if (rk_encoder == 1) {
+        // H.265 requires 16-byte alignment
+        stAttr->stVencAttr.u32VirWidth = RK_ALIGN_16(width);
+        stAttr->stVencAttr.u32VirHeight = RK_ALIGN_16(height);
+    } else {
+        // H.264 uses 2-byte alignment
+        stAttr->stVencAttr.u32VirWidth = RK_ALIGN_2(width);
+        stAttr->stVencAttr.u32VirHeight = RK_ALIGN_2(height);
+    }
+    
     stAttr->stVencAttr.u32StreamBufCnt = 3;
     stAttr->stVencAttr.u32BufSize = width * height * 3 / 2;
     stAttr->stVencAttr.enMirror = MIRROR_NONE;
@@ -602,10 +630,18 @@ void *run_video_stream(void *arg)
             stFrame.stVFrame.pMbBlk = blk;
             stFrame.stVFrame.u32Width = width;
             stFrame.stVFrame.u32Height = height;
-            // stFrame.stVFrame.u32VirWidth = (width + 15) & (~15);
-            // stFrame.stVFrame.u32VirHeight = (height + 15) & (~15);
-            stFrame.stVFrame.u32VirWidth = RK_ALIGN_2(width);
-            stFrame.stVFrame.u32VirHeight = RK_ALIGN_2(height);
+            
+            // Set virtual width/height based on encoder alignment requirements
+            if (rk_encoder == 1) {
+                // H.265 requires 16-byte alignment
+                stFrame.stVFrame.u32VirWidth = RK_ALIGN_16(width);
+                stFrame.stVFrame.u32VirHeight = RK_ALIGN_16(height);
+            } else {
+                // H.264 uses 2-byte alignment
+                stFrame.stVFrame.u32VirWidth = RK_ALIGN_2(width);
+                stFrame.stVFrame.u32VirHeight = RK_ALIGN_2(height);
+            }
+            
             stFrame.stVFrame.u32TimeRef = num; // frame number
             stFrame.stVFrame.u64PTS = get_us();
             stFrame.stVFrame.enPixelFormat = RK_FMT_YUV422_UYVY;
@@ -910,4 +946,26 @@ void video_set_quality_factor(float factor)
 
 float video_get_quality_factor() {
     return bitrate_kbps;
+}
+
+void video_set_encoder(int32_t encoder) {
+    fprintf(stderr, "[NATIVE] video_set_encoder called with value: %d\n", encoder);
+    log_info("video_set_encoder called with value: %d", encoder);
+    
+    // Validate encoder value
+    if (encoder != 0 && encoder != 1) {
+        fprintf(stderr, "[NATIVE] Invalid encoder: %d, must be 0 (H.264) or 1 (H.265)\n", encoder);
+        log_error("Invalid encoder: %d, must be 0 (H.264) or 1 (H.265)", encoder);
+        return;
+    }
+    
+    rk_encoder = encoder;
+    fprintf(stderr, "[NATIVE] Encoder updated to: %s, restarting stream\n", encoder == 1 ? "H.265" : "H.264");
+    log_info("Encoder updated to: %s, restarting stream", encoder == 1 ? "H.265" : "H.264");
+
+    video_restart_streaming();
+}
+
+int32_t video_get_encoder() {
+    return rk_encoder;
 }

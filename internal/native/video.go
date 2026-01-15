@@ -178,6 +178,24 @@ func (n *Native) VideoLogStatus() (string, error) {
 	return videoLogStatus(), nil
 }
 
+// VideoSetEncoder sets the encoder type for the video stream.
+func (n *Native) VideoSetEncoder(encoder int32) error {
+	n.videoLock.Lock()
+	defer n.videoLock.Unlock()
+
+	return n.useExtraLock(func() error {
+		return videoSetEncoder(encoder)
+	})
+}
+
+// VideoGetEncoder gets the encoder type for the video stream.
+func (n *Native) VideoGetEncoder() (int32, error) {
+	n.videoLock.Lock()
+	defer n.videoLock.Unlock()
+
+	return videoGetEncoder()
+}
+
 // VideoStop stops the video stream.
 func (n *Native) VideoStop() error {
 	n.videoLock.Lock()

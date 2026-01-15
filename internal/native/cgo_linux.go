@@ -293,6 +293,22 @@ func videoSetEDID(edid string) error {
 	return nil
 }
 
+func videoGetEncoder() (int32, error) {
+	cgoLock.Lock()
+	defer cgoLock.Unlock()
+
+	encoder := C.xkvm_video_get_encoder()
+	return int32(encoder), nil
+}
+
+func videoSetEncoder(encoder int32) error {
+	cgoLock.Lock()
+	defer cgoLock.Unlock()
+
+	C.xkvm_video_set_encoder(C.int(encoder))
+	return nil
+}
+
 // DO NOT USE THIS FUNCTION IN PRODUCTION
 // This is only for testing purposes
 func crash() {

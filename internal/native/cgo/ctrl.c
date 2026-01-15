@@ -248,6 +248,15 @@ float xkvm_video_get_quality_factor() {
     return video_get_quality_factor();
 }
 
+void xkvm_video_set_encoder(int32_t encoder) {
+    fprintf(stderr, "[NATIVE] xkvm_video_set_encoder: Calling video_set_encoder with %d\n", encoder);
+    video_set_encoder(encoder);
+}
+
+int32_t xkvm_video_get_encoder() {
+    return video_get_encoder();
+}
+
 int xkvm_video_set_edid(const char *edid_hex) {
     uint8_t edid[256];
     int edid_len = hex_to_bytes(edid_hex, edid, 256);

@@ -197,6 +197,35 @@ func rpcSetStreamQualityFactor(factor float64) error {
 	return nil
 }
 
+func rpcGetVideoCodec() (int32, error) {
+	return config.VideoCodec, nil
+}
+
+func rpcSetVideoCodec(codec int32) error {
+	if codec != 0 && codec != 1 {
+		return fmt.Errorf("invalid codec value: %d (must be 0 for H.264 or 1 for H.265)", codec)
+	}
+
+	codecName := "H.264"
+	if codec == 1 {
+		codecName = "H.265"
+	}
+
+	logger.Info().Int32("codec", codec).Str("codec_name", codecName).Msg("Setting video codec")
+	err := nativeInstance.VideoSetEncoder(codec)
+	if err != nil {
+		logger.Error().Err(err).Int32("codec", codec).Msg("Failed to set video codec")
+		return err
+	}
+
+	config.VideoCodec = codec
+	if err := SaveConfig(); err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+	logger.Info().Int32("codec", codec).Str("codec_name", codecName).Msg("Video codec updated and saved")
+	return nil
+}
+
 func rpcGetAutoUpdateState() (bool, error) {
 	return config.AutoUpdateEnabled, nil
 }
@@ -1081,6 +1110,8 @@ var rpcHandlers = map[string]RPCHandler{
 	"sendWOLMagicPacket":     {Func: rpcSendWOLMagicPacket, Params: []string{"macAddress"}},
 	"getStreamQualityFactor": {Func: rpcGetStreamQualityFactor},
 	"setStreamQualityFactor": {Func: rpcSetStreamQualityFactor, Params: []string{"factor"}},
+	"getVideoCodec":          {Func: rpcGetVideoCodec},
+	"setVideoCodec":          {Func: rpcSetVideoCodec, Params: []string{"codec"}},
 	// OTA RPC handlers disabled
 	// "getAutoUpdateState":     {Func: rpcGetAutoUpdateState},
 	// "setAutoUpdateState":     {Func: rpcSetAutoUpdateState, Params: []string{"enabled"}},

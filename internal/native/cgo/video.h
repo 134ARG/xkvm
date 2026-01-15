@@ -52,4 +52,18 @@ void video_set_quality_factor(float factor);
  */
 float video_get_quality_factor();
 
+/**
+ * @brief Set the encoder type for the video
+ *
+ * @param encoder The encoder type (0=H.264, 1=H.265)
+ */
+void video_set_encoder(int32_t encoder);
+
+/**
+ * @brief Get the encoder type for the video
+ *
+ * @return int32_t The encoder type (0=H.264, 1=H.265)
+ */
+int32_t video_get_encoder();
+
 #endif //VIDEO_DAEMON_VIDEO_H

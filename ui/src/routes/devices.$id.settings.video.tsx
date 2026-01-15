@@ -44,6 +44,7 @@ const edids = [
 export default function SettingsVideoRoute() {
   const { send } = useJsonRpc();
   const [streamQuality, setStreamQuality] = useState(5000);
+  const [videoCodec, setVideoCodec] = useState<number>(0);
   const [customEdidValue, setCustomEdidValue] = useState<string | null>(null);
   const [edid, setEdid] = useState<string | null>(null);
   const [edidLoading, setEdidLoading] = useState(true);
@@ -62,6 +63,11 @@ export default function SettingsVideoRoute() {
     send("getStreamQualityFactor", {}, (resp: JsonRpcResponse) => {
       if ("error" in resp) return;
       setStreamQuality(Number(resp.result));
+    });
+
+    send("getVideoCodec", {}, (resp: JsonRpcResponse) => {
+      if ("error" in resp) return;
+      setVideoCodec(Number(resp.result));
     });
 
     send("getEDID", {}, (resp: JsonRpcResponse) => {
@@ -104,6 +110,20 @@ export default function SettingsVideoRoute() {
         }),
       );
       setStreamQuality(bitrate);
+    });
+  };
+
+  const handleVideoCodecChange = (codec: number) => {
+    send("setVideoCodec", { codec }, (resp: JsonRpcResponse) => {
+      if ("error" in resp) {
+        notifications.error(
+          m.video_failed_set_codec({ error: resp.error.data || m.unknown_error() }),
+        );
+        return;
+      }
+
+      notifications.success(m.video_codec_set_success({ codec: codec === 1 ? "H.265" : "H.264" }));
+      setVideoCodec(codec);
     });
   };
 
@@ -180,6 +200,19 @@ export default function SettingsVideoRoute() {
                 />
                 <span className="min-w-[90px] text-sm font-medium">{streamQuality} kbps</span>
               </div>
+            </SettingsItem>
+
+            <SettingsItem title={m.video_codec_title()} description={m.video_codec_description()}>
+              <SelectMenuBasic
+                size="SM"
+                label=""
+                value={videoCodec.toString()}
+                onChange={e => handleVideoCodecChange(Number(e.target.value))}
+                options={[
+                  { value: "0", label: "H.264 (AVC)" },
+                  { value: "1", label: "H.265 (HEVC)" },
+                ]}
+              />
             </SettingsItem>
 
             {/* Video Enhancement Settings */}

@@ -123,6 +123,16 @@ func videoSetEDID(edid string) error {
 	return nil
 }
 
+func videoGetEncoder() (int32, error) {
+	panicPlatformNotSupported()
+	return 0, nil
+}
+
+func videoSetEncoder(encoder int32) error {
+	panicPlatformNotSupported()
+	return nil
+}
+
 func videoGetStreamingStatus() VideoStreamingStatus {
 	panicPlatformNotSupported()
 	return VideoStreamingStatusInactive

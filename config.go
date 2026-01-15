@@ -103,6 +103,7 @@ type Config struct {
 	DefaultLogLevel    string               `json:"default_log_level"`
 	VideoSleepAfterSec int                  `json:"video_sleep_after_sec"`
 	VideoQualityFactor float64              `json:"video_quality_factor"`
+	VideoCodec         int32                `json:"video_codec"` // 0=H.264, 1=H.265
 	NativeMaxRestart   uint                 `json:"native_max_restart_attempts"`
 }
 
@@ -152,6 +153,7 @@ func getDefaultConfig() Config {
 		}(),
 		DefaultLogLevel:    "INFO",
 		VideoQualityFactor: 5000.0,
+		VideoCodec:         0, // Default to H.264
 	}
 }
 
@@ -245,6 +247,12 @@ func LoadConfig() {
 
 func SaveConfig() error {
 	return saveConfig(configPath)
+}
+
+func getGlobalConfig() *Config {
+	configLock.Lock()
+	defer configLock.Unlock()
+	return config
 }
 
 func SaveBackupConfig() error {

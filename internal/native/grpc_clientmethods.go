@@ -43,6 +43,19 @@ func (c *GRPCClient) VideoGetQualityFactor() (float64, error) {
 	return resp.Factor, nil
 }
 
+func (c *GRPCClient) VideoSetEncoder(encoder int32) error {
+	_, err := c.client.VideoSetEncoder(context.Background(), &pb.VideoSetEncoderRequest{Encoder: encoder})
+	return err
+}
+
+func (c *GRPCClient) VideoGetEncoder() (int32, error) {
+	resp, err := c.client.VideoGetEncoder(context.Background(), &pb.Empty{})
+	if err != nil {
+		return 0, err
+	}
+	return resp.Encoder, nil
+}
+
 func (c *GRPCClient) VideoSetEDID(edid string) error {
 	_, err := c.client.VideoSetEDID(context.Background(), &pb.VideoSetEDIDRequest{Edid: edid})
 	return err

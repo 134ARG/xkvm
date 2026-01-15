@@ -246,6 +246,10 @@ func getOnHidMessageHandler(session *Session, scopedLogger *zerolog.Logger, chan
 }
 
 func newSession(config SessionConfig) (*Session, error) {
+	// Get codec from global config before it's shadowed
+	globalConfig := getGlobalConfig()
+	videoCodec := globalConfig.VideoCodec
+
 	webrtcSettingEngine := webrtc.SettingEngine{
 		LoggerFactory: logging.GetPionDefaultLoggerFactory(),
 	}
@@ -342,7 +346,17 @@ func newSession(config SessionConfig) (*Session, error) {
 		}
 	})
 
-	session.VideoTrack, err = webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, "video", "kvm")
+	// Determine codec based on global config
+	var mimeType string
+	if videoCodec == 1 {
+		mimeType = webrtc.MimeTypeH265
+		scopedLogger.Info().Msg("Creating VideoTrack with H.265 codec")
+	} else {
+		mimeType = webrtc.MimeTypeH264
+		scopedLogger.Info().Msg("Creating VideoTrack with H.264 codec")
+	}
+
+	session.VideoTrack, err = webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: mimeType}, "video", "kvm")
 	if err != nil {
 		scopedLogger.Warn().Err(err).Msg("Failed to create VideoTrack")
 		return nil, err

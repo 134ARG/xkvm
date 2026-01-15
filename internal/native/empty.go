@@ -21,6 +21,14 @@ func (e *EmptyNativeInterface) VideoGetQualityFactor() (float64, error) {
 	return 0, nil
 }
 
+func (e *EmptyNativeInterface) VideoSetEncoder(encoder int32) error {
+	return nil
+}
+
+func (e *EmptyNativeInterface) VideoGetEncoder() (int32, error) {
+	return 0, nil
+}
+
 func (e *EmptyNativeInterface) VideoSetEDID(edid string) error {
 	return nil
 }
