@@ -225,7 +225,8 @@ func (c *Client) ensureInterfaceUp(ifname string) (*link.Link, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nlm.EnsureInterfaceUpWithTimeout(c.ctx, iface, c.cfg.LinkUpTimeout)
+	// Read-only mode: don't bring interface up, just return current state
+	return iface, nil
 }
 
 // Lease4 returns the current IPv4 lease

@@ -12,7 +12,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/xkvm/kvm/internal/logging"
 	"github.com/xkvm/kvm/internal/network/types"
-	"github.com/xkvm/kvm/pkg/nmlite/jetdhcpc"
 	"github.com/xkvm/kvm/pkg/nmlite/link"
 )
 
@@ -24,7 +23,7 @@ type NetworkManager struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 
-	resolvConf *ResolvConfManager
+	// resolvConf *ResolvConfManager
 
 	// Callback functions for state changes
 	onInterfaceStateChange func(iface string, state types.InterfaceState)
@@ -48,18 +47,8 @@ func NewNetworkManager(ctx context.Context, logger *zerolog.Logger) *NetworkMana
 		logger:     logger,
 		ctx:        ctx,
 		cancel:     cancel,
-		resolvConf: NewResolvConfManager(logger),
+		// resolvConf: NewResolvConfManager(logger),
 	}
-}
-
-// SetHostname sets the hostname and domain for the network manager
-func (nm *NetworkManager) SetHostname(hostname string, domain string) error {
-	return nm.resolvConf.SetHostname(hostname, domain)
-}
-
-// Domain returns the effective domain for the network manager
-func (nm *NetworkManager) Domain() string {
-	return nm.resolvConf.Domain()
 }
 
 // AddInterface adds a new network interface to be managed
@@ -94,10 +83,6 @@ func (nm *NetworkManager) AddInterface(iface string, config *types.NetworkConfig
 		if nm.onDHCPLeaseChange != nil {
 			nm.onDHCPLeaseChange(iface, lease)
 		}
-	})
-
-	im.SetOnResolvConfChange(func(family int, resolvConf *types.InterfaceResolvConf) error {
-		return nm.resolvConf.SetInterfaceConfig(iface, family, *resolvConf)
 	})
 
 	nm.interfaces[iface] = im
@@ -180,26 +165,6 @@ func (nm *NetworkManager) GetInterfaceConfig(iface string) (*types.NetworkConfig
 	return im.GetConfig(), nil
 }
 
-// SetInterfaceConfig updates the configuration of a specific interface
-func (nm *NetworkManager) SetInterfaceConfig(iface string, config *types.NetworkConfig) error {
-	im, err := nm.GetInterface(iface)
-	if err != nil {
-		return err
-	}
-
-	return im.SetConfig(config)
-}
-
-// RenewDHCPLease renews the DHCP lease for a specific interface
-func (nm *NetworkManager) RenewDHCPLease(iface string) error {
-	im, err := nm.GetInterface(iface)
-	if err != nil {
-		return err
-	}
-
-	return im.RenewDHCPLease()
-}
-
 // SetOnInterfaceStateChange sets the callback for interface state changes
 func (nm *NetworkManager) SetOnInterfaceStateChange(callback func(iface string, state types.InterfaceState)) {
 	nm.onInterfaceStateChange = callback
@@ -213,32 +178,6 @@ func (nm *NetworkManager) SetOnConfigChange(callback func(iface string, config *
 // SetOnDHCPLeaseChange sets the callback for DHCP lease changes
 func (nm *NetworkManager) SetOnDHCPLeaseChange(callback func(iface string, lease *types.DHCPLease)) {
 	nm.onDHCPLeaseChange = callback
-}
-
-func (nm *NetworkManager) shouldKillLegacyDHCPClients() bool {
-	nm.mu.RLock()
-	defer nm.mu.RUnlock()
-
-	// TODO: remove it when we need to support multiple interfaces
-	for _, im := range nm.interfaces {
-		if im.dhcpClient.clientType != "udhcpc" {
-			return true
-		}
-
-		if im.config.IPv4Mode.String != "dhcp" {
-			return true
-		}
-	}
-	return false
-}
-
-// CleanUpLegacyDHCPClients cleans up legacy DHCP clients
-func (nm *NetworkManager) CleanUpLegacyDHCPClients() error {
-	shouldKill := nm.shouldKillLegacyDHCPClients()
-	if shouldKill {
-		return jetdhcpc.KillUdhcpC(nm.logger)
-	}
-	return nil
 }
 
 // Stop stops the network manager and all managed interfaces

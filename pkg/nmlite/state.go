@@ -1,6 +1,10 @@
 package nmlite
 
-import "net"
+import (
+	"net"
+	"os"
+	"strings"
+)
 
 func (nm *NetworkManager) IsOnline() bool {
 	for _, iface := range nm.interfaces {
@@ -21,11 +25,37 @@ func (nm *NetworkManager) IsUp() bool {
 }
 
 func (nm *NetworkManager) Hostname() string {
-	return nm.resolvConf.Hostname()
+	hostname, err := os.Hostname()
+	if err != nil {
+		return ""
+	}
+
+	// Return short hostname (before first dot)
+	if idx := strings.Index(hostname, "."); idx != -1 {
+		return hostname[:idx]
+	}
+	return hostname
 }
 
 func (nm *NetworkManager) FQDN() string {
-	return nm.resolvConf.FQDN()
+	hostname, err := os.Hostname()
+	if err != nil {
+		return ""
+	}
+	return hostname
+}
+
+func (nm *NetworkManager) Domain() string {
+	hostname, err := os.Hostname()
+	if err != nil {
+		return ""
+	}
+
+	// Extract domain from FQDN (everything after first dot)
+	if idx := strings.Index(hostname, "."); idx != -1 {
+		return hostname[idx+1:]
+	}
+	return ""
 }
 
 func (nm *NetworkManager) NTPServers() []net.IP {

@@ -12,16 +12,6 @@ import (
 )
 
 var (
-	ipv4DefaultRoute = net.IPNet{
-		IP:   net.IPv4zero,
-		Mask: net.CIDRMask(0, 0),
-	}
-
-	ipv6DefaultRoute = net.IPNet{
-		IP:   net.IPv6zero,
-		Mask: net.CIDRMask(0, 0),
-	}
-
 	// Singleton instance
 	netlinkManagerInstance *NetlinkManager
 	netlinkManagerOnce     sync.Once
@@ -116,13 +106,6 @@ func (l *Link) AddrList(family int) ([]netlink.Addr, error) {
 	defer l.mu.Unlock()
 
 	return netlink.AddrList(l.Link, family)
-}
-
-func (l *Link) SetMTU(mtu int) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	return netlink.LinkSetMTU(l.Link, mtu)
 }
 
 // HasGlobalUnicastAddress returns true if the link has a global unicast address
