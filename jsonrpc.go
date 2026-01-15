@@ -181,7 +181,8 @@ func rpcGetDeviceID() (string, error) {
 
 func rpcReboot(force bool) error {
 	logger.Info().Msg("Got reboot request via RPC")
-	return hwReboot(force, nil, 0)
+	// return hwReboot(force, nil, 0)
+	return nil
 }
 
 func rpcGetStreamQualityFactor() (float64, error) {
