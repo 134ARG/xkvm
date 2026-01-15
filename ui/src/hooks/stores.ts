@@ -729,14 +729,19 @@ export interface PublicIP {
 export interface NetworkState {
   interface_name?: string;
   mac_address?: string;
-  ipv4?: string;
+  up?: boolean;
+  online?: boolean;
+  ipv4_ready?: boolean;
+  ipv6_ready?: boolean;
+  ipv4_address?: string;
+  ipv6_address?: string;
   ipv4_addresses?: string[];
-  ipv6?: string;
   ipv6_addresses?: IPv6Address[];
   ipv6_link_local?: string;
   ipv6_gateway?: string;
   dhcp_lease?: DhcpLease;
   hostname?: string;
+  last_updated?: string;
 
   setNetworkState: (state: NetworkState) => void;
   setDhcpLease: (lease: NetworkState["dhcp_lease"]) => void;

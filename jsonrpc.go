@@ -1184,13 +1184,14 @@ func rpcDoExecuteKeyboardMacro(ctx context.Context, macro []hidrpc.KeyboardMacro
 }
 
 var rpcHandlers = map[string]RPCHandler{
-	"ping":                   {Func: rpcPing},
-	"reboot":                 {Func: rpcReboot, Params: []string{"force"}},
-	"getDeviceID":            {Func: rpcGetDeviceID},
-	"deregisterDevice":       {Func: rpcDeregisterDevice},
-	"getCloudState":          {Func: rpcGetCloudState},
-	"getNetworkState":        {Func: rpcGetNetworkState},
-	"getNetworkSettings":     {Func: rpcGetNetworkSettings},
+	"ping":             {Func: rpcPing},
+	"reboot":           {Func: rpcReboot, Params: []string{"force"}},
+	"getDeviceID":      {Func: rpcGetDeviceID},
+	"deregisterDevice": {Func: rpcDeregisterDevice},
+	"getCloudState":    {Func: rpcGetCloudState},
+	"getNetworkState":  {Func: rpcGetNetworkState},
+	// "getNetworkSettings" is deprecated - network config is read-only, use getNetworkState instead
+	"getNetworkSettings":     {Func: rpcGetNetworkSettingsDeprecated},
 	"setNetworkSettings":     {Func: rpcSetNetworkSettings, Params: []string{"settings"}},
 	"renewDHCPLease":         {Func: rpcRenewDHCPLease},
 	"getKeyboardLedState":    {Func: rpcGetKeyboardLedState},

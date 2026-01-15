@@ -168,7 +168,13 @@ export async function callJsonRpc<T = unknown>(
 }
 
 // Specific network settings API calls
+
+/**
+ * @deprecated Network configuration is read-only. Use getNetworkState() instead.
+ * This function is kept for backward compatibility but will be removed in a future version.
+ */
 export async function getNetworkSettings() {
+  console.warn("getNetworkSettings is deprecated - use getNetworkState instead");
   const response = await callJsonRpc({ method: "getNetworkSettings" });
   if (response.error) {
     throw new Error(response.error.message);

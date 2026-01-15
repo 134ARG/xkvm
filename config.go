@@ -104,7 +104,7 @@ type Config struct {
 	TLSMode            string               `json:"tls_mode"` // options: "self-signed", "user-defined", ""
 	UsbConfig          *usbgadget.Config    `json:"usb_config"`
 	UsbDevices         *usbgadget.Devices   `json:"usb_devices"`
-	NetworkConfig      *types.NetworkConfig `json:"network_config"`
+	NetworkConfig      *types.NetworkConfig `json:"network_config,omitempty"` // Deprecated: Network config is read-only on full Linux systems. This field is ignored during save/load.
 	DefaultLogLevel    string               `json:"default_log_level"`
 	VideoSleepAfterSec int                  `json:"video_sleep_after_sec"`
 	VideoQualityFactor float64              `json:"video_quality_factor"`
@@ -229,9 +229,10 @@ func LoadConfig() {
 		loadedConfig.UsbDevices = getDefaultConfig().UsbDevices
 	}
 
-	if loadedConfig.NetworkConfig == nil {
-		loadedConfig.NetworkConfig = getDefaultConfig().NetworkConfig
-	}
+	// Network config migration: Always use default NetworkConfig in memory
+	// The persisted network_config is ignored as network is now read-only
+	loadedConfig.NetworkConfig = getDefaultConfig().NetworkConfig
+	logger.Debug().Msg("network config loaded from defaults (persisted config ignored)")
 
 	if loadedConfig.JigglerConfig == nil {
 		loadedConfig.JigglerConfig = getDefaultConfig().JigglerConfig
@@ -276,6 +277,11 @@ func saveConfig(path string) error {
 		config.KeyboardLayout = "en-US"
 	}
 
+	// Create a copy of config for saving, excluding NetworkConfig
+	// Network config is read-only and should not be persisted
+	configToSave := *config
+	configToSave.NetworkConfig = nil
+
 	file, err := os.Create(path)
 	if err != nil {
 		return fmt.Errorf("failed to create config file: %w", err)
@@ -284,7 +290,7 @@ func saveConfig(path string) error {
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
-	if err := encoder.Encode(config); err != nil {
+	if err := encoder.Encode(configToSave); err != nil {
 		return fmt.Errorf("failed to encode config: %w", err)
 	}
 
@@ -292,7 +298,7 @@ func saveConfig(path string) error {
 		return fmt.Errorf("failed to wite config: %w", err)
 	}
 
-	logger.Info().Str("path", path).Msg("config saved")
+	logger.Info().Str("path", path).Msg("config saved (network_config excluded)")
 	return nil
 }
 

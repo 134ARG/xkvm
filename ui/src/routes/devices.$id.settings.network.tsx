@@ -4,7 +4,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 
 import PublicIPCard from "@components/PublicIPCard";
-import { NetworkSettings, NetworkState, useNetworkStateStore, useRTCStore } from "@hooks/stores";
+import { NetworkState, useNetworkStateStore, useRTCStore } from "@hooks/stores";
 import AutoHeight from "@components/AutoHeight";
 import { Button } from "@components/Button";
 import DhcpLeaseCard from "@components/DhcpLeaseCard";
@@ -13,16 +13,12 @@ import { GridCard } from "@components/Card";
 import Ipv6NetworkCard from "@components/Ipv6NetworkCard";
 import { SettingsItem } from "@components/SettingsItem";
 import { SettingsPageHeader } from "@/components/SettingsPageheader";
-import StaticIpv4Card from "@components/StaticIpv4Card";
-import StaticIpv6Card from "@components/StaticIpv6Card";
 import { useCopyToClipboard } from "@components/useCopyToClipBoard";
-import { getNetworkSettings, getNetworkState } from "@/utils/jsonrpc";
+import { getNetworkState } from "@/utils/jsonrpc";
 import notifications from "@/notifications";
 import { m } from "@localizations/messages";
 
 dayjs.extend(relativeTime);
-
-const isLLDPAvailable = false; // LLDP is not supported yet
 
 const resolveOnRtcReady = () => {
   return new Promise(resolve => {
@@ -74,21 +70,16 @@ export function LifeTimeLabel({ lifetime }: Readonly<{ lifetime: string }>) {
 export default function SettingsNetworkRoute() {
   const networkState = useNetworkStateStore(state => state);
   const setNetworkState = useNetworkStateStore(state => state.setNetworkState);
-  const [networkSettings, setNetworkSettings] = useState<NetworkSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchNetworkData = useCallback(async () => {
     try {
       setIsLoading(true);
-      console.log("Fetching network data...");
+      console.log("Fetching network state...");
 
-      const [settings, state] = (await Promise.all([getNetworkSettings(), getNetworkState()])) as [
-        NetworkSettings,
-        NetworkState,
-      ];
+      const state = (await getNetworkState()) as NetworkState;
 
       setNetworkState(state);
-      setNetworkSettings(settings);
       setIsLoading(false);
     } catch (err) {
       setIsLoading(false);
@@ -125,7 +116,7 @@ export default function SettingsNetworkRoute() {
           </div>
         }
       />
-      
+
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <SettingsItem
@@ -173,41 +164,66 @@ export default function SettingsNetworkRoute() {
             </GridCard>
           ) : (
             <>
-              {/* Network Configuration Information */}
+              {/* Network State Information */}
               <GridCard>
-                <div className="p-4 space-y-4">
+                <div className="space-y-4 p-4">
                   <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Network Configuration
+                    Network Status
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
+                    <div>
+                      <span className="text-slate-600 dark:text-slate-400">Interface:</span>
+                      <span className="ml-2 font-mono">
+                        {networkState?.interface_name || "N/A"}
+                      </span>
+                    </div>
                     <div>
                       <span className="text-slate-600 dark:text-slate-400">Hostname:</span>
-                      <span className="ml-2 font-mono">{networkSettings?.hostname || networkState?.hostname || "N/A"}</span>
+                      <span className="ml-2 font-mono">{networkState?.hostname || "N/A"}</span>
                     </div>
                     <div>
-                      <span className="text-slate-600 dark:text-slate-400">Domain:</span>
-                      <span className="ml-2 font-mono">{networkSettings?.domain || "N/A"}</span>
+                      <span className="text-slate-600 dark:text-slate-400">Status:</span>
+                      <span className="ml-2 font-mono">
+                        {networkState?.online ? (
+                          <span className="text-green-600 dark:text-green-400">Online</span>
+                        ) : networkState?.up ? (
+                          <span className="text-yellow-600 dark:text-yellow-400">
+                            Up (No Internet)
+                          </span>
+                        ) : (
+                          <span className="text-red-600 dark:text-red-400">Down</span>
+                        )}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-slate-600 dark:text-slate-400">DHCP Client:</span>
-                      <span className="ml-2 font-mono">{networkSettings?.dhcp_client || "N/A"}</span>
+                      <span className="text-slate-600 dark:text-slate-400">IPv4:</span>
+                      <span className="ml-2 font-mono">
+                        {networkState?.ipv4_address || "Not configured"}
+                      </span>
                     </div>
-                    <div>
-                      <span className="text-slate-600 dark:text-slate-400">IPv4 Mode:</span>
-                      <span className="ml-2 font-mono">{networkSettings?.ipv4_mode || "N/A"}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-600 dark:text-slate-400">IPv6 Mode:</span>
-                      <span className="ml-2 font-mono">{networkSettings?.ipv6_mode || "N/A"}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-600 dark:text-slate-400">mDNS Mode:</span>
-                      <span className="ml-2 font-mono">{networkSettings?.mdns_mode || "N/A"}</span>
-                    </div>
-                    {networkSettings?.http_proxy && (
-                      <div className="md:col-span-2">
-                        <span className="text-slate-600 dark:text-slate-400">HTTP Proxy:</span>
-                        <span className="ml-2 font-mono">{networkSettings.http_proxy}</span>
+                  </div>
+                  {/* IPv6 addresses on separate lines to prevent overflow */}
+                  <div className="space-y-2 text-sm">
+                    {networkState?.ipv6_address && (
+                      <div>
+                        <span className="text-slate-600 dark:text-slate-400">IPv6:</span>
+                        <div className="ml-2 font-mono text-xs break-all">
+                          {networkState.ipv6_address}
+                        </div>
+                      </div>
+                    )}
+                    {!networkState?.ipv6_address && (
+                      <div>
+                        <span className="text-slate-600 dark:text-slate-400">IPv6:</span>
+                        <span className="ml-2 font-mono">Not configured</span>
+                      </div>
+                    )}
+                    {networkState?.ipv6_link_local && (
+                      <div>
+                        <span className="text-slate-600 dark:text-slate-400">IPv6 Link-Local:</span>
+                        <div className="ml-2 font-mono text-xs break-all">
+                          {networkState.ipv6_link_local}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -219,16 +235,43 @@ export default function SettingsNetworkRoute() {
               {/* IPv4 Information */}
               <div>
                 <AutoHeight>
-                  {networkSettings?.ipv4_mode === "static" ? (
-                    <StaticIpv4Card ipv4Static={networkSettings.ipv4_static} />
-                  ) : networkSettings?.ipv4_mode === "dhcp" ? (
+                  {networkState?.dhcp_lease ? (
                     <DhcpLeaseCard
                       networkState={networkState}
                       setShowRenewLeaseConfirm={() => {
                         // DHCP lease renewal is disabled - show notification
-                        notifications.info("DHCP lease renewal is disabled. Use OS network management tools.");
+                        notifications.error(
+                          "DHCP lease renewal is disabled. Use OS network management tools.",
+                        );
                       }}
                     />
+                  ) : networkState?.ipv4_address ? (
+                    <GridCard>
+                      <div className="space-y-4 p-4">
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                          IPv4 Configuration
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="text-slate-600 dark:text-slate-400">Address:</span>
+                            <span className="ml-2 font-mono">{networkState.ipv4_address}</span>
+                          </div>
+                          {networkState.ipv4_addresses &&
+                            networkState.ipv4_addresses.length > 1 && (
+                              <div>
+                                <span className="text-slate-600 dark:text-slate-400">
+                                  All Addresses:
+                                </span>
+                                <div className="ml-2 space-y-1 font-mono text-xs">
+                                  {networkState.ipv4_addresses.map((addr, idx) => (
+                                    <div key={idx}>{addr}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                        </div>
+                      </div>
+                    </GridCard>
                   ) : (
                     <EmptyCard
                       IconElm={LuEthernetPort}
@@ -242,11 +285,7 @@ export default function SettingsNetworkRoute() {
               {/* IPv6 Information */}
               <div className="space-y-4">
                 <AutoHeight>
-                  {networkSettings?.ipv6_mode === "static" ? (
-                    <StaticIpv6Card ipv6Static={networkSettings.ipv6_static} />
-                  ) : (
-                    <Ipv6NetworkCard networkState={networkState || undefined} />
-                  )}
+                  <Ipv6NetworkCard networkState={networkState || undefined} />
                 </AutoHeight>
               </div>
 
@@ -254,20 +293,20 @@ export default function SettingsNetworkRoute() {
               <GridCard>
                 <div className="p-4">
                   <div className="flex items-start gap-3">
-                    <LuInfo className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                    <LuInfo className="mt-0.5 h-5 w-5 shrink-0 text-blue-500" />
                     <div className="space-y-2">
                       <h4 className="font-medium text-slate-900 dark:text-white">
                         Network Configuration is Read-Only
                       </h4>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Network settings cannot be modified through this interface. 
-                        Use your operating system's network management tools such as:
+                        Network settings cannot be modified through this interface. Use your
+                        operating system&apos;s network management tools such as:
                       </p>
-                      <ul className="text-sm text-slate-600 dark:text-slate-400 list-disc list-inside space-y-1 ml-2">
+                      <ul className="ml-2 list-inside list-disc space-y-1 text-sm text-slate-600 dark:text-slate-400">
                         <li>NetworkManager (nmcli, nmtui)</li>
                         <li>systemd-networkd</li>
                         <li>Manual configuration files (/etc/network/interfaces, /etc/netplan/)</li>
-                        <li>Your distribution's network configuration tools</li>
+                        <li>Your distribution&apos;s network configuration tools</li>
                       </ul>
                     </div>
                   </div>

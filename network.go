@@ -180,7 +180,16 @@ func rpcGetNetworkState() *types.RpcInterfaceState {
 }
 
 func rpcGetNetworkSettings() *RpcNetworkSettings {
+	// Return minimal default settings for backward compatibility
+	// Actual network configuration should be read from rpcGetNetworkState()
 	return toRpcNetworkSettings(config.NetworkConfig)
+}
+
+// rpcGetNetworkSettingsDeprecated is a deprecated wrapper that logs a warning
+// Deprecated: Use rpcGetNetworkState() instead. Network config is read-only.
+func rpcGetNetworkSettingsDeprecated() *RpcNetworkSettings {
+	networkLogger.Warn().Msg("getNetworkSettings is deprecated - use getNetworkState instead")
+	return rpcGetNetworkSettings()
 }
 
 func rpcSetNetworkSettings(settings RpcNetworkSettings) (*RpcNetworkSettings, error) {
