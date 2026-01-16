@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "xKVM",
-  "version": "0.1.0",
-  "identifier": "com.xkvm.app",
+  "productName": "XKVM",
+  "version": "0.1.0-dev",
+  "identifier": "com.xkvm.native",
   "build": {
     "frontendDist": "../dist",
     "beforeDevCommand": "",
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "xKVM",
+        "title": "XKVM - Remote KVM Control",
         "width": 1280,
         "height": 800,
         "minWidth": 800,
@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self' https://*; connect-src 'self' https://* wss://*; img-src 'self' data: https://*; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; font-src 'self' data:; media-src 'self' https://* blob:"
     }
   },
   "bundle": {
@@ -33,6 +33,34 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "XKVM Project",
+    "copyright": "Copyright © 2026 XKVM Contributors",
+    "category": "Utility",
+    "shortDescription": "Remote KVM-over-IP Control",
+    "longDescription": "XKVM is a high-performance, open-source KVM-over-IP solution for remote keyboard, video, and mouse control of computers, servers, and workstations.",
+    "homepage": "https://github.com/134ARG/xkvm",
+    "licenseFile": "../../LICENSE",
+    "macOS": {
+      "minimumSystemVersion": "10.15",
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": ""
+    },
+    "linux": {
+      "deb": {
+        "depends": []
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    }
   }
 }

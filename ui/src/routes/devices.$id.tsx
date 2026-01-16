@@ -1,6 +1,7 @@
 import { lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Outlet,
+  redirect,
   useLoaderData,
   useLocation,
   useNavigate,
@@ -14,9 +15,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import useWebSocket from "react-use-websocket";
 
 import { cx } from "@/cva.config";
-import { CLOUD_API } from "@/ui.config";
+import { CLOUD_API, getDeviceAPI } from "@/ui.config";
 import api from "@/api";
-import { checkAuth, isInCloud, isOnDevice } from "@/main";
+import { checkAuth, isInCloud, isOnDevice, isNative } from "@/main";
 import {
   KeyboardLedState,
   KeysDownState,
@@ -74,6 +75,12 @@ export interface LocalDevice {
 
 const deviceLoader = async () => {
   const device = await checkAuth();
+  
+  // Check if this is first-run (no backend configured)
+  if ('needsSetup' in device && device.needsSetup) {
+    throw redirect("/setup");
+  }
+  
   return { authMode: device.authMode } as LocalLoaderResp;
 };
 
@@ -99,7 +106,7 @@ const cloudLoader = async (params: Params<string>): Promise<CloudLoaderResp> => 
 };
 
 const loader: LoaderFunction = ({ params }: LoaderFunctionArgs) => {
-  return isOnDevice ? deviceLoader() : cloudLoader(params);
+  return isOnDevice || isNative ? deviceLoader() : cloudLoader(params);
 };
 
 export default function KvmIdRoute() {
@@ -233,9 +240,11 @@ export default function KvmIdRoute() {
   };
 
   const { sendMessage, getWebSocket } = useWebSocket(
-    isOnDevice
-      ? `${wsProtocol}//${window.location.host}/webrtc/signaling/client`
-      : `${CLOUD_API.replace("http", "ws")}/webrtc/signaling/client?id=${params.id}`,
+    isNative
+      ? `${getDeviceAPI().replace("http", "ws")}/webrtc/signaling/client`
+      : isOnDevice
+        ? `${wsProtocol}//${window.location.host}/webrtc/signaling/client`
+        : `${CLOUD_API.replace("http", "ws")}/webrtc/signaling/client?id=${params.id}`,
     {
       heartbeat: true,
       retryOnError: true,
@@ -367,11 +376,11 @@ export default function KvmIdRoute() {
       const res = await api.POST(sessionUrl, {
         sd,
         // When on device, we don't need to specify the device id, as it's already known
-        ...(isOnDevice ? {} : { id: params.id }),
+        ...(isOnDevice || isNative ? {} : { id: params.id }),
       });
 
       const json = await res.json();
-      if (res.status === 401) return navigate(isOnDevice ? "/login-local" : "/login");
+      if (res.status === 401) return navigate(isOnDevice || isNative ? "/login-local" : "/login");
       if (!res.ok) {
         console.error("Error getting SDP", { status: res.status, json });
         cleanupAndStopReconnecting();
@@ -916,7 +925,7 @@ export default function KvmIdRoute() {
 
         <div className="grid h-full grid-rows-(--grid-headerBody) select-none">
           <DashboardNavbar
-            primaryLinks={isOnDevice ? [] : [{ title: "Cloud Devices", to: "/devices" }]}
+            primaryLinks={isOnDevice || isNative ? [] : [{ title: "Cloud Devices", to: "/devices" }]}
             showConnectionStatus={true}
             isLoggedIn={authMode === "password" || !!user}
             userEmail={user?.email}

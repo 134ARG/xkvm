@@ -14,7 +14,7 @@ declare const process: {
 
 export default defineConfig(({ mode, command }) => {
   const isCloud = mode.indexOf("cloud") !== -1;
-  const onDevice = mode === "device";
+  const onDevice = mode === "device" || mode === "tauri";
   const isTauri = mode === "tauri";
   const { XKVM_PROXY_URL, USE_SSL } = process.env;
   const useSSL = USE_SSL === "true";
@@ -74,6 +74,6 @@ export default defineConfig(({ mode, command }) => {
         }
         : undefined,
     },
-    base: onDevice && command === "build" ? "/static" : "/",
+    base: onDevice && command === "build" && !isTauri ? "/static" : "/",
   };
 });

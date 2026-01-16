@@ -2,7 +2,7 @@ import { useNavigate, useParams } from "react-router";
 import type { NavigateOptions } from "react-router";
 import { useCallback, useMemo } from "react";
 
-import { isOnDevice } from "../main";
+import { isOnDevice, isNative } from "../main";
 
 /**
  * Generates the correct path based on whether the app is running on device or in cloud mode
@@ -18,7 +18,7 @@ export function getDeviceUiPath(path: string, deviceId?: string): string {
   // Ensure absolute path starts with a slash
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
-  if (isOnDevice) {
+  if (isOnDevice || isNative) {
     return normalizedPath;
   } else {
     if (!deviceId) {
