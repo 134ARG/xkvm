@@ -122,6 +122,24 @@ func setupRouter() *gin.Engine {
 		staticFileServer.ServeHTTP(c.Writer, c.Request)
 	})
 
+	// Global CORS middleware for Tauri and cross-origin requests
+	r.Use(func(c *gin.Context) {
+		origin := c.Request.Header.Get("Origin")
+		if origin != "" {
+			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			c.Header("Access-Control-Allow-Credentials", "true")
+		}
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		c.Next()
+	})
+
 	// Public routes (no authentication required)
 	r.POST("/auth/login-local", handleLogin)
 
@@ -692,18 +710,6 @@ func handleDeletePassword(c *gin.Context) {
 }
 
 func handleDeviceStatus(c *gin.Context) {
-	// Add CORS headers to allow cross-origin requests
-	// This is safe because device/status is a public endpoint
-	c.Header("Access-Control-Allow-Origin", "*")
-	c.Header("Access-Control-Allow-Methods", "GET, OPTIONS")
-	c.Header("Access-Control-Allow-Headers", "Content-Type")
-
-	// Handle preflight requests
-	if c.Request.Method == "OPTIONS" {
-		c.AbortWithStatus(http.StatusNoContent)
-		return
-	}
-
 	response := DeviceStatus{
 		IsSetup: config.LocalAuthMode != "",
 	}

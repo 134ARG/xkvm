@@ -1,227 +1,137 @@
-# Tauri WebRTC Test - macOS Instructions
+# XKVM Native App - macOS Build & Release Guide
 
-## Quick Start (5 minutes)
+## Quick Start
 
-### Prerequisites Check
+### Prerequisites
+- **Xcode Command Line Tools**: `xcode-select --install`
+- **Node.js 22.x**: Install via Homebrew or from nodejs.org
+- **Rust**: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 
-1. **Xcode Command Line Tools** (required)
-   ```bash
-   xcode-select --install
-   ```
-   If already installed, you'll see: "command line tools are already installed"
-
-2. **Node.js** (required - v22.x)
-   
-   **Option A: Using Homebrew (recommended)**
-   ```bash
-   # Install Homebrew if not installed
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   
-   # Install Node.js
-   brew install node@22
-   ```
-   
-   **Option B: Direct Download**
-   - Download from: https://nodejs.org/en/download/
-   - Install the macOS installer (.pkg)
-   - Choose LTS version (v22.x)
-   
-   Verify:
-   ```bash
-   node --version  # Should show v22.x
-   npm --version   # Should show v10.x
-   ```
-
-3. **Rust** (required)
-   ```bash
-   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-   source $HOME/.cargo/env
-   ```
-   
-   Verify:
-   ```bash
-   rustc --version
-   ```
-
-### Setup Steps
-
-**Step 1: Clone/Pull Latest Code**
-```bash
-cd /path/to/xkvm
-git pull  # or however you sync code
-```
-
-The Tauri setup is already in the repo:
-- `ui/src-tauri/` - Tauri project
-- `ui/package.json` - Has tauri scripts
-- `ui/src-tauri/tauri.conf.json` - Configured
-
-**Step 2: Install Dependencies**
+### Development
 ```bash
 cd ui
 npm install
-```
-
-**Step 3: Build UI**
-```bash
-npm run build
-```
-
-This creates files in `../static/` directory.
-
-**Step 4: Run Tauri Dev Mode**
-```bash
 npm run tauri:dev
 ```
 
-First run will take 5-10 minutes to compile Rust dependencies.
-Subsequent runs are much faster (~30 seconds).
+### Building for Release
 
-A native macOS window will open with your xKVM UI.
-
-### Testing WebRTC
-
-**Step 5: Test Connection**
-
-1. In the Tauri window, navigate to your device
-2. Try connecting via Tailscale IP (e.g., `100.78.203.15`)
-3. Open dev console: **Cmd+Option+I**
-4. Watch for WebRTC logs
-
-**What to Look For:**
-
-✅ **SUCCESS:**
-```
-[ICE] New candidate gathered: type: "relay", address: "100.78.203.15"
-[WebRTC] Connection state: connected
-```
-- NO "address type mis-match" errors
-- Video appears
-- Mouse/keyboard works
-
-❌ **FAILURE:**
-```
-Skipping TURN server because of address type mis-match
-ICE failed
-```
-- Same errors as browser
-- No connection
-
-### Alternative: Build Release App
-
-If dev mode has issues:
-
+#### Universal Binary (Intel + Apple Silicon)
 ```bash
 cd ui
-npm run tauri:build
+npm run tauri:build:mac
 ```
 
-The app will be at:
-```
-ui/src-tauri/target/release/bundle/macos/xKVM.app
+**Output:** `ui/src-tauri/target/release/bundle/macos/XKVM.app`
+
+#### Platform-Specific Builds
+```bash
+# Intel only
+npm run tauri:build:mac:intel
+
+# Apple Silicon only
+npm run tauri:build:mac:arm
 ```
 
-Double-click to run.
+## First Run Setup
+
+1. Launch XKVM.app
+2. Add your backend connection:
+   - **Name**: Friendly name (e.g., "My XKVM Device")
+   - **URL**: Backend URL (e.g., `https://xkvm.example.com`)
+3. Click "Connect"
+4. App connects to your backend
+
+## Managing Connections
+
+- **Settings → Connections**: Manage multiple backends
+- **Add Connection**: Add new backend
+- **Set as Default**: Change active backend
+- **Remove**: Delete connection (requires at least one)
+
+## Configuration
+
+Config stored at: `~/.xkvm-native/config.json`
+
+```json
+{
+  "version": "1.0",
+  "connections": [
+    {
+      "id": "conn_1234567890",
+      "name": "My XKVM Device",
+      "url": "https://xkvm.example.com",
+      "is_default": true,
+      "last_connected": "2026-01-16T15:30:00Z"
+    }
+  ],
+  "settings": {
+    "auto_connect": true,
+    "remember_last_connection": true
+  }
+}
+```
+
+## Distribution
+
+### For Testing
+Share the `.app` bundle directly. Users may need to right-click → Open on first launch (macOS Gatekeeper).
+
+### For Production
+1. **Code Signing** (requires Apple Developer account):
+   ```bash
+   # Sign the app
+   codesign --deep --force --verify --verbose --sign "Developer ID Application: Your Name" XKVM.app
+   
+   # Verify signature
+   codesign --verify --verbose XKVM.app
+   ```
+
+2. **Notarization** (required for distribution):
+   ```bash
+   # Create DMG
+   hdiutil create -volname XKVM -srcfolder XKVM.app -ov -format UDZO XKVM.dmg
+   
+   # Submit for notarization
+   xcrun notarytool submit XKVM.dmg --apple-id your@email.com --team-id TEAMID --wait
+   
+   # Staple notarization ticket
+   xcrun stapler staple XKVM.app
+   ```
+
+3. **Create DMG installer**:
+   ```bash
+   # Tauri can create DMG automatically
+   npm run tauri:build:mac -- --bundles dmg
+   ```
 
 ## Troubleshooting
 
-### "xcrun: error: invalid active developer path"
-Install Xcode Command Line Tools:
-```bash
-xcode-select --install
-```
+### App Won't Open
+- Right-click → Open (first time only)
+- Check Console.app for errors
+- Verify config: `cat ~/.xkvm-native/config.json`
 
-### "cargo: command not found"
-Install Rust:
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source $HOME/.cargo/env
-```
+### Connection Fails
+- Verify backend URL is correct
+- Ensure backend is running and accessible
+- Check backend has CORS enabled
 
-### "npm run tauri:dev" fails
-1. Make sure UI is built: `npm run build`
-2. Check `../static/` exists and has files
-3. Check Rust is installed: `rustc --version`
+### Build Fails
+- Update Xcode Command Line Tools: `xcode-select --install`
+- Update Rust: `rustup update`
+- Clean build: `cd ui/src-tauri && cargo clean`
 
-### Window opens but shows blank/error
-1. Check `../static/index.html` exists
-2. Try building UI again: `npm run build`
-3. Check console for errors
+## Version Management
 
-### "Developer cannot be verified" warning
-Right-click the app → Open (instead of double-clicking)
+Version is automatically synced from `ota.go` during build. No manual updates needed.
 
-## What Happens Next
+## Backend Requirements
 
-### If WebRTC Works ✅
-Report success! We'll then:
-1. Add native features (system tray, auto-update)
-2. Set up proper distribution
-3. Code signing for release
+Backend must support CORS. The Go backend includes this automatically via global CORS middleware in `web.go`.
 
-### If WebRTC Fails ❌
-We'll try:
-1. WebSocket fallback approach
-2. External TURN server
-3. Other workarounds
+## Related Documentation
 
-## Commands Summary
-
-```bash
-# One-time setup
-cd ui
-npm install
-
-# Every time you want to test
-npm run build          # Build UI
-npm run tauri:dev      # Run in dev mode
-
-# Or build release app
-npm run tauri:build    # Creates .app bundle
-```
-
-## File Locations
-
-- **Source code:** `ui/src-tauri/src/`
-- **Config:** `ui/src-tauri/tauri.conf.json`
-- **Built app (dev):** Opens automatically
-- **Built app (release):** `ui/src-tauri/target/release/bundle/macos/xKVM.app`
-
-## Notes
-
-- First build takes 5-10 minutes (compiling Rust)
-- Subsequent builds are fast (~30 seconds)
-- Dev mode has hot reload for UI changes
-- Rust changes require restart
-- The app has full network access (no browser restrictions)
-
-## Expected Behavior
-
-The Tauri app should behave exactly like a browser, except:
-- It can access Tailscale IPs without restrictions
-- WebRTC should work with `100.78.203.15` addresses
-- No "address type mis-match" errors
-
-This is the whole point of the test!
-
-## Quick Test Checklist
-
-- [ ] Xcode Command Line Tools installed
-- [ ] Rust installed
-- [ ] `npm install` completed
-- [ ] `npm run build` completed
-- [ ] `npm run tauri:dev` opens window
-- [ ] Can navigate to device in UI
-- [ ] Try connecting via Tailscale IP
-- [ ] Check console for WebRTC logs
-- [ ] Report: ✅ works or ❌ fails
-
----
-
-**Ready to test? Just run:**
-```bash
-cd ui
-npm install
-npm run build
-npm run tauri:dev
-```
+- [TAURI_NATIVE_APP.md](TAURI_NATIVE_APP.md) - Complete native app documentation
+- [DEVELOPMENT.md](DEVELOPMENT.md) - General development guide
+- [README.md](README.md) - Project overview

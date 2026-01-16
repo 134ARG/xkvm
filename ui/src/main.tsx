@@ -12,7 +12,7 @@ import "./index.css";
 import { ExclamationTriangleIcon } from "@heroicons/react/16/solid";
 
 import { initTestHooks } from "@/test/testHooks";
-import { CLOUD_API, CLOUD_ENABLE_VERSIONED_UI, DEVICE_API } from "@/ui.config";
+import { CLOUD_API, CLOUD_ENABLE_VERSIONED_UI, getDeviceAPI } from "@/ui.config";
 import api from "@/api";
 import Root from "@/root";
 import { m } from "@localizations/messages.js";
@@ -52,12 +52,32 @@ const SecurityAccessLocalAuthRoute = lazy(
 const SettingsMacrosRoute = lazy(() => import("@routes/devices.$id.settings.macros"));
 const SettingsMacrosAddRoute = lazy(() => import("@routes/devices.$id.settings.macros.add"));
 const SettingsMacrosEditRoute = lazy(() => import("@routes/devices.$id.settings.macros.edit"));
+const SettingsConnectionsRoute = lazy(() => import("@routes/settings.connections"));
+const NativeSetupRoute = lazy(() => import("@routes/native-setup"));
 
 export const isOnDevice = import.meta.env.MODE === "device";
-export const isInCloud = !isOnDevice;
+export const isNative = import.meta.env.MODE === "tauri";
+export const isInCloud = !isOnDevice && !isNative;
 
 // Initialize E2E test hooks (safe to call in all environments)
 initTestHooks();
+
+// Initialize native config if in Tauri mode
+if (isNative) {
+  // Load config immediately and wait for it
+  const configPromise = import('@/stores/nativeConfigStore').then(async ({ useNativeConfig }) => {
+    try {
+      await useNativeConfig.getState().loadConfig();
+      console.log('Config loaded successfully');
+    } catch (error) {
+      console.error('Failed to load config on startup:', error);
+      // Don't throw - let the app handle it in checkDeviceAuth
+    }
+  });
+  
+  // Store the promise so we can wait for it in checkDeviceAuth
+  (window as any).__configLoadPromise = configPromise;
+}
 
 export async function checkCloudAuth() {
   const res = await fetch(`${CLOUD_API}/me`, {
@@ -74,13 +94,30 @@ export async function checkCloudAuth() {
 }
 
 export async function checkDeviceAuth() {
+  // Wait for config to load in native mode
+  if (isNative && (window as any).__configLoadPromise) {
+    try {
+      await (window as any).__configLoadPromise;
+    } catch (error) {
+      console.error('Failed to load config:', error);
+    }
+  }
+  
+  const deviceAPI = getDeviceAPI();
+  
+  // If no backend configured yet in native mode, return a special state
+  // The app will handle this by showing a setup screen
+  if (isNative && !deviceAPI) {
+    return { authMode: null, needsSetup: true };
+  }
+  
   const res = await api
-    .GET(`${DEVICE_API}/device/status`)
+    .GET(`${deviceAPI}/device/status`)
     .then(res => res.json() as Promise<DeviceStatus>);
 
   if (!res.isSetup) throw redirect("/welcome");
 
-  const deviceRes = await api.GET(`${DEVICE_API}/device`);
+  const deviceRes = await api.GET(`${deviceAPI}/device`);
   if (deviceRes.status === 401) throw redirect("/login-local");
   if (deviceRes.ok) {
     const device = (await deviceRes.json()) as LocalDevice;
@@ -91,108 +128,115 @@ export async function checkDeviceAuth() {
 }
 
 export async function checkAuth() {
-  return isOnDevice ? checkDeviceAuth() : checkCloudAuth();
+  return isOnDevice || isNative ? checkDeviceAuth() : checkCloudAuth();
 }
 
 let router: ReturnType<typeof createBrowserRouter>;
 
-const getDeviceRoute = (r: Omit<RouteObject, "children" | "index">): RouteObject => ({
-  element: <DeviceRoute />,
-  loader: DeviceRoute.loader,
-  ...r,
-  children: [
+const getDeviceRoute = (r: Omit<RouteObject, "children" | "index">): RouteObject => {
+  const settingsChildren: RouteObject[] = [
     {
-      path: "other-session",
-      element: <OtherSessionRoute />,
+      index: true,
+      loader: SettingsIndexRoute.loader,
     },
     {
-      path: "mount",
-      element: <MountRoute />,
-    },
-    {
-      path: "settings",
-      element: <SettingsRoute />,
+      path: "general",
       children: [
         {
           index: true,
-          loader: SettingsIndexRoute.loader,
-        },
-        {
-          path: "general",
-          children: [
-            {
-              index: true,
-              element: <SettingsGeneralIndexRoute />,
-            },
-            // OTA update route disabled
-            // {
-            //   path: "update",
-            //   element: <SettingsGeneralUpdateRoute />,
-            // },
-          ],
-        },
-        {
-          path: "mouse",
-          element: <SettingsMouseRoute />,
-        },
-        {
-          path: "keyboard",
-          element: <SettingsKeyboardRoute />,
-        },
-        {
-          path: "advanced",
-          element: <SettingsAdvancedRoute />,
-        },
-        {
-          path: "network",
-          element: <SettingsNetworkRoute />,
-        },
-        {
-          path: "access",
-          children: [
-            {
-              index: true,
-              element: <SettingsAccessIndexRoute />,
-              loader: SettingsAccessIndexRoute.loader,
-            },
-            {
-              path: "local-auth",
-              element: <SecurityAccessLocalAuthRoute />,
-            },
-          ],
-        },
-        {
-          path: "video",
-          element: <SettingsVideoRoute />,
-        },
-        {
-          path: "appearance",
-          element: <SettingsAppearanceRoute />,
-        },
-        {
-          path: "macros",
-          children: [
-            {
-              index: true,
-              element: <SettingsMacrosRoute />,
-            },
-            {
-              path: "add",
-              element: <SettingsMacrosAddRoute />,
-            },
-            {
-              path: ":macroId/edit",
-              element: <SettingsMacrosEditRoute />,
-            },
-          ],
+          element: <SettingsGeneralIndexRoute />,
         },
       ],
     },
-  ],
-});
+    {
+      path: "mouse",
+      element: <SettingsMouseRoute />,
+    },
+    {
+      path: "keyboard",
+      element: <SettingsKeyboardRoute />,
+    },
+    {
+      path: "advanced",
+      element: <SettingsAdvancedRoute />,
+    },
+    {
+      path: "network",
+      element: <SettingsNetworkRoute />,
+    },
+    {
+      path: "access",
+      children: [
+        {
+          index: true,
+          element: <SettingsAccessIndexRoute />,
+          loader: SettingsAccessIndexRoute.loader,
+        },
+        {
+          path: "local-auth",
+          element: <SecurityAccessLocalAuthRoute />,
+        },
+      ],
+    },
+    {
+      path: "video",
+      element: <SettingsVideoRoute />,
+    },
+    {
+      path: "appearance",
+      element: <SettingsAppearanceRoute />,
+    },
+    {
+      path: "macros",
+      children: [
+        {
+          index: true,
+          element: <SettingsMacrosRoute />,
+        },
+        {
+          path: "add",
+          element: <SettingsMacrosAddRoute />,
+        },
+        {
+          path: ":macroId/edit",
+          element: <SettingsMacrosEditRoute />,
+        },
+      ],
+    },
+  ];
+  
+  // Add connections route only for native mode
+  if (isNative) {
+    settingsChildren.push({
+      path: "connections",
+      element: <SettingsConnectionsRoute />,
+    });
+  }
+  
+  return {
+    element: <DeviceRoute />,
+    loader: DeviceRoute.loader,
+    ...r,
+    children: [
+      {
+        path: "other-session",
+        element: <OtherSessionRoute />,
+      },
+      {
+        path: "mount",
+        element: <MountRoute />,
+      },
+      {
+        path: "settings",
+        element: <SettingsRoute />,
+        children: settingsChildren,
+      },
+    ],
+  };
+};
 
-if (isOnDevice) {
-  router = createBrowserRouter([
+if (isOnDevice || isNative) {
+  const routes: RouteObject[] = [
     {
       path: "/welcome/mode",
       element: <WelcomeLocalModeRoute />,
@@ -219,7 +263,17 @@ if (isOnDevice) {
       errorElement: <ErrorBoundary />,
       HydrateFallback: () => <div className="p-4">{m.loading()}</div>,
     }),
-  ]);
+  ];
+  
+  // Add native setup route for first-run
+  if (isNative) {
+    routes.unshift({
+      path: "/setup",
+      element: <NativeSetupRoute />,
+    });
+  }
+  
+  router = createBrowserRouter(routes);
 } else {
   const routeObjects: RouteObject[] = [
     {
