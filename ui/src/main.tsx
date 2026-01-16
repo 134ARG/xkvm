@@ -64,19 +64,17 @@ initTestHooks();
 
 // Initialize native config if in Tauri mode
 if (isNative) {
-  // Load config immediately and wait for it
-  const configPromise = import('@/stores/nativeConfigStore').then(async ({ useNativeConfig }) => {
+  (async () => {
     try {
+      const { useNativeConfig } = await import('@/stores/nativeConfigStore');
       await useNativeConfig.getState().loadConfig();
-      console.log('Config loaded successfully');
+      (window as any).__configReady = true;
     } catch (error) {
       console.error('Failed to load config on startup:', error);
-      // Don't throw - let the app handle it in checkDeviceAuth
+      (window as any).__configReady = false;
+      (window as any).__configError = error;
     }
-  });
-  
-  // Store the promise so we can wait for it in checkDeviceAuth
-  (window as any).__configLoadPromise = configPromise;
+  })();
 }
 
 export async function checkCloudAuth() {
@@ -95,18 +93,18 @@ export async function checkCloudAuth() {
 
 export async function checkDeviceAuth() {
   // Wait for config to load in native mode
-  if (isNative && (window as any).__configLoadPromise) {
-    try {
-      await (window as any).__configLoadPromise;
-    } catch (error) {
-      console.error('Failed to load config:', error);
+  if (isNative) {
+    // Wait up to 5 seconds for config to be ready
+    let attempts = 0;
+    while (!(window as any).__configReady && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
     }
   }
   
   const deviceAPI = getDeviceAPI();
   
   // If no backend configured yet in native mode, return a special state
-  // The app will handle this by showing a setup screen
   if (isNative && !deviceAPI) {
     return { authMode: null, needsSetup: true };
   }
@@ -355,7 +353,6 @@ function ErrorBoundary() {
   }
 
   const getErrorMessage = (err: unknown): string | null => {
-    // If it's a route error response, try to read a string at err.data.error.message or err.data.error safely
     if (isRouteErrorResponse(err)) {
       const data = (err as { data?: unknown }).data;
       if (data && typeof data === "object") {
@@ -371,7 +368,6 @@ function ErrorBoundary() {
       }
     }
 
-    // Fallback: check plain object message property
     if (err && typeof err === "object") {
       const maybeMsg = (err as Record<string, unknown>)["message"];
       if (typeof maybeMsg === "string") return maybeMsg;

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use tauri::Manager;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Connection {
@@ -43,9 +44,11 @@ impl Default for AppConfig {
     }
 }
 
-fn get_config_dir() -> Result<PathBuf, String> {
-    let home = dirs::home_dir().ok_or("Failed to get home directory")?;
-    let config_dir = home.join(".xkvm-native");
+fn get_config_dir(app_handle: tauri::AppHandle) -> Result<PathBuf, String> {
+    let config_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("Failed to get app data directory: {}", e))?;
     
     if !config_dir.exists() {
         fs::create_dir_all(&config_dir)
@@ -55,12 +58,12 @@ fn get_config_dir() -> Result<PathBuf, String> {
     Ok(config_dir)
 }
 
-fn get_config_path() -> Result<PathBuf, String> {
-    Ok(get_config_dir()?.join("config.json"))
+fn get_config_path(app_handle: tauri::AppHandle) -> Result<PathBuf, String> {
+    Ok(get_config_dir(app_handle)?.join("config.json"))
 }
 
-fn load_config_from_file() -> Result<AppConfig, String> {
-    let config_path = get_config_path()?;
+fn load_config_from_file(app_handle: tauri::AppHandle) -> Result<AppConfig, String> {
+    let config_path = get_config_path(app_handle)?;
     
     if !config_path.exists() {
         return Ok(AppConfig::default());
@@ -75,8 +78,8 @@ fn load_config_from_file() -> Result<AppConfig, String> {
     Ok(config)
 }
 
-fn save_config_to_file(config: &AppConfig) -> Result<(), String> {
-    let config_path = get_config_path()?;
+fn save_config_to_file(app_handle: tauri::AppHandle, config: &AppConfig) -> Result<(), String> {
+    let config_path = get_config_path(app_handle)?;
     
     let content = serde_json::to_string_pretty(config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
@@ -87,25 +90,25 @@ fn save_config_to_file(config: &AppConfig) -> Result<(), String> {
     Ok(())
 }
 
-pub fn init_config() -> Result<(), String> {
-    let config = load_config_from_file()?;
-    save_config_to_file(&config)?;
+pub fn init_config(app_handle: tauri::AppHandle) -> Result<(), String> {
+    let config = load_config_from_file(app_handle.clone())?;
+    save_config_to_file(app_handle, &config)?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn get_config() -> Result<AppConfig, String> {
-    load_config_from_file()
+pub fn get_config(app_handle: tauri::AppHandle) -> Result<AppConfig, String> {
+    load_config_from_file(app_handle)
 }
 
 #[tauri::command]
-pub fn save_config(config: AppConfig) -> Result<(), String> {
-    save_config_to_file(&config)
+pub fn save_config(app_handle: tauri::AppHandle, config: AppConfig) -> Result<(), String> {
+    save_config_to_file(app_handle, &config)
 }
 
 #[tauri::command]
-pub fn add_connection(name: String, url: String) -> Result<Connection, String> {
-    let mut config = load_config_from_file()?;
+pub fn add_connection(app_handle: tauri::AppHandle, name: String, url: String) -> Result<Connection, String> {
+    let mut config = load_config_from_file(app_handle.clone())?;
     
     // Generate unique ID
     let id = format!("conn_{}", chrono::Utc::now().timestamp());
@@ -122,14 +125,14 @@ pub fn add_connection(name: String, url: String) -> Result<Connection, String> {
     };
     
     config.connections.push(connection.clone());
-    save_config_to_file(&config)?;
+    save_config_to_file(app_handle, &config)?;
     
     Ok(connection)
 }
 
 #[tauri::command]
-pub fn remove_connection(id: String) -> Result<(), String> {
-    let mut config = load_config_from_file()?;
+pub fn remove_connection(app_handle: tauri::AppHandle, id: String) -> Result<(), String> {
+    let mut config = load_config_from_file(app_handle.clone())?;
     
     let was_default = config.connections.iter()
         .find(|c| c.id == id)
@@ -143,13 +146,13 @@ pub fn remove_connection(id: String) -> Result<(), String> {
         config.connections[0].is_default = true;
     }
     
-    save_config_to_file(&config)?;
+    save_config_to_file(app_handle, &config)?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn set_default_connection(id: String) -> Result<(), String> {
-    let mut config = load_config_from_file()?;
+pub fn set_default_connection(app_handle: tauri::AppHandle, id: String) -> Result<(), String> {
+    let mut config = load_config_from_file(app_handle.clone())?;
     
     // Unset all defaults
     for conn in &mut config.connections {
@@ -163,13 +166,13 @@ pub fn set_default_connection(id: String) -> Result<(), String> {
     
     found.is_default = true;
     
-    save_config_to_file(&config)?;
+    save_config_to_file(app_handle, &config)?;
     Ok(())
 }
 
 #[tauri::command]
-pub fn update_last_connected(id: String) -> Result<(), String> {
-    let mut config = load_config_from_file()?;
+pub fn update_last_connected(app_handle: tauri::AppHandle, id: String) -> Result<(), String> {
+    let mut config = load_config_from_file(app_handle.clone())?;
     
     let connection = config.connections.iter_mut()
         .find(|c| c.id == id)
@@ -177,6 +180,6 @@ pub fn update_last_connected(id: String) -> Result<(), String> {
     
     connection.last_connected = Some(chrono::Utc::now().to_rfc3339());
     
-    save_config_to_file(&config)?;
+    save_config_to_file(app_handle, &config)?;
     Ok(())
 }

@@ -21,7 +21,7 @@ The XKVM Native App is a cross-platform desktop application built with Tauri tha
 - **Settings UI**: Native-only settings page for connection management
 
 ### Backend (Rust)
-- **Configuration Management**: Stores connections in `~/.xkvm-native/config.json`
+- **Configuration Management**: Stores connections in platform-specific app data directory
 - **Tauri Commands**: Exposed commands for CRUD operations on connections
 - **File System Access**: Uses `tauri-plugin-fs` for config persistence
 - **HTTP Plugin**: Uses `tauri-plugin-http` for backend communication
@@ -29,8 +29,14 @@ The XKVM Native App is a cross-platform desktop application built with Tauri tha
 ## Configuration
 
 ### Config File Location
-- **macOS/Linux**: `~/.xkvm-native/config.json`
-- **Windows**: `%USERPROFILE%\.xkvm-native\config.json`
+
+The configuration is stored in the platform-specific app data directory:
+
+- **macOS**: `~/Library/Application Support/com.xkvm.native/config.json`
+- **Linux**: `~/.local/share/xkvm-native/config.json` (or `$XDG_DATA_HOME/xkvm-native/config.json`)
+- **Windows**: `C:\Users\<User>\AppData\Roaming\com.xkvm.native\config.json`
+
+These locations follow platform conventions and are automatically managed by Tauri.
 
 ### Config Structure
 ```json
@@ -183,8 +189,8 @@ CSP allows:
 
 ### App Won't Start
 - Check console logs (Cmd+Option+I on macOS)
-- Verify config file is valid JSON: `~/.xkvm-native/config.json`
-- Delete config file to reset: `rm ~/.xkvm-native/config.json`
+- Verify config file is valid JSON (see Config File Location above)
+- Delete config file to reset (location varies by platform - see above)
 
 ### Connection Fails
 - Verify backend URL is correct and accessible

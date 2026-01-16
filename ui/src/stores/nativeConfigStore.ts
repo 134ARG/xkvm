@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { invoke } from '@tauri-apps/api/core';
 
 export interface Connection {
   id: string;
@@ -33,6 +32,16 @@ interface ConfigStore {
   updateLastConnected: (id: string) => Promise<void>;
 }
 
+// Lazy load the Tauri API to avoid issues in production builds
+let invokeCache: any = null;
+async function getInvoke() {
+  if (!invokeCache) {
+    const { invoke } = await import('@tauri-apps/api/core');
+    invokeCache = invoke;
+  }
+  return invokeCache;
+}
+
 export const useNativeConfig = create<ConfigStore>((set, get) => ({
   config: null,
   currentConnection: null,
@@ -42,6 +51,7 @@ export const useNativeConfig = create<ConfigStore>((set, get) => ({
   loadConfig: async () => {
     set({ isLoading: true, error: null });
     try {
+      const invoke = await getInvoke();
       const config = await invoke<AppConfig>('get_config');
       const defaultConn = config.connections.find(c => c.is_default);
       const currentConn = defaultConn || config.connections[0] || null;
@@ -60,6 +70,7 @@ export const useNativeConfig = create<ConfigStore>((set, get) => ({
   
   saveConfig: async (config: AppConfig) => {
     try {
+      const invoke = await getInvoke();
       await invoke('save_config', { config });
       set({ config });
     } catch (error) {
@@ -71,10 +82,10 @@ export const useNativeConfig = create<ConfigStore>((set, get) => ({
   
   addConnection: async (name: string, url: string) => {
     try {
+      const invoke = await getInvoke();
       const connection = await invoke<Connection>('add_connection', { name, url });
-      await get().loadConfig(); // Reload to get updated config
+      await get().loadConfig();
       
-      // Set as current connection
       set({ currentConnection: connection });
       
       return connection;
@@ -87,8 +98,9 @@ export const useNativeConfig = create<ConfigStore>((set, get) => ({
   
   removeConnection: async (id: string) => {
     try {
+      const invoke = await getInvoke();
       await invoke('remove_connection', { id });
-      await get().loadConfig(); // Reload to get updated config
+      await get().loadConfig();
     } catch (error) {
       console.error('Failed to remove connection:', error);
       set({ error: String(error) });
@@ -98,8 +110,9 @@ export const useNativeConfig = create<ConfigStore>((set, get) => ({
   
   setDefaultConnection: async (id: string) => {
     try {
+      const invoke = await getInvoke();
       await invoke('set_default_connection', { id });
-      await get().loadConfig(); // Reload to get updated config
+      await get().loadConfig();
     } catch (error) {
       console.error('Failed to set default connection:', error);
       set({ error: String(error) });
@@ -113,6 +126,7 @@ export const useNativeConfig = create<ConfigStore>((set, get) => ({
   
   updateLastConnected: async (id: string) => {
     try {
+      const invoke = await getInvoke();
       await invoke('update_last_connected', { id });
     } catch (error) {
       console.error('Failed to update last connected:', error);
