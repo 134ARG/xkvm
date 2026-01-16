@@ -15,6 +15,7 @@ declare const process: {
 export default defineConfig(({ mode, command }) => {
   const isCloud = mode.indexOf("cloud") !== -1;
   const onDevice = mode === "device";
+  const isTauri = mode === "tauri";
   const { XKVM_PROXY_URL, USE_SSL } = process.env;
   const useSSL = USE_SSL === "true";
 
@@ -43,7 +44,7 @@ export default defineConfig(({ mode, command }) => {
     },
     assetsInclude: ["**/*.woff2"],
     build: {
-      outDir: isCloud ? "dist" : "../static",
+      outDir: isCloud ? "dist" : (isTauri ? "dist" : "../static"),
       rollupOptions: {
         output: {
           manualChunks: (id) => {

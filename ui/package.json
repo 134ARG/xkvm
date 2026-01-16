@@ -11,6 +11,7 @@
     "dev:ssl": "USE_SSL=true ./dev_device.sh",
     "build": "npm run build:device",
     "build:device": "npm run i18n:compile && tsc && vite build --mode=device --emptyOutDir",
+    "build:tauri": "npm run i18n:compile && tsc && vite build --mode=tauri --emptyOutDir",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
