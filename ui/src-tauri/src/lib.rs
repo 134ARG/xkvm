@@ -23,7 +23,7 @@ pub fn run() {
       }
       
       // Initialize config on first run
-      if let Err(e) = config::init_config() {
+      if let Err(e) = config::init_config(app.handle().clone()) {
         log::error!("Failed to initialize config: {}", e);
       }
       
