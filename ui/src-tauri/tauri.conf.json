@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.xkvm.app",
   "build": {
-    "frontendDist": "../../static",
+    "frontendDist": "../dist",
     "beforeDevCommand": "",
-    "beforeBuildCommand": ""
+    "beforeBuildCommand": "npm run build:tauri"
   },
   "app": {
     "windows": [
