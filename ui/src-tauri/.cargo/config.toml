@@ -1,0 +1,9 @@
+# Cargo configuration for cross-compilation targets
+
+[target.x86_64-pc-windows-gnu]
+linker = "x86_64-w64-mingw32-gcc"
+ar = "x86_64-w64-mingw32-ar"
+
+# Uncomment the following to make x86_64-pc-windows-gnu the default target
+# [build]
+# target = "x86_64-pc-windows-gnu"
