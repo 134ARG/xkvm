@@ -1,18 +1,23 @@
 # XKVM
 
-XKVM is a high-performance, open-source KVM-over-IP solution running on full Linux. It provides remote keyboard, video, and mouse control for efficient management of computers, servers, and workstations.
+XKVM is a high-performance, open-source, 100% local KVM-over-IP solution running on a full Linux. It provides remote keyboard, video, and mouse control for efficient management of computers, servers, and workstations.
+
+The project is currently for personal use.
 
 ## Overview
 
-XKVM has evolved from an embedded system to a full Linux-based solution, enabling standard system administration practices and better integration with existing infrastructure. The system focuses on core KVM functionality with a clean, maintainable codebase.
+XKVM focuses on core KVM functionality with a clean, maintainable codebase. It is designed to run on a full Linux distro rather than a buildroot env compared with the base JetKVM. The annoying cloud features are removed, and native webui wrapper is provided for working around using VPNs like tailscale with WebRTC.
 
-## Key Features
+**The current implementation is only designed for Radxa Zero 3 with tc358743 HDMI->CSI capture chip.**
 
-- **Low-latency Video** - H.264/H.265 hardware encoding for smooth remote control with selectable codec
-- **USB Gadget Emulation** - Keyboard, mouse, and mass storage device emulation
-- **Web Interface** - Modern React-based UI for device management
-- **Network Monitoring** - Real-time network status and DHCP lease information
-- **Standard Linux** - Full Linux OS enables standard administration tools
+## Added/Improved Key Features
+
+- **Low-latency Video** - H.264/H.265 hardware encoding for smooth remote control with selectable codec ultizing rk3566 hardware encdoing (H.265 only on MacOS client)
+- **Adjustable Streaming bitrate with VBR** - Now the video streaming bitrate is adjustable from 1 Mbps to 20 Mbps
+- **USB Gadget Emulation** - Keyboard, mouse, and mass storage device emulation with improved error handling and resetting
+- **Web Interface and Tauri native encap** - Modern React-based UI for device management, with Linux/MacOS/Windows Tauri native wrapper
+- **Network Monitoring** - Real-time network status and DHCP lease information. Network manipuation is removed, now it is read-only
+
 
 ## Architecture
 
@@ -20,25 +25,6 @@ XKVM consists of:
 - **Backend** (Go) - Device management, video capture, USB gadget control, JSON-RPC API
 - **Frontend** (React/TypeScript) - Web-based management interface
 - **Native Layer** (C) - Hardware video capture and control via Rockchip SDK
-
-## System Management
-
-XKVM integrates with standard Linux tools:
-
-- **Network Configuration** - Use `nmcli`, `nmtui`, or `/etc/network/interfaces`
-- **SSH Access** - Configure via `ssh-copy-id` or `/etc/ssh/authorized_keys`
-- **System Control** - Use `systemctl` for service management
-- **Updates** - Manage via standard Linux package managers
-
-The web UI displays system status in read-only mode. Configuration changes should be made through standard Linux tools.
-
-## USB Gadget Features
-
-- Automatic recovery from crashes and stale state
-- Health monitoring with automatic recovery
-- Stable HID device operation during reconfiguration
-- Mass storage mounting (disk mode)
-- File-based locking prevents concurrent access issues
 
 ## Development
 
