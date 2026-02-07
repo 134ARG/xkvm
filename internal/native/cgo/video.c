@@ -70,10 +70,11 @@
 #define RK_ALIGN_16(x) RK_ALIGN(x, 16)
 #define RK_ALIGN_32(x) RK_ALIGN(x, 32)
 
-// #define RK_PIXEL_FORMAT RK_FMT_YUV420SP
-#define RK_PIXEL_FORMAT RK_FMT_YUV422_UYVY
-// #define V4L2_PIXEL_FORMAT V4L2_PIX_FMT_NV12
-#define V4L2_PIXEL_FORMAT V4L2_PIX_FMT_UYVY
+// original: RK_FMT_YUV422_UYVY (16bpp 4:2:2 packed)
+// changed to NV12 (12bpp 4:2:0) for lower memory bandwidth and faster HW encode path
+#define RK_PIXEL_FORMAT RK_FMT_YUV420SP
+// original: V4L2_PIX_FMT_UYVY
+#define V4L2_PIXEL_FORMAT V4L2_PIX_FMT_NV12
 
 int sub_dev_fd = -1;
 #define VENC_CHANNEL 0
@@ -83,6 +84,7 @@ bool sleep_mode_available = false;
 bool should_exit = false;
 float bitrate_kbps = 5000.0f; // Store bitrate in kbps (1000-20000)
 int32_t rk_encoder = 0; // 0=H.264, 1=H.265
+int32_t rate_control_mode = 0; // 0=VBR, 1=CBR
 
 static void *venc_read_stream(void *arg);
 
@@ -159,20 +161,40 @@ static void populate_venc_attr(VENC_CHN_ATTR_S *stAttr, RK_U32 bitrate, RK_U32 m
 {
     memset(stAttr, 0, sizeof(VENC_CHN_ATTR_S));
 
-    // Set RC mode based on encoder type
-    if (rk_encoder == 1) {
-        stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H265VBR;
+    // Set RC mode based on encoder type and rate control mode
+    if (rate_control_mode == 1) {
+        // CBR mode
+        if (rk_encoder == 1) {
+            stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H265CBR;
+            stAttr->stRcAttr.stH265Cbr.u32BitRate = max_bitrate;
+            stAttr->stRcAttr.stH265Cbr.u32Gop = 10;
+            stAttr->stRcAttr.stH265Cbr.fr32DstFrameRateNum = 60;
+            stAttr->stRcAttr.stH265Cbr.fr32DstFrameRateDen = 1;
+            stAttr->stRcAttr.stH265Cbr.u32StatTime = 1;
+        } else {
+            stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H264CBR;
+            stAttr->stRcAttr.stH264Cbr.u32BitRate = max_bitrate;
+            stAttr->stRcAttr.stH264Cbr.u32Gop = 10;
+            stAttr->stRcAttr.stH264Cbr.fr32DstFrameRateNum = 60;
+            stAttr->stRcAttr.stH264Cbr.fr32DstFrameRateDen = 1;
+            stAttr->stRcAttr.stH264Cbr.u32StatTime = 1;
+        }
     } else {
-        stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H264VBR;
+        // VBR mode (default)
+        if (rk_encoder == 1) {
+            stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H265VBR;
+        } else {
+            stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H264VBR;
+        }
+        
+        stAttr->stRcAttr.stH264Vbr.u32BitRate = bitrate;
+        stAttr->stRcAttr.stH264Vbr.u32MaxBitRate = max_bitrate;
+        stAttr->stRcAttr.stH264Vbr.u32MinBitRate = bitrate / 2;  // Set minimum bitrate
+        stAttr->stRcAttr.stH264Vbr.u32Gop = 10;  // original: 60; reduced for low-latency IDR recovery
+        stAttr->stRcAttr.stH264Vbr.fr32DstFrameRateNum = 60;  // Target 60 fps
+        stAttr->stRcAttr.stH264Vbr.fr32DstFrameRateDen = 1;
+        stAttr->stRcAttr.stH264Vbr.u32StatTime = 1;  // original: 3; reduced for faster VBR bitrate adaptation
     }
-    
-    stAttr->stRcAttr.stH264Vbr.u32BitRate = bitrate;
-    stAttr->stRcAttr.stH264Vbr.u32MaxBitRate = max_bitrate;
-    stAttr->stRcAttr.stH264Vbr.u32MinBitRate = bitrate / 2;  // Set minimum bitrate
-    stAttr->stRcAttr.stH264Vbr.u32Gop = 60;
-    stAttr->stRcAttr.stH264Vbr.fr32DstFrameRateNum = 60;  // Target 60 fps
-    stAttr->stRcAttr.stH264Vbr.fr32DstFrameRateDen = 1;
-    stAttr->stRcAttr.stH264Vbr.u32StatTime = 3;  // Statistics time window
 
     // Set video type based on encoder
     if (rk_encoder == 1) {
@@ -670,16 +692,13 @@ void *run_video_stream(void *arg)
             stFrame.stVFrame.u32Width = width;
             stFrame.stVFrame.u32Height = height;
             
-            // Set virtual width/height based on encoder alignment requirements
-            if (rk_encoder == 1) {
-                // H.265 requires 16-byte alignment
-                stFrame.stVFrame.u32VirWidth = RK_ALIGN_16(width);
-                stFrame.stVFrame.u32VirHeight = RK_ALIGN_16(height);
-            } else {
-                // H.264 uses 2-byte alignment
-                stFrame.stVFrame.u32VirWidth = RK_ALIGN_2(width);
-                stFrame.stVFrame.u32VirHeight = RK_ALIGN_2(height);
-            }
+            // Virtual width/height must match the actual V4L2 capture buffer stride,
+            // not the encoder's internal alignment. Using RK_ALIGN_16 here for H.265
+            // caused the encoder to miscalculate the UV plane offset in NV12, shifting
+            // chroma vertically (e.g. ALIGN_16(1080)=1088 vs actual buffer height 1080).
+            // original: H.265 used RK_ALIGN_16, H.264 used RK_ALIGN_2
+            stFrame.stVFrame.u32VirWidth = RK_ALIGN_2(width);
+            stFrame.stVFrame.u32VirHeight = RK_ALIGN_2(height);
             
             stFrame.stVFrame.u32TimeRef = num; // frame number
             stFrame.stVFrame.u64PTS = get_us();

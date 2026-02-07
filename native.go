@@ -93,6 +93,13 @@ func initNative(systemVersion *semver.Version, appVersion *semver.Version) {
 		if err := nativeInstance.VideoSetEDID(config.EdidString); err != nil {
 			nativeLogger.Warn().Err(err).Msg("error setting EDID")
 		}
+
+		if config.VideoCodec != 0 {
+			nativeLogger.Info().Int32("codec", config.VideoCodec).Msg("syncing video codec from config to native encoder")
+			if err := nativeInstance.VideoSetEncoder(config.VideoCodec); err != nil {
+				nativeLogger.Warn().Err(err).Int32("codec", config.VideoCodec).Msg("error setting video encoder at startup")
+			}
+		}
 	}()
 
 	if os.Getenv("XKVM_CRASH_TESTING") == "1" {
