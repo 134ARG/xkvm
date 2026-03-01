@@ -1,4 +1,5 @@
-import { create } from 'zustand';
+import { create } from "zustand";
+import type { invoke as TauriInvoke } from "@tauri-apps/api/core";
 
 export interface Connection {
   id: string;
@@ -22,7 +23,7 @@ interface ConfigStore {
   currentConnection: Connection | null;
   isLoading: boolean;
   error: string | null;
-  
+
   loadConfig: () => Promise<void>;
   saveConfig: (config: AppConfig) => Promise<void>;
   addConnection: (name: string, url: string) => Promise<Connection>;
@@ -33,10 +34,10 @@ interface ConfigStore {
 }
 
 // Lazy load the Tauri API to avoid issues in production builds
-let invokeCache: any = null;
-async function getInvoke() {
+let invokeCache: typeof TauriInvoke | null = null;
+async function getInvoke(): Promise<typeof TauriInvoke> {
   if (!invokeCache) {
-    const { invoke } = await import('@tauri-apps/api/core');
+    const { invoke } = await import("@tauri-apps/api/core");
     invokeCache = invoke;
   }
   return invokeCache;
@@ -47,89 +48,89 @@ export const useNativeConfig = create<ConfigStore>((set, get) => ({
   currentConnection: null,
   isLoading: false,
   error: null,
-  
+
   loadConfig: async () => {
     set({ isLoading: true, error: null });
     try {
       const invoke = await getInvoke();
-      const config = await invoke<AppConfig>('get_config');
+      const config = await invoke<AppConfig>("get_config");
       const defaultConn = config.connections.find(c => c.is_default);
       const currentConn = defaultConn || config.connections[0] || null;
-      
-      set({ 
-        config, 
+
+      set({
+        config,
         currentConnection: currentConn,
-        isLoading: false 
+        isLoading: false,
       });
     } catch (error) {
-      console.error('Failed to load config:', error);
+      console.error("Failed to load config:", error);
       set({ error: String(error), isLoading: false });
       throw error;
     }
   },
-  
+
   saveConfig: async (config: AppConfig) => {
     try {
       const invoke = await getInvoke();
-      await invoke('save_config', { config });
+      await invoke("save_config", { config });
       set({ config });
     } catch (error) {
-      console.error('Failed to save config:', error);
+      console.error("Failed to save config:", error);
       set({ error: String(error) });
       throw error;
     }
   },
-  
+
   addConnection: async (name: string, url: string) => {
     try {
       const invoke = await getInvoke();
-      const connection = await invoke<Connection>('add_connection', { name, url });
+      const connection = await invoke<Connection>("add_connection", { name, url });
       await get().loadConfig();
-      
+
       set({ currentConnection: connection });
-      
+
       return connection;
     } catch (error) {
-      console.error('Failed to add connection:', error);
+      console.error("Failed to add connection:", error);
       set({ error: String(error) });
       throw error;
     }
   },
-  
+
   removeConnection: async (id: string) => {
     try {
       const invoke = await getInvoke();
-      await invoke('remove_connection', { id });
+      await invoke("remove_connection", { id });
       await get().loadConfig();
     } catch (error) {
-      console.error('Failed to remove connection:', error);
+      console.error("Failed to remove connection:", error);
       set({ error: String(error) });
       throw error;
     }
   },
-  
+
   setDefaultConnection: async (id: string) => {
     try {
       const invoke = await getInvoke();
-      await invoke('set_default_connection', { id });
+      await invoke("set_default_connection", { id });
       await get().loadConfig();
     } catch (error) {
-      console.error('Failed to set default connection:', error);
+      console.error("Failed to set default connection:", error);
       set({ error: String(error) });
       throw error;
     }
   },
-  
+
   setCurrentConnection: (connection: Connection) => {
     set({ currentConnection: connection });
   },
-  
+
   updateLastConnected: async (id: string) => {
     try {
       const invoke = await getInvoke();
-      await invoke('update_last_connected', { id });
+      await invoke("update_last_connected", { id });
     } catch (error) {
-      console.error('Failed to update last connected:', error);
+      console.error("Failed to update last connected:", error);
     }
   },
 }));

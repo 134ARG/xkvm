@@ -1,79 +1,77 @@
 import { useState, useEffect } from "react";
-import { useNativeConfig, type Connection } from "@/stores/nativeConfigStore";
+import { useNativeConfig } from "@/stores/nativeConfigStore";
 import { Button } from "@/components/Button";
 import { InputFieldWithLabel } from "@/components/InputField";
 import Card from "@/components/Card";
-import { m } from "@localizations/messages.js";
 
 export default function ConnectionSettings() {
-  const { config, addConnection, removeConnection, setDefaultConnection, loadConfig } = useNativeConfig();
+  const { config, addConnection, removeConnection, setDefaultConnection, loadConfig } =
+    useNativeConfig();
   const [isAdding, setIsAdding] = useState(false);
-  const [newConnection, setNewConnection] = useState({ name: '', url: '' });
+  const [newConnection, setNewConnection] = useState({ name: "", url: "" });
   const [errors, setErrors] = useState<{ name?: string; url?: string }>({});
-  
+
   useEffect(() => {
     loadConfig();
   }, [loadConfig]);
-  
+
   const validateUrl = (url: string): boolean => {
     try {
       const parsed = new URL(url);
-      return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+      return parsed.protocol === "https:" || parsed.protocol === "http:";
     } catch {
       return false;
     }
   };
-  
+
   const handleAdd = async () => {
     const newErrors: { name?: string; url?: string } = {};
-    
+
     if (!newConnection.name.trim()) {
-      newErrors.name = 'Name is required';
+      newErrors.name = "Name is required";
     }
-    
+
     if (!newConnection.url.trim()) {
-      newErrors.url = 'URL is required';
+      newErrors.url = "URL is required";
     } else if (!validateUrl(newConnection.url)) {
-      newErrors.url = 'Invalid URL (must start with http:// or https://)';
+      newErrors.url = "Invalid URL (must start with http:// or https://)";
     }
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-    
+
     await addConnection(newConnection.name, newConnection.url);
     setIsAdding(false);
-    setNewConnection({ name: '', url: '' });
+    setNewConnection({ name: "", url: "" });
     setErrors({});
   };
-  
+
   const handleRemove = async (id: string) => {
-    if (confirm('Are you sure you want to remove this connection?')) {
+    if (confirm("Are you sure you want to remove this connection?")) {
       await removeConnection(id);
     }
   };
-  
+
   const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'Never';
+    if (!dateStr) return "Never";
     try {
       return new Date(dateStr).toLocaleString();
     } catch {
-      return 'Never';
+      return "Never";
     }
   };
-  
+
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Backend Connections
-        </h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Backend Connections</h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Manage your XKVM backend server connections
         </p>
       </div>
-      
+
       <div className="space-y-4">
         {config?.connections.map(conn => (
           <Card key={conn.id}>
@@ -89,9 +87,7 @@ export default function ConnectionSettings() {
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                  {conn.url}
-                </p>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{conn.url}</p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Last connected: {formatDate(conn.last_connected)}
                 </p>
@@ -99,24 +95,24 @@ export default function ConnectionSettings() {
               <div className="flex gap-2">
                 {!conn.is_default && (
                   <Button
-                    variant="secondary"
+                    text="Set as Default"
+                    theme="light"
+                    size="SM"
                     onClick={() => setDefaultConnection(conn.id)}
-                  >
-                    Set as Default
-                  </Button>
+                  />
                 )}
                 <Button
-                  variant="danger"
+                  text="Remove"
+                  theme="danger"
+                  size="SM"
                   onClick={() => handleRemove(conn.id)}
                   disabled={config.connections.length === 1}
-                >
-                  Remove
-                </Button>
+                />
               </div>
             </div>
           </Card>
         ))}
-        
+
         {config?.connections.length === 0 && !isAdding && (
           <Card>
             <div className="p-8 text-center">
@@ -127,7 +123,7 @@ export default function ConnectionSettings() {
           </Card>
         )}
       </div>
-      
+
       {isAdding ? (
         <Card>
           <div className="space-y-4 p-4">
@@ -138,35 +134,33 @@ export default function ConnectionSettings() {
               label="Connection Name"
               placeholder="My XKVM Device"
               value={newConnection.name}
-              onChange={(e) => setNewConnection({ ...newConnection, name: e.target.value })}
+              onChange={e => setNewConnection({ ...newConnection, name: e.target.value })}
               error={errors.name}
             />
             <InputFieldWithLabel
               label="Backend URL"
               placeholder="https://xkvm.example.com"
               value={newConnection.url}
-              onChange={(e) => setNewConnection({ ...newConnection, url: e.target.value })}
+              onChange={e => setNewConnection({ ...newConnection, url: e.target.value })}
               error={errors.url}
             />
             <div className="flex gap-2">
-              <Button onClick={handleAdd}>Add Connection</Button>
-              <Button 
-                variant="secondary" 
+              <Button text="Add Connection" theme="primary" size="SM" onClick={handleAdd} />
+              <Button
+                text="Cancel"
+                theme="light"
+                size="SM"
                 onClick={() => {
                   setIsAdding(false);
-                  setNewConnection({ name: '', url: '' });
+                  setNewConnection({ name: "", url: "" });
                   setErrors({});
                 }}
-              >
-                Cancel
-              </Button>
+              />
             </div>
           </div>
         </Card>
       ) : (
-        <Button onClick={() => setIsAdding(true)}>
-          Add Connection
-        </Button>
+        <Button text="Add Connection" theme="primary" size="SM" onClick={() => setIsAdding(true)} />
       )}
     </div>
   );

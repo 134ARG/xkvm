@@ -1,4 +1,11 @@
 import { lazy } from "react";
+
+declare global {
+  interface Window {
+    __configReady?: boolean;
+    __configError?: unknown;
+  }
+}
 import ReactDOM from "react-dom/client";
 import {
   createBrowserRouter,
@@ -66,13 +73,13 @@ initTestHooks();
 if (isNative) {
   (async () => {
     try {
-      const { useNativeConfig } = await import('@/stores/nativeConfigStore');
+      const { useNativeConfig } = await import("@/stores/nativeConfigStore");
       await useNativeConfig.getState().loadConfig();
-      (window as any).__configReady = true;
+      window.__configReady = true;
     } catch (error) {
-      console.error('Failed to load config on startup:', error);
-      (window as any).__configReady = false;
-      (window as any).__configError = error;
+      console.error("Failed to load config on startup:", error);
+      window.__configReady = false;
+      window.__configError = error;
     }
   })();
 }
@@ -96,19 +103,19 @@ export async function checkDeviceAuth() {
   if (isNative) {
     // Wait up to 5 seconds for config to be ready
     let attempts = 0;
-    while (!(window as any).__configReady && attempts < 50) {
+    while (!window.__configReady && attempts < 50) {
       await new Promise(resolve => setTimeout(resolve, 100));
       attempts++;
     }
   }
-  
+
   const deviceAPI = getDeviceAPI();
-  
+
   // If no backend configured yet in native mode, return a special state
   if (isNative && !deviceAPI) {
     return { authMode: null, needsSetup: true };
   }
-  
+
   const res = await api
     .GET(`${deviceAPI}/device/status`)
     .then(res => res.json() as Promise<DeviceStatus>);
@@ -202,7 +209,7 @@ const getDeviceRoute = (r: Omit<RouteObject, "children" | "index">): RouteObject
       ],
     },
   ];
-  
+
   // Add connections route only for native mode
   if (isNative) {
     settingsChildren.push({
@@ -210,7 +217,7 @@ const getDeviceRoute = (r: Omit<RouteObject, "children" | "index">): RouteObject
       element: <SettingsConnectionsRoute />,
     });
   }
-  
+
   return {
     element: <DeviceRoute />,
     loader: DeviceRoute.loader,
@@ -262,7 +269,7 @@ if (isOnDevice || isNative) {
       HydrateFallback: () => <div className="p-4">{m.loading()}</div>,
     }),
   ];
-  
+
   // Add native setup route for first-run
   if (isNative) {
     routes.unshift({
@@ -270,7 +277,7 @@ if (isOnDevice || isNative) {
       element: <NativeSetupRoute />,
     });
   }
-  
+
   router = createBrowserRouter(routes);
 } else {
   const routeObjects: RouteObject[] = [

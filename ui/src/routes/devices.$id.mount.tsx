@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { LuLink, LuRadioReceiver, LuCheck, LuUpload } from "react-icons/lu";
+import { LuRadioReceiver, LuCheck, LuUpload } from "react-icons/lu";
 import { PlusCircleIcon, ExclamationTriangleIcon } from "@heroicons/react/20/solid";
 import { TrashIcon } from "@heroicons/react/16/solid";
 
@@ -126,11 +126,7 @@ export function Dialog({ onClose }: Readonly<{ onClose: () => void }>) {
         <GridCard cardClassName="relative w-full text-left pointer-events-auto">
           <div className="p-10">
             <div className="flex flex-col items-start justify-start space-y-4 text-left">
-              <img
-                src={LogoBlueIcon}
-                alt={m.xkvm_logo()}
-                className="block h-[24px] dark:hidden"
-              />
+              <img src={LogoBlueIcon} alt={m.xkvm_logo()} className="block h-[24px] dark:hidden" />
               <img
                 src={LogoWhiteIcon}
                 alt={m.xkvm_logo()}

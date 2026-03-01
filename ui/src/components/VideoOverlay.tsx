@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React from "react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import { ArrowPathIcon, ArrowRightIcon } from "@heroicons/react/16/solid";
 import { motion, AnimatePresence } from "framer-motion";
@@ -9,11 +9,11 @@ import { m } from "@localizations/messages.js";
 import { Button, LinkButton } from "@components/Button";
 import LoadingSpinner from "@components/LoadingSpinner";
 import Card, { GridCard } from "@components/Card";
-import { useRTCStore } from "@/hooks/stores";
-import LogoBlue from "@/assets/logo-blue.svg";
-import LogoWhite from "@/assets/logo-white.svg";
-import { isOnDevice } from "@/main";
-import { sleep } from "@/utils";
+// import { useRTCStore } from "@/hooks/stores";
+// import LogoBlue from "@/assets/logo-blue.svg";
+// import LogoWhite from "@/assets/logo-white.svg";
+// import { isOnDevice } from "@/main";
+// import { sleep } from "@/utils";
 
 interface OverlayContentProps {
   readonly children: React.ReactNode;

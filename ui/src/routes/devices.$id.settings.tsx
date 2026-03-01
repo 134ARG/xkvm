@@ -6,7 +6,6 @@ import {
   LuMouse,
   LuKeyboard,
   LuVideo,
-  LuCpu,
   LuShieldCheck,
   LuWrench,
   LuArrowLeft,

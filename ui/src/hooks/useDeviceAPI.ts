@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
-import { getDeviceAPI } from '@/ui.config';
-import { isNative } from '@/main';
+import { useMemo } from "react";
+import { getDeviceAPI } from "@/ui.config";
+import { isNative } from "@/main";
 
 /**
  * Hook to get the device API URL

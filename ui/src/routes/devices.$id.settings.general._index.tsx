@@ -1,10 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 
-import { JsonRpcResponse, useJsonRpc } from "@hooks/useJsonRpc";
-import { useDeviceUiNavigation } from "@hooks/useAppNavigation";
-import { useDeviceStore } from "@hooks/stores";
-import { Button } from "@components/Button";
-import Checkbox from "@components/Checkbox";
 import { SelectMenuBasic } from "@components/SelectMenuBasic";
 import { SettingsItem } from "@components/SettingsItem";
 import { SettingsPageHeader } from "@components/SettingsPageheader";
@@ -14,15 +9,15 @@ import { m } from "@localizations/messages.js";
 import { deleteCookie, map_locale_code_to_name } from "@/utils";
 
 export default function SettingsGeneralRoute() {
-  const { send } = useJsonRpc();
-  const { navigateTo } = useDeviceUiNavigation();
+  // const { send } = useJsonRpc();
+  // const { navigateTo } = useDeviceUiNavigation();
   // OTA auto-update functionality disabled
   // const [autoUpdate, setAutoUpdate] = useState(true);
-  const currentVersions = useDeviceStore(state => {
-    const { appVersion, systemVersion } = state;
-    if (!appVersion || !systemVersion) return null;
-    return { appVersion, systemVersion };
-  });
+  // const currentVersions = useDeviceStore(state => {
+  //   const { appVersion, systemVersion } = state;
+  //   if (!appVersion || !systemVersion) return null;
+  //   return { appVersion, systemVersion };
+  // });
 
   // OTA auto-update functionality disabled
   /*

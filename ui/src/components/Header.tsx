@@ -12,7 +12,7 @@ import Container from "@components/Container";
 import { LinkButton } from "@components/Button";
 import PeerConnectionStatusCard from "@components/PeerConnectionStatusCard";
 import USBStateStatus from "@components/USBStateStatus";
-import { CLOUD_API, DEVICE_API, getDeviceAPI } from "@/ui.config";
+import { CLOUD_API, getDeviceAPI } from "@/ui.config";
 import api from "@/api";
 import { isOnDevice } from "@/main";
 import { m } from "@localizations/messages.js";

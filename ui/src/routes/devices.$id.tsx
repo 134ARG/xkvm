@@ -75,12 +75,12 @@ export interface LocalDevice {
 
 const deviceLoader = async () => {
   const device = await checkAuth();
-  
+
   // Check if this is first-run (no backend configured)
-  if ('needsSetup' in device && device.needsSetup) {
+  if ("needsSetup" in device && device.needsSetup) {
     throw redirect("/setup");
   }
-  
+
   return { authMode: device.authMode } as LocalLoaderResp;
 };
 
@@ -925,7 +925,9 @@ export default function KvmIdRoute() {
 
         <div className="grid h-full grid-rows-(--grid-headerBody) select-none">
           <DashboardNavbar
-            primaryLinks={isOnDevice || isNative ? [] : [{ title: "Cloud Devices", to: "/devices" }]}
+            primaryLinks={
+              isOnDevice || isNative ? [] : [{ title: "Cloud Devices", to: "/devices" }]
+            }
             showConnectionStatus={true}
             isLoggedIn={authMode === "password" || !!user}
             userEmail={user?.email}

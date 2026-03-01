@@ -1,4 +1,4 @@
-import { useNativeConfig } from '@/stores/nativeConfigStore';
+import { useNativeConfig } from "@/stores/nativeConfigStore";
 
 const toBoolean = (value: string | undefined) => {
   if (!value) return false;
@@ -21,10 +21,10 @@ export const getDeviceAPI = (): string => {
     try {
       const state = useNativeConfig.getState();
       const url = state.currentConnection?.url || "";
-      console.log('[getDeviceAPI] Current connection URL:', url, 'State:', state);
+      console.log("[getDeviceAPI] Current connection URL:", url, "State:", state);
       return url;
     } catch (e) {
-      console.error('[getDeviceAPI] Failed to get native backend URL:', e);
+      console.error("[getDeviceAPI] Failed to get native backend URL:", e);
       return "";
     }
   }
@@ -33,4 +33,3 @@ export const getDeviceAPI = (): string => {
 
 // Legacy export for compatibility - but prefer using getDeviceAPI()
 export const DEVICE_API = "";
-

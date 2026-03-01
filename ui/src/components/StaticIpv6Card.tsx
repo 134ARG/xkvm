@@ -3,7 +3,7 @@ import { NetworkSettings } from "@hooks/stores";
 import { m } from "@localizations/messages.js";
 
 interface StaticIpv6CardProps {
-  ipv6Static?: NetworkSettings['ipv6_static'];
+  ipv6Static?: NetworkSettings["ipv6_static"];
 }
 
 export default function StaticIpv6Card({ ipv6Static }: StaticIpv6CardProps) {
@@ -14,7 +14,7 @@ export default function StaticIpv6Card({ ipv6Static }: StaticIpv6CardProps) {
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
             {m.network_static_ipv6_header()}
           </h3>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
             No static IPv6 configuration available
           </p>
         </div>
@@ -30,33 +30,37 @@ export default function StaticIpv6Card({ ipv6Static }: StaticIpv6CardProps) {
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
               {m.network_static_ipv6_header()}
             </h3>
-            <div className="text-xs text-slate-500 dark:text-slate-400">
-              Read-only
-            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">Read-only</div>
           </div>
 
           <div className="space-y-3 text-sm">
             {ipv6Static.prefix && (
               <div>
-                <span className="text-slate-600 dark:text-slate-400">{m.network_ipv6_prefix()}:</span>
+                <span className="text-slate-600 dark:text-slate-400">
+                  {m.network_ipv6_prefix()}:
+                </span>
                 <span className="ml-2 font-mono">{ipv6Static.prefix}</span>
               </div>
             )}
-            
+
             {ipv6Static.gateway && (
               <div>
-                <span className="text-slate-600 dark:text-slate-400">{m.network_ipv6_gateway()}:</span>
+                <span className="text-slate-600 dark:text-slate-400">
+                  {m.network_ipv6_gateway()}:
+                </span>
                 <span className="ml-2 font-mono">{ipv6Static.gateway}</span>
               </div>
             )}
-            
+
             {ipv6Static.dns && ipv6Static.dns.length > 0 && (
               <div>
                 <span className="text-slate-600 dark:text-slate-400">{m.network_ipv6_dns()}:</span>
                 <div className="ml-2 font-mono">
-                  {ipv6Static.dns.filter(dns => dns && dns.trim() !== '').map((dns, index) => (
-                    <div key={index}>{dns}</div>
-                  ))}
+                  {ipv6Static.dns
+                    .filter(dns => dns && dns.trim() !== "")
+                    .map((dns, index) => (
+                      <div key={index}>{dns}</div>
+                    ))}
                 </div>
               </div>
             )}
