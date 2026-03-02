@@ -124,6 +124,10 @@ export default function SettingsVideoRoute() {
 
       notifications.success(m.video_codec_set_success({ codec: codec === 1 ? "H.265" : "H.264" }));
       setVideoCodec(codec);
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000); // 1s delay
     });
   };
 
