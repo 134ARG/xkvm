@@ -2,7 +2,28 @@
 
 This document summarizes the major changes made to XKVM during its evolution from the original JetKVM embedded system to a full Linux-based KVM-over-IP solution.
 
-## Recent Updates
+## Version 0.1.1 (2026-03-02)
+
+### Bug Fixes
+- Fixed missing connection config in native mode
+- Fixed UI lint problems
+- Added page reload after codec switch to ensure proper video stream restart
+- Fixed pending H.265 startup issues
+
+### Native Desktop App (Tauri)
+- Added experimental Tauri-based native desktop application
+- Changed Windows build target from MSVC to GNU toolchain for better compatibility
+- Moved configuration to application directory for better cross-platform support
+
+### Video System
+- Changed pixel format to UYUV for improved color accuracy
+- Added experimental CBR (Constant Bitrate) mode support in backend (not yet exposed in UI)
+
+### Development
+- Added version bump automation script (`scripts/bump_version.sh`)
+- Improved build tooling and cross-platform support
+
+## JetKVM to XKVM Updates
 
 ### Video Codec Selection (H.265 Support)
 Added support for H.265 (HEVC) video encoding alongside the existing H.264 (AVC) codec. Users can now select their preferred codec from the video settings page.
