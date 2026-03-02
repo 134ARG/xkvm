@@ -7,40 +7,58 @@ import (
 	"go.bug.st/serial"
 )
 
-const serialPortPath = "/dev/ttyS3"
+// const serialPortPath = "/dev/ttyS3"
 
 var port serial.Port
-
-func mountATXControl() error {
-	// ATX control disabled - stub implementation for future custom logic
-	serialLogger.Info().Msg("ATX control mounted (stub implementation)")
-	return nil
-}
-
-func unmountATXControl() error {
-	// ATX control disabled - stub implementation
-	serialLogger.Info().Msg("ATX control unmounted (stub implementation)")
-	return nil
-}
 
 var (
 	ledHDDState bool
 	ledPWRState bool
-	btnRSTState bool
-	btnPWRState bool
+	// btnRSTState bool
+	// btnPWRState bool
+	atxStopChan chan struct{}
 )
 
-func runATXControl() {
-	// ATX control disabled - stub implementation for future custom logic
-	scopedLogger := serialLogger.With().Str("service", "atx_control").Logger()
-	scopedLogger.Info().Msg("ATX control service started (stub implementation)")
+func mountATXControl() error {
+	serialLogger.Info().Msg("ATX control mounting")
+	atxStopChan = make(chan struct{})
+	go runATXControl()
+	return nil
+}
 
-	// Future custom ATX control logic can be implemented here
-	// For now, just maintain default states
+func unmountATXControl() error {
+	serialLogger.Info().Msg("ATX control unmounting")
+	if atxStopChan != nil {
+		close(atxStopChan)
+		atxStopChan = nil
+	}
+	return nil
+}
+
+func runATXControl() {
+	scopedLogger := serialLogger.With().Str("service", "atx_control").Logger()
+	scopedLogger.Info().Msg("ATX control polling started")
+
+	// Initialize default states
 	ledHDDState = false
 	ledPWRState = false
-	btnRSTState = false
-	btnPWRState = false
+	// btnRSTState = false
+	// btnPWRState = false
+
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-atxStopChan:
+			scopedLogger.Info().Msg("ATX control polling stopped")
+			return
+		case <-ticker.C:
+			// TODO: Read actual LED states from hardware
+			// ledPWRState = readPWRLed()
+			// ledHDDState = readHDDLed()
+		}
+	}
 }
 
 func pressATXPowerButton(duration time.Duration) error {
@@ -55,33 +73,53 @@ func pressATXResetButton(duration time.Duration) error {
 	return nil
 }
 
+var dcStopChan chan struct{}
+var dcState DCPowerState
+
 func mountDCControl() error {
-	// DC control disabled - stub implementation for future custom logic
-	serialLogger.Info().Msg("DC control mounted (stub implementation)")
+	serialLogger.Info().Msg("DC control mounting")
+	dcStopChan = make(chan struct{})
+	go runDCControl()
 	return nil
 }
 
 func unmountDCControl() error {
-	// DC control disabled - stub implementation
-	serialLogger.Info().Msg("DC control unmounted (stub implementation)")
+	serialLogger.Info().Msg("DC control unmounting")
+	if dcStopChan != nil {
+		close(dcStopChan)
+		dcStopChan = nil
+	}
 	return nil
 }
 
-var dcState DCPowerState
-
 func runDCControl() {
-	// DC control disabled - stub implementation for future custom logic
 	scopedLogger := serialLogger.With().Str("service", "dc_control").Logger()
-	scopedLogger.Info().Msg("DC control service started (stub implementation)")
+	scopedLogger.Info().Msg("DC control polling started")
 
-	// Future custom DC control logic can be implemented here
-	// For now, initialize with default state
+	// Initialize default state
 	dcState = DCPowerState{
 		IsOn:         false,
 		Voltage:      0.0,
 		Current:      0.0,
 		Power:        0.0,
 		RestoreState: -1, // Not supported
+	}
+
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-dcStopChan:
+			scopedLogger.Info().Msg("DC control polling stopped")
+			return
+		case <-ticker.C:
+			// TODO: Read actual DC state from hardware
+			// dcState.IsOn = readDCPowerState()
+			// dcState.Voltage = readDCVoltage()
+			// dcState.Current = readDCCurrent()
+			// dcState.Power = dcState.Voltage * dcState.Current
+		}
 	}
 }
 
@@ -117,11 +155,11 @@ func initSerialPort() {
 	}
 }
 
-func reopenSerialPort() error {
-	// Serial port control disabled - stub implementation
-	serialLogger.Info().Msg("Serial port reopen requested (stub implementation)")
-	return nil
-}
+// func reopenSerialPort() error {
+// 	// Serial port control disabled - stub implementation
+// 	serialLogger.Info().Msg("Serial port reopen requested (stub implementation)")
+// 	return nil
+// }
 
 func handleSerialChannel(d *webrtc.DataChannel) {
 	// Serial channel handling disabled - stub implementation for future custom logic

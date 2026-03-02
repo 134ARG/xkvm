@@ -263,7 +263,11 @@ func (u *UsbGadget) Cleanup() error {
 	if err != nil {
 		u.log.Warn().Err(err).Msg("failed to acquire lock for cleanup, proceeding anyway")
 	} else {
-		defer u.ReleaseLock(lockFile)
+		defer func() {
+			if err := u.ReleaseLock(lockFile); err != nil {
+				u.log.Warn().Err(err).Msg("failed to release lock")
+			}
+		}()
 	}
 
 	// Perform cleanup

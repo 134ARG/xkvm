@@ -182,7 +182,11 @@ func (u *UsbGadget) Init() error {
 	if err != nil {
 		u.log.Warn().Err(err).Msg("failed to acquire lock, proceeding without lock")
 	} else {
-		defer u.ReleaseLock(lockFile)
+		defer func() {
+			if err := u.ReleaseLock(lockFile); err != nil {
+				u.log.Warn().Err(err).Msg("failed to release lock")
+			}
+		}()
 	}
 
 	// Clean up any stale USB gadget state from previous runs

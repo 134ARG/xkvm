@@ -8,6 +8,6 @@ const (
 	// AfInet6 is the IPv6 address family constant
 	AfInet6 = 10
 
-	sysctlBase     = "/proc/sys"
-	sysctlFileMode = 0640
+	// sysctlBase     = "/proc/sys"
+	// sysctlFileMode = 0640
 )

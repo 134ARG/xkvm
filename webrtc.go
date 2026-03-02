@@ -272,10 +272,20 @@ func newSession(config SessionConfig) (*Session, error) {
 		}
 
 		if config.LocalIP == "" || net.ParseIP(config.LocalIP) == nil {
-			scopedLogger.Info().Str("localIP", config.LocalIP).Msg("Local IP address not provided or invalid, won't set NAT1To1IPs")
+			scopedLogger.Info().Str("localIP", config.LocalIP).Msg("Local IP address not provided or invalid, won't set ICE address rewrite rules")
 		} else {
-			webrtcSettingEngine.SetNAT1To1IPs([]string{config.LocalIP}, webrtc.ICECandidateTypeSrflx)
-			scopedLogger.Info().Str("localIP", config.LocalIP).Msg("Setting NAT1To1IPs")
+			err := webrtcSettingEngine.SetICEAddressRewriteRules(
+				webrtc.ICEAddressRewriteRule{
+					External:        []string{config.LocalIP},
+					AsCandidateType: webrtc.ICECandidateTypeSrflx,
+					Mode:            webrtc.ICEAddressRewriteAppend,
+				},
+			)
+			if err != nil {
+				scopedLogger.Warn().Err(err).Msg("Failed to set ICE address rewrite rules")
+			} else {
+				scopedLogger.Info().Str("localIP", config.LocalIP).Msg("Setting ICE address rewrite rules")
+			}
 		}
 	}
 

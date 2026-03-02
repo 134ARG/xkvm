@@ -1,7 +1,6 @@
 package kvm
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,7 +12,7 @@ import (
 	"github.com/gwatts/rootcerts"
 )
 
-var appCtx context.Context
+// var appCtx context.Context
 var procPrefix string = "xkvm: [app]"
 
 func setProcTitle(status string) {
@@ -36,10 +35,6 @@ func Main() {
 	}
 
 	LoadConfig()
-
-	var cancel context.CancelFunc
-	appCtx, cancel = context.WithCancel(context.Background())
-	defer cancel()
 
 	systemVersionLocal, appVersionLocal, err := GetLocalVersion()
 	if err != nil {

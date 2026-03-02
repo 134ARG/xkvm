@@ -523,7 +523,6 @@ func sendErrorJsonThenAbort(c *gin.Context, status int, message string) {
 
 func basicAuthProtectedMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		if config.LocalAuthMode == "noPassword" {
 			sendErrorJsonThenAbort(c, http.StatusForbidden, "The resource is not available in noPassword mode")
 			return

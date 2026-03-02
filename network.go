@@ -162,12 +162,12 @@ func initPublicIPState() {
 	publicIPState = ps
 }
 
-func setHostname(nm *nmlite.NetworkManager, hostname, domain string) error {
-	// Hostname setting disabled on full Linux systems
-	// Hostname management should be handled by the OS
-	networkLogger.Info().Str("hostname", hostname).Str("domain", domain).Msg("hostname setting disabled - use OS hostname management")
-	return fmt.Errorf("hostname setting is disabled - use OS hostname management tools (hostnamectl, etc.)")
-}
+// func setHostname(nm *nmlite.NetworkManager, hostname, domain string) error {
+// 	// Hostname setting disabled on full Linux systems
+// 	// Hostname management should be handled by the OS
+// 	networkLogger.Info().Str("hostname", hostname).Str("domain", domain).Msg("hostname setting disabled - use OS hostname management")
+// 	return fmt.Errorf("hostname setting is disabled - use OS hostname management tools (hostnamectl, etc.)")
+// }
 
 func rpcGetNetworkState() *types.RpcInterfaceState {
 	state, _ := networkManager.GetInterfaceState(NetIfName)
@@ -201,12 +201,12 @@ func rpcRenewDHCPLease() error {
 	return fmt.Errorf("DHCP lease renewal is read-only - use OS DHCP client (dhclient, NetworkManager, etc.)")
 }
 
-func rpcToggleDHCPClient() error {
-	// DHCP client switching is read-only on full Linux systems
-	// DHCP client management should be handled by the OS
-	networkLogger.Warn().Msg("DHCP client switching is disabled - use OS network management")
-	return fmt.Errorf("DHCP client switching is read-only - use OS network management tools")
-}
+// func rpcToggleDHCPClient() error {
+// 	// DHCP client switching is read-only on full Linux systems
+// 	// DHCP client management should be handled by the OS
+// 	networkLogger.Warn().Msg("DHCP client switching is disabled - use OS network management")
+// 	return fmt.Errorf("DHCP client switching is read-only - use OS network management tools")
+// }
 
 func rpcGetPublicIPAddresses(refresh bool) ([]myip.PublicIP, error) {
 	// Return local IP addresses from network interface instead of external services

@@ -118,7 +118,11 @@ func (u *UsbGadget) attemptRecovery() error {
 	if err != nil {
 		u.log.Warn().Err(err).Msg("failed to acquire lock for recovery, proceeding anyway")
 	} else {
-		defer u.ReleaseLock(lockFile)
+		defer func() {
+			if err := u.ReleaseLock(lockFile); err != nil {
+				u.log.Warn().Err(err).Msg("failed to release lock")
+			}
+		}()
 	}
 
 	// Check if we just need to rebind the UDC

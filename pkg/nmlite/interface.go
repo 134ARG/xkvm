@@ -367,22 +367,22 @@ func (im *InterfaceManager) monitorInterfaceState() {
 	}
 }
 
-// updateStateFromDHCPLease updates the state from a DHCP lease
-func (im *InterfaceManager) updateStateFromDHCPLease(lease *types.DHCPLease) {
-	family := link.AfInet
+// // updateStateFromDHCPLease updates the state from a DHCP lease
+// func (im *InterfaceManager) updateStateFromDHCPLease(lease *types.DHCPLease) {
+// 	family := link.AfInet
 
-	im.stateMu.Lock()
-	if lease.IsIPv6() {
-		im.state.DHCPLease6 = lease
-		family = link.AfInet6
-	} else {
-		im.state.DHCPLease4 = lease
-	}
-	im.stateMu.Unlock()
+// 	im.stateMu.Lock()
+// 	if lease.IsIPv6() {
+// 		im.state.DHCPLease6 = lease
+// 		family = link.AfInet6
+// 	} else {
+// 		im.state.DHCPLease4 = lease
+// 	}
+// 	im.stateMu.Unlock()
 
-	// Read-only mode: don't update resolv.conf
-	im.logger.Debug().
-		Int("family", family).
-		Str("ip", lease.IPAddress.String()).
-		Msg("DHCP lease updated in state (read-only mode)")
-}
+// 	// Read-only mode: don't update resolv.conf
+// 	im.logger.Debug().
+// 		Int("family", family).
+// 		Str("ip", lease.IPAddress.String()).
+// 		Msg("DHCP lease updated in state (read-only mode)")
+// }

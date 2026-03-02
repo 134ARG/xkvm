@@ -3,92 +3,86 @@ package myip
 import (
 	"context"
 	"fmt"
-	"io"
-	"net"
-	"net/http"
-	"net/url"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/134ARG/xkvm/pkg/nmlite/link"
 )
 
-func (ps *PublicIPState) request(ctx context.Context, url string, family int) ([]byte, error) {
-	client := ps.httpClient(family)
+// func (ps *PublicIPState) request(ctx context.Context, url string, family int) ([]byte, error) {
+// 	client := ps.httpClient(family)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("error creating request: %w", err)
-	}
+// 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("error creating request: %w", err)
+// 	}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error sending request: %w", err)
-	}
-	defer resp.Body.Close()
+// 	resp, err := client.Do(req)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("error sending request: %w", err)
+// 	}
+// 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
+// 	if resp.StatusCode != http.StatusOK {
+// 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+// 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %w", err)
-	}
+// 	body, err := io.ReadAll(resp.Body)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("error reading response body: %w", err)
+// 	}
 
-	return body, err
-}
+// 	return body, err
+// }
 
-// checkCloudflare uses cdn-cgi/trace to get the public IP address
-func (ps *PublicIPState) checkCloudflare(ctx context.Context, family int) (*PublicIP, error) {
-	u, err := url.JoinPath(ps.cloudflareEndpoint, "/cdn-cgi/trace")
-	if err != nil {
-		return nil, fmt.Errorf("error joining path: %w", err)
-	}
+// // checkCloudflare uses cdn-cgi/trace to get the public IP address
+// func (ps *PublicIPState) checkCloudflare(ctx context.Context, family int) (*PublicIP, error) {
+// 	u, err := url.JoinPath(ps.cloudflareEndpoint, "/cdn-cgi/trace")
+// 	if err != nil {
+// 		return nil, fmt.Errorf("error joining path: %w", err)
+// 	}
 
-	body, err := ps.request(ctx, u, family)
-	if err != nil {
-		return nil, err
-	}
+// 	body, err := ps.request(ctx, u, family)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	values := make(map[string]string)
-	for line := range strings.SplitSeq(string(body), "\n") {
-		key, value, ok := strings.Cut(line, "=")
-		if !ok {
-			continue
-		}
-		values[key] = value
-	}
+// 	values := make(map[string]string)
+// 	for line := range strings.SplitSeq(string(body), "\n") {
+// 		key, value, ok := strings.Cut(line, "=")
+// 		if !ok {
+// 			continue
+// 		}
+// 		values[key] = value
+// 	}
 
-	ps.lastUpdated = time.Now()
-	if ts, ok := values["ts"]; ok {
-		if ts, err := strconv.ParseFloat(ts, 64); err == nil {
-			ps.lastUpdated = time.Unix(int64(ts), 0)
-		}
-	}
+// 	ps.lastUpdated = time.Now()
+// 	if ts, ok := values["ts"]; ok {
+// 		if ts, err := strconv.ParseFloat(ts, 64); err == nil {
+// 			ps.lastUpdated = time.Unix(int64(ts), 0)
+// 		}
+// 	}
 
-	ipStr, ok := values["ip"]
-	if !ok {
-		return nil, fmt.Errorf("no IP address found")
-	}
+// 	ipStr, ok := values["ip"]
+// 	if !ok {
+// 		return nil, fmt.Errorf("no IP address found")
+// 	}
 
-	ip := net.ParseIP(ipStr)
-	if ip == nil {
-		return nil, fmt.Errorf("invalid IP address: %s", ipStr)
-	}
+// 	ip := net.ParseIP(ipStr)
+// 	if ip == nil {
+// 		return nil, fmt.Errorf("invalid IP address: %s", ipStr)
+// 	}
 
-	return &PublicIP{
-		IPAddress:   ip,
-		LastUpdated: ps.lastUpdated,
-	}, nil
-}
+// 	return &PublicIP{
+// 		IPAddress:   ip,
+// 		LastUpdated: ps.lastUpdated,
+// 	}, nil
+// }
 
-// checkAPI uses the API endpoint to get the public IP address
-func (ps *PublicIPState) checkAPI(_ context.Context, _ int) (*PublicIP, error) {
-	return nil, fmt.Errorf("not implemented")
-}
+// // checkAPI uses the API endpoint to get the public IP address
+// func (ps *PublicIPState) checkAPI(_ context.Context, _ int) (*PublicIP, error) {
+// 	return nil, fmt.Errorf("not implemented")
+// }
 
 // checkIPs checks both IPv4 and IPv6 public IP addresses in parallel
 // and updates the IPAddresses slice with the results

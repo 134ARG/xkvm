@@ -226,17 +226,17 @@ func rpcSetVideoCodec(codec int32) error {
 	return nil
 }
 
-func rpcGetAutoUpdateState() (bool, error) {
-	return config.AutoUpdateEnabled, nil
-}
+// func rpcGetAutoUpdateState() (bool, error) {
+// 	return config.AutoUpdateEnabled, nil
+// }
 
-func rpcSetAutoUpdateState(enabled bool) (bool, error) {
-	config.AutoUpdateEnabled = enabled
-	if err := SaveConfig(); err != nil {
-		return config.AutoUpdateEnabled, fmt.Errorf("failed to save config: %w", err)
-	}
-	return enabled, nil
-}
+// func rpcSetAutoUpdateState(enabled bool) (bool, error) {
+// 	config.AutoUpdateEnabled = enabled
+// 	if err := SaveConfig(); err != nil {
+// 		return config.AutoUpdateEnabled, fmt.Errorf("failed to save config: %w", err)
+// 	}
+// 	return enabled, nil
+// }
 
 func rpcGetEDID() (string, error) {
 	resp, err := nativeInstance.VideoGetEDID()
