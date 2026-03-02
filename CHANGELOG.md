@@ -2,6 +2,11 @@
 
 This document summarizes the major changes made to XKVM during its evolution from the original JetKVM embedded system to a full Linux-based KVM-over-IP solution.
 
+## Version 0.1.2 (2026-03-02)
+
+### UI
+- Updated application icon
+
 ## Version 0.1.1 (2026-03-02)
 
 ### Bug Fixes
