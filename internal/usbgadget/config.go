@@ -42,7 +42,7 @@ var defaultGadgetConfig = map[string]gadgetConfigItem{
 		path:       []string{"strings", "0x409"},
 		configPath: []string{"strings", "0x409"},
 		attrs: gadgetAttributes{
-			"serialnumber": "",
+			"serialnumber": "0123456789",
 			"manufacturer": "XKVM",
 			"product":      "XKVM USB Emulation Device",
 		},
@@ -168,6 +168,12 @@ func (u *UsbGadget) Init() error {
 	u.configLock.Lock()
 	defer u.configLock.Unlock()
 
+	if u.IsInitialized() {
+		if err := u.cleanupStaleGadget(); err != nil {
+			u.log.Warn().Err(err).Msg("failed to cleanup stale gadget, continuing with init")
+		}
+	}
+
 	u.loadGadgetConfig()
 
 	udcs := getUdcs()
@@ -177,28 +183,7 @@ func (u *UsbGadget) Init() error {
 
 	u.udc = udcs[0]
 
-	// Acquire lock to prevent concurrent initialization
-	lockFile, err := u.AcquireLock()
-	if err != nil {
-		u.log.Warn().Err(err).Msg("failed to acquire lock, proceeding without lock")
-	} else {
-		defer func() {
-			if err := u.ReleaseLock(lockFile); err != nil {
-				u.log.Warn().Err(err).Msg("failed to release lock")
-			}
-		}()
-	}
-
-	// Clean up any stale USB gadget state from previous runs
-	if err := u.cleanupStaleGadget(); err != nil {
-		u.log.Warn().Err(err).Msg("failed to cleanup stale gadget, continuing anyway")
-	}
-
-	// Use retry logic for initialization
-	err = u.RetryWithBackoff("usb_gadget_init", func() error {
-		return u.configureUsbGadget(false)
-	})
-
+	err := u.configureUsbGadget(false)
 	if err != nil {
 		return u.logError("unable to initialize USB stack", err)
 	}
@@ -212,27 +197,7 @@ func (u *UsbGadget) UpdateGadgetConfig() error {
 
 	u.loadGadgetConfig()
 
-	// Validate state before updating
-	if err := u.ValidateState(); err != nil {
-		u.log.Warn().Err(err).Msg("invalid state detected, attempting recovery")
-
-		// Try to recover by reinitializing
-		if err := u.cleanupStaleGadget(); err != nil {
-			return fmt.Errorf("failed to cleanup for recovery: %w", err)
-		}
-
-		// Reinitialize without lock (we already have it)
-		if err := u.configureUsbGadget(false); err != nil {
-			return fmt.Errorf("failed to reinitialize after recovery: %w", err)
-		}
-
-		u.log.Info().Msg("successfully recovered USB gadget state")
-	}
-
-	err := u.RetryWithBackoff("update_gadget_config", func() error {
-		return u.configureUsbGadget(true)
-	})
-
+	err := u.configureUsbGadget(true)
 	if err != nil {
 		return u.logError("unable to update gadget config", err)
 	}
@@ -246,70 +211,9 @@ func (u *UsbGadget) configureUsbGadget(resetUsb bool) error {
 		u.tx.CreateConfigPath()
 		u.tx.WriteGadgetConfig()
 		if resetUsb {
-			// Suspend HID operations before rebinding
-			u.SuspendHidOperations()
-
-			// Close HID files before rebinding USB
-			u.CloseHidFiles()
-
+			// u.CloseHidFiles()
 			u.tx.RebindUsb(true)
 		}
 		return nil
 	})
-}
-
-// ReopenKeyboardHidFile reopens the keyboard HID file after USB reconfiguration
-func (u *UsbGadget) ReopenKeyboardHidFile() error {
-	u.log.Debug().Msg("reopening keyboard HID file after USB reconfiguration")
-	err := u.openKeyboardHidFileWithRetry()
-	if err != nil {
-		u.log.Warn().Err(err).Msg("failed to reopen keyboard HID file")
-		return err
-	}
-	u.log.Info().Msg("keyboard HID file reopened successfully")
-	return nil
-}
-
-// ReopenAllHidFiles reopens all HID files after USB reconfiguration
-func (u *UsbGadget) ReopenAllHidFiles() error {
-	var errors []error
-
-	// Reopen keyboard HID file
-	if u.enabledDevices.Keyboard {
-		u.log.Debug().Msg("reopening keyboard HID file after USB reconfiguration")
-		if err := u.openKeyboardHidFileWithRetry(); err != nil {
-			u.log.Warn().Err(err).Msg("failed to reopen keyboard HID file")
-			errors = append(errors, fmt.Errorf("keyboard: %w", err))
-		} else {
-			u.log.Info().Msg("keyboard HID file reopened successfully")
-		}
-	}
-
-	// Reopen absolute mouse HID file
-	if u.enabledDevices.AbsoluteMouse {
-		u.log.Debug().Msg("reopening absolute mouse HID file after USB reconfiguration")
-		if err := u.openAbsMouseHidFileWithRetry(); err != nil {
-			u.log.Warn().Err(err).Msg("failed to reopen absolute mouse HID file")
-			errors = append(errors, fmt.Errorf("absolute mouse: %w", err))
-		} else {
-			u.log.Info().Msg("absolute mouse HID file reopened successfully")
-		}
-	}
-
-	// Reopen relative mouse HID file
-	if u.enabledDevices.RelativeMouse {
-		u.log.Debug().Msg("reopening relative mouse HID file after USB reconfiguration")
-		if err := u.openRelMouseHidFileWithRetry(); err != nil {
-			u.log.Warn().Err(err).Msg("failed to reopen relative mouse HID file")
-			errors = append(errors, fmt.Errorf("relative mouse: %w", err))
-		} else {
-			u.log.Info().Msg("relative mouse HID file reopened successfully")
-		}
-	}
-
-	if len(errors) > 0 {
-		return fmt.Errorf("failed to reopen some HID files: %v", errors)
-	}
-
-	return nil
 }

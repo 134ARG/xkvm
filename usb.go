@@ -1,7 +1,6 @@
 package kvm
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -29,8 +28,6 @@ func initUsbGadget() {
 	}
 
 	// Start health check monitoring
-	ctx := context.Background()
-	gadget.StartHealthCheck(ctx)
 
 	go func() {
 		for {

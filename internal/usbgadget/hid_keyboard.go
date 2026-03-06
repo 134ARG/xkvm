@@ -57,10 +57,10 @@ var keyboardReportDesc = []byte{
 	0x95, 0x06, /*   REPORT_COUNT (6)                     */
 	0x75, 0x08, /*   REPORT_SIZE (8)                      */
 	0x15, 0x00, /*   LOGICAL_MINIMUM (0)                  */
-	0x25, 0xff, /*   LOGICAL_MAXIMUM (255)                */
+	0x26, 0xff, 0x00, /*   LOGICAL_MAXIMUM (255)                */
 	0x05, 0x07, /*   USAGE_PAGE (Keyboard)                */
 	0x19, 0x00, /*   USAGE_MINIMUM (Reserved)             */
-	0x29, 0xff, /*   USAGE_MAXIMUM (Keyboard Application) */
+	0x2a, 0xff, 0x00, /*   USAGE_MAXIMUM (Keyboard Application) */
 	0x81, 0x00, /*   INPUT (Data,Ary,Abs)                 */
 	0xc0, /* END_COLLECTION                         */
 }
@@ -270,11 +270,6 @@ func (u *UsbGadget) listenKeyboardEvents() {
 
 				n, err := u.keyboardHidFile.Read(buf)
 				if err != nil {
-					// Check if file was closed intentionally (during USB reconfiguration)
-					if u.keyboardHidFile == nil {
-						l.Debug().Msg("keyboard HID file closed, stopping listener")
-						return
-					}
 					u.logWithSuppression("keyboardHidFileRead", 100, &l, err, "failed to read")
 					continue
 				}
@@ -312,36 +307,13 @@ func (u *UsbGadget) openKeyboardHidFile() error {
 	return nil
 }
 
-func (u *UsbGadget) openKeyboardHidFileWithRetry() error {
-	maxRetries := 5
-	for i := 0; i < maxRetries; i++ {
-		err := u.openKeyboardHidFile()
-		if err == nil {
-			u.log.Debug().Int("attempt", i+1).Msg("successfully opened keyboard HID file")
-			return nil
-		}
-
-		if i < maxRetries-1 {
-			backoff := time.Duration(50*(1<<uint(i))) * time.Millisecond
-			u.log.Debug().Err(err).Dur("backoff", backoff).Int("attempt", i+1).Msg("retrying keyboard HID file open")
-			time.Sleep(backoff)
-		}
-	}
-	return fmt.Errorf("failed to open keyboard HID file after %d retries", maxRetries)
-}
-
 func (u *UsbGadget) OpenKeyboardHidFile() error {
-	return u.openKeyboardHidFileWithRetry()
+	return u.openKeyboardHidFile()
 }
 
 var keyboardWriteHidFileLock sync.Mutex
 
 func (u *UsbGadget) keyboardWriteHidFile(modifier byte, keys []byte) error {
-	// Check if HID operations are suspended
-	if u.IsHidSuspended() {
-		return fmt.Errorf("HID operations suspended during USB reconfiguration")
-	}
-
 	keyboardWriteHidFileLock.Lock()
 	defer keyboardWriteHidFileLock.Unlock()
 	if err := u.openKeyboardHidFile(); err != nil {

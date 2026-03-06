@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
-	"syscall"
-	"time"
 )
 
-const lockFilePath = "/var/lock/xkvm-usb.lock"
-const lockTimeout = 10 * time.Second
+// const lockFilePath = "/var/lock/xkvm-usb.lock"
+// const lockTimeout = 10 * time.Second
 
 // cleanupStaleGadget removes any leftover USB gadget configuration from previous runs
 func (u *UsbGadget) cleanupStaleGadget() error {
@@ -31,7 +28,7 @@ func (u *UsbGadget) cleanupStaleGadget() error {
 	}
 
 	// Try to unbind UDC if it's bound
-	if err := u.unbindUDCIfBound(); err != nil {
+	if err := u.UnbindUDC(); err != nil {
 		u.log.Warn().Err(err).Msg("failed to unbind UDC during cleanup")
 		// Continue anyway, as the UDC might not be bound
 	}
@@ -67,35 +64,35 @@ func (u *UsbGadget) cleanupStaleGadget() error {
 	return nil
 }
 
-// unbindUDCIfBound attempts to unbind the UDC if it's currently bound
-func (u *UsbGadget) unbindUDCIfBound() error {
-	if u.udc == "" {
-		return nil
-	}
+// // unbindUDCIfBound attempts to unbind the UDC if it's currently bound
+// func (u *UsbGadget) unbindUDCIfBound() error {
+// 	if u.udc == "" {
+// 		return nil
+// 	}
 
-	// Check if UDC file exists and has content
-	udcFilePath := filepath.Join(u.kvmGadgetPath, "UDC")
-	content, err := os.ReadFile(udcFilePath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil // UDC file doesn't exist, nothing to unbind
-		}
-		return fmt.Errorf("failed to read UDC file: %w", err)
-	}
+// 	// Check if UDC file exists and has content
+// 	udcFilePath := filepath.Join(u.kvmGadgetPath, "UDC")
+// 	content, err := os.ReadFile(udcFilePath)
+// 	if err != nil {
+// 		if os.IsNotExist(err) {
+// 			return nil // UDC file doesn't exist, nothing to unbind
+// 		}
+// 		return fmt.Errorf("failed to read UDC file: %w", err)
+// 	}
 
-	// If UDC is bound (file has content), unbind it
-	if len(strings.TrimSpace(string(content))) > 0 {
-		u.log.Info().Str("udc", u.udc).Msg("unbinding UDC during cleanup")
-		// Write empty string to unbind
-		if err := os.WriteFile(udcFilePath, []byte("\n"), 0644); err != nil {
-			return fmt.Errorf("failed to unbind UDC: %w", err)
-		}
-		// Give it a moment to unbind
-		time.Sleep(100 * time.Millisecond)
-	}
+// 	// If UDC is bound (file has content), unbind it
+// 	if len(strings.TrimSpace(string(content))) > 0 {
+// 		u.log.Info().Str("udc", u.udc).Msg("unbinding UDC during cleanup")
+// 		// Write empty string to unbind
+// 		if err := os.WriteFile(udcFilePath, []byte("\n"), 0644); err != nil {
+// 			return fmt.Errorf("failed to unbind UDC: %w", err)
+// 		}
+// 		// Give it a moment to unbind
+// 		time.Sleep(100 * time.Millisecond)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // removeConfigSymlinks removes all symlinks in the config directory
 func (u *UsbGadget) removeConfigSymlinks() error {
@@ -162,54 +159,54 @@ func (u *UsbGadget) removeFunctionDirs() error {
 	return nil
 }
 
-// AcquireLock acquires a file lock to prevent concurrent USB gadget operations
-func (u *UsbGadget) AcquireLock() (*os.File, error) {
-	// Ensure lock directory exists
-	lockDir := filepath.Dir(lockFilePath)
-	if err := os.MkdirAll(lockDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create lock directory: %w", err)
-	}
+// // AcquireLock acquires a file lock to prevent concurrent USB gadget operations
+// func (u *UsbGadget) AcquireLock() (*os.File, error) {
+// 	// Ensure lock directory exists
+// 	lockDir := filepath.Dir(lockFilePath)
+// 	if err := os.MkdirAll(lockDir, 0755); err != nil {
+// 		return nil, fmt.Errorf("failed to create lock directory: %w", err)
+// 	}
 
-	// Open or create lock file
-	lockFile, err := os.OpenFile(lockFilePath, os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open lock file: %w", err)
-	}
+// 	// Open or create lock file
+// 	lockFile, err := os.OpenFile(lockFilePath, os.O_CREATE|os.O_RDWR, 0644)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to open lock file: %w", err)
+// 	}
 
-	// Try to acquire lock with timeout
-	deadline := time.Now().Add(lockTimeout)
-	for {
-		err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
-		if err == nil {
-			u.log.Debug().Msg("acquired USB gadget lock")
-			return lockFile, nil
-		}
+// 	// Try to acquire lock with timeout
+// 	deadline := time.Now().Add(lockTimeout)
+// 	for {
+// 		err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
+// 		if err == nil {
+// 			u.log.Debug().Msg("acquired USB gadget lock")
+// 			return lockFile, nil
+// 		}
 
-		if time.Now().After(deadline) {
-			lockFile.Close()
-			return nil, fmt.Errorf("timeout acquiring USB gadget lock after %v", lockTimeout)
-		}
+// 		if time.Now().After(deadline) {
+// 			lockFile.Close()
+// 			return nil, fmt.Errorf("timeout acquiring USB gadget lock after %v", lockTimeout)
+// 		}
 
-		// Wait a bit before retrying
-		time.Sleep(100 * time.Millisecond)
-	}
-}
+// 		// Wait a bit before retrying
+// 		time.Sleep(100 * time.Millisecond)
+// 	}
+// }
 
-// ReleaseLock releases the file lock
-func (u *UsbGadget) ReleaseLock(lockFile *os.File) error {
-	if lockFile == nil {
-		return nil
-	}
+// // ReleaseLock releases the file lock
+// func (u *UsbGadget) ReleaseLock(lockFile *os.File) error {
+// 	if lockFile == nil {
+// 		return nil
+// 	}
 
-	u.log.Debug().Msg("releasing USB gadget lock")
+// 	u.log.Debug().Msg("releasing USB gadget lock")
 
-	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN); err != nil {
-		lockFile.Close()
-		return fmt.Errorf("failed to unlock: %w", err)
-	}
+// 	if err := syscall.Flock(int(lockFile.Fd()), syscall.LOCK_UN); err != nil {
+// 		lockFile.Close()
+// 		return fmt.Errorf("failed to unlock: %w", err)
+// 	}
 
-	return lockFile.Close()
-}
+// 	return lockFile.Close()
+// }
 
 // IsInitialized checks if the USB gadget is properly initialized
 func (u *UsbGadget) IsInitialized() bool {
@@ -230,46 +227,46 @@ func (u *UsbGadget) IsInitialized() bool {
 	return true
 }
 
-// ValidateState checks if the USB gadget is in a valid state
-func (u *UsbGadget) ValidateState() error {
-	if !u.IsInitialized() {
-		return fmt.Errorf("USB gadget not initialized")
-	}
+// // ValidateState checks if the USB gadget is in a valid state
+// func (u *UsbGadget) ValidateState() error {
+// 	if !u.IsInitialized() {
+// 		return fmt.Errorf("USB gadget not initialized")
+// 	}
 
-	// Check if gadget directory exists
-	if _, err := os.Stat(u.kvmGadgetPath); err != nil {
-		return fmt.Errorf("gadget directory missing: %w", err)
-	}
+// 	// Check if gadget directory exists
+// 	if _, err := os.Stat(u.kvmGadgetPath); err != nil {
+// 		return fmt.Errorf("gadget directory missing: %w", err)
+// 	}
 
-	// Check if config directory exists
-	if _, err := os.Stat(u.configC1Path); err != nil {
-		return fmt.Errorf("config directory missing: %w", err)
-	}
+// 	// Check if config directory exists
+// 	if _, err := os.Stat(u.configC1Path); err != nil {
+// 		return fmt.Errorf("config directory missing: %w", err)
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-// Cleanup performs a full cleanup of the USB gadget
-func (u *UsbGadget) Cleanup() error {
-	u.log.Info().Msg("performing USB gadget cleanup")
+// // Cleanup performs a full cleanup of the USB gadget
+// func (u *UsbGadget) Cleanup() error {
+// 	u.log.Info().Msg("performing USB gadget cleanup")
 
-	// Close resources first
-	if err := u.Close(); err != nil {
-		u.log.Warn().Err(err).Msg("error during Close()")
-	}
+// 	// Close resources first
+// 	if err := u.Close(); err != nil {
+// 		u.log.Warn().Err(err).Msg("error during Close()")
+// 	}
 
-	// Acquire lock for cleanup
-	lockFile, err := u.AcquireLock()
-	if err != nil {
-		u.log.Warn().Err(err).Msg("failed to acquire lock for cleanup, proceeding anyway")
-	} else {
-		defer func() {
-			if err := u.ReleaseLock(lockFile); err != nil {
-				u.log.Warn().Err(err).Msg("failed to release lock")
-			}
-		}()
-	}
+// 	// Acquire lock for cleanup
+// 	lockFile, err := u.AcquireLock()
+// 	if err != nil {
+// 		u.log.Warn().Err(err).Msg("failed to acquire lock for cleanup, proceeding anyway")
+// 	} else {
+// 		defer func() {
+// 			if err := u.ReleaseLock(lockFile); err != nil {
+// 				u.log.Warn().Err(err).Msg("failed to release lock")
+// 			}
+// 		}()
+// 	}
 
-	// Perform cleanup
-	return u.cleanupStaleGadget()
-}
+// 	// Perform cleanup
+// 	return u.cleanupStaleGadget()
+// }

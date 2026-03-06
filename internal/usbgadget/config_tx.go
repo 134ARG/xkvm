@@ -5,7 +5,6 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
-	"time"
 
 	"github.com/rs/zerolog"
 )
@@ -63,25 +62,10 @@ func (u *UsbGadget) WithTransaction(fn func() error) error {
 	}
 	if err := fn(); err != nil {
 		u.log.Error().Err(err).Msg("transaction failed")
-		// Resume HID operations even on failure
-		u.ResumeHidOperations()
 		return err
 	}
 	result := u.tx.Commit()
 	u.tx = nil
-
-	// Reopen all HID files if needed
-	if result == nil {
-		if err := u.ReopenAllHidFiles(); err != nil {
-			u.log.Warn().Err(err).Msg("failed to reopen HID files after transaction")
-		}
-	}
-
-	// Resume HID operations after files are reopened
-	u.ResumeHidOperations()
-
-	// Small delay to let file handles stabilize before processing queued messages
-	time.Sleep(100 * time.Millisecond)
 
 	return result
 }

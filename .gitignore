@@ -20,3 +20,5 @@ internal/native/cgo/sysroot/
 internal/native/cgo/bin/
 
 build.sh
+
+.kiro/

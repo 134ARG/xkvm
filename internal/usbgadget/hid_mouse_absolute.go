@@ -3,8 +3,6 @@ package usbgadget
 import (
 	"fmt"
 	"os"
-	"strings"
-	"time"
 )
 
 var absoluteMouseConfig = gadgetConfigItem{
@@ -13,7 +11,7 @@ var absoluteMouseConfig = gadgetConfigItem{
 	path:       []string{"functions", "hid.usb1"},
 	configPath: []string{"hid.usb1"},
 	attrs: gadgetAttributes{
-		"protocol":        "2",
+		"protocol":        "0",
 		"subclass":        "0",
 		"report_length":   "6",
 		"no_out_endpoint": "1",
@@ -67,57 +65,17 @@ var absoluteMouseCombinedReportDesc = []byte{
 	0xC0, // End Collection
 }
 
-func (u *UsbGadget) openAbsMouseHidFile() error {
-	if u.absMouseHidFile != nil {
-		return nil
-	}
-
-	var err error
-	u.absMouseHidFile, err = os.OpenFile("/dev/hidg1", os.O_RDWR, 0666)
-	if err != nil {
-		return fmt.Errorf("failed to open hidg1: %w", err)
-	}
-	return nil
-}
-
-func (u *UsbGadget) openAbsMouseHidFileWithRetry() error {
-	maxRetries := 5
-	for i := 0; i < maxRetries; i++ {
-		err := u.openAbsMouseHidFile()
-		if err == nil {
-			u.log.Debug().Int("attempt", i+1).Msg("successfully opened absolute mouse HID file")
-			return nil
-		}
-
-		if i < maxRetries-1 {
-			backoff := time.Duration(50*(1<<uint(i))) * time.Millisecond
-			u.log.Debug().Err(err).Dur("backoff", backoff).Int("attempt", i+1).Msg("retrying absolute mouse HID file open")
-			time.Sleep(backoff)
-		}
-	}
-	return fmt.Errorf("failed to open absolute mouse HID file after %d retries", maxRetries)
-}
-
 func (u *UsbGadget) absMouseWriteHidFile(data []byte) error {
-	// Check if HID operations are suspended
-	if u.IsHidSuspended() {
-		return fmt.Errorf("HID operations suspended during USB reconfiguration")
-	}
-
-	if err := u.openAbsMouseHidFile(); err != nil {
-		return err
+	if u.absMouseHidFile == nil {
+		var err error
+		u.absMouseHidFile, err = os.OpenFile("/dev/hidg1", os.O_RDWR, 0666)
+		if err != nil {
+			return fmt.Errorf("failed to open hidg1: %w", err)
+		}
 	}
 
 	_, err := u.writeWithTimeout(u.absMouseHidFile, data)
 	if err != nil {
-		// Check for "transport endpoint shutdown" which indicates stale file handle
-		if strings.Contains(err.Error(), "transport endpoint shutdown") {
-			u.log.Debug().Msg("detected stale absolute mouse HID file handle, closing and will retry on next write")
-			u.absMouseHidFile.Close()
-			u.absMouseHidFile = nil
-			return err
-		}
-
 		u.logWithSuppression("absMouseWriteHidFile", 100, u.log, err, "failed to write to hidg1")
 		u.absMouseHidFile.Close()
 		u.absMouseHidFile = nil

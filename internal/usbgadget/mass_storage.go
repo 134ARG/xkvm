@@ -6,7 +6,7 @@ var massStorageBaseConfig = gadgetConfigItem{
 	path:       []string{"functions", "mass_storage.usb0"},
 	configPath: []string{"mass_storage.usb0"},
 	attrs: gadgetAttributes{
-		"stall": "1",
+		"stall": "0",
 	},
 }
 
