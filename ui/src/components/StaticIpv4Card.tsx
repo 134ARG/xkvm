@@ -1,3 +1,6 @@
+// TODO: Remove this component - it's orphaned and no longer used.
+// Replaced by inline implementation in devices.$id.settings.network.tsx
+
 import { GridCard } from "@components/Card";
 import { NetworkSettings } from "@hooks/stores";
 import { m } from "@localizations/messages.js";
