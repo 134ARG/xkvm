@@ -47,7 +47,8 @@
       "exceptionDomain": "",
       "frameworks": [],
       "providerShortName": null,
-      "signingIdentity": null
+      "signingIdentity": null,
+      "infoPlist": "Info.plist"
     },
     "windows": {
       "certificateThumbprint": null,
