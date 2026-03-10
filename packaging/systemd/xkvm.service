@@ -1,0 +1,14 @@
+[Unit]
+Description=XKVM - KVM-over-IP Solution
+Documentation=https://github.com/134ARG/xkvm
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/xkvm
+Restart=on-failure
+RestartSec=5s
+Environment="LD_LIBRARY_PATH=/usr/lib/xkvm"
+
+[Install]
+WantedBy=multi-user.target

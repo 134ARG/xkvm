@@ -174,3 +174,6 @@ _build_release_inner: build_native
 	@echo "Creating self-extracting installer..."
 	@./scripts/create_self_extract.sh
 
+build_packages: build_release
+	@echo "Building DEB and RPM packages..."
+	@./scripts/build_packages.sh

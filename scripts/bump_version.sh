@@ -18,6 +18,7 @@ MAKEFILE="$PROJECT_ROOT/Makefile"
 OTA_GO="$PROJECT_ROOT/ota.go"
 CARGO_TOML="$PROJECT_ROOT/ui/src-tauri/Cargo.toml"
 SYNC_SCRIPT="$PROJECT_ROOT/ui/scripts/sync-version.cjs"
+PACKAGING_VERSION="$PROJECT_ROOT/packaging/version.txt"
 
 # Function to print colored output
 print_info() {
@@ -79,7 +80,7 @@ main() {
 
     # Check if all required files exist
     print_info "Checking required files..."
-    for file in "$MAKEFILE" "$OTA_GO" "$CARGO_TOML" "$SYNC_SCRIPT"; do
+    for file in "$MAKEFILE" "$OTA_GO" "$CARGO_TOML" "$SYNC_SCRIPT" "$PACKAGING_VERSION"; do
         if [ ! -f "$file" ]; then
             print_error "Required file not found: $file"
             exit 1
@@ -92,14 +93,16 @@ main() {
     CURRENT_MAKEFILE_VERSION=$(get_makefile_version)
     CURRENT_OTA_VERSION=$(get_ota_version)
     CURRENT_CARGO_VERSION=$(get_cargo_version)
+    CURRENT_PACKAGING_VERSION=$(cat "$PACKAGING_VERSION" | tr -d '[:space:]')
 
     echo ""
     echo "Current versions:"
-    echo "  Makefile:     $CURRENT_MAKEFILE_VERSION"
-    echo "  ota.go:       $CURRENT_OTA_VERSION"
-    echo "  Cargo.toml:   $CURRENT_CARGO_VERSION"
+    echo "  Makefile:         $CURRENT_MAKEFILE_VERSION"
+    echo "  ota.go:           $CURRENT_OTA_VERSION"
+    echo "  Cargo.toml:       $CURRENT_CARGO_VERSION"
+    echo "  packaging/version: $CURRENT_PACKAGING_VERSION"
     echo ""
-    echo "New version:    $NEW_VERSION"
+    echo "New version:        $NEW_VERSION"
     echo ""
 
     # Prepare Cargo version (strip +dev suffix for Cargo.toml)
@@ -135,7 +138,12 @@ main() {
     rm -f "$CARGO_TOML.bak"
     print_success "Cargo.toml updated to $CARGO_VERSION"
 
-    # Step 4: Run sync script
+    # Step 4: Update packaging/version.txt
+    print_info "Updating packaging/version.txt..."
+    echo "$NEW_VERSION" > "$PACKAGING_VERSION"
+    print_success "packaging/version.txt updated to $NEW_VERSION"
+
+    # Step 5: Run sync script
     print_info "Running sync script to update package.json and tauri.conf.json..."
     if command -v node &> /dev/null; then
         cd "$PROJECT_ROOT/ui"
@@ -154,6 +162,7 @@ main() {
     echo "  • Makefile → $NEW_VERSION"
     echo "  • ota.go → $NEW_VERSION"
     echo "  • ui/src-tauri/Cargo.toml → $CARGO_VERSION"
+    echo "  • packaging/version.txt → $NEW_VERSION"
     echo "  • ui/package.json (via sync script)"
     echo "  • ui/src-tauri/tauri.conf.json (via sync script)"
     echo ""
