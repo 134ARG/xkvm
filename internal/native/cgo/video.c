@@ -72,8 +72,10 @@
 
 // original: RK_FMT_YUV422_UYVY (16bpp 4:2:2 packed)
 // changed to NV12 (12bpp 4:2:0) for lower memory bandwidth and faster HW encode path
+// #define RK_PIXEL_FORMAT RK_FMT_YUV422_UYVY
 #define RK_PIXEL_FORMAT RK_FMT_YUV420SP
 // original: V4L2_PIX_FMT_UYVY
+// #define V4L2_PIXEL_FORMAT V4L2_PIX_FMT_UYVY
 #define V4L2_PIXEL_FORMAT V4L2_PIX_FMT_NV12
 
 int sub_dev_fd = -1;
@@ -167,14 +169,14 @@ static void populate_venc_attr(VENC_CHN_ATTR_S *stAttr, RK_U32 bitrate, RK_U32 m
         if (rk_encoder == 1) {
             stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H265CBR;
             stAttr->stRcAttr.stH265Cbr.u32BitRate = max_bitrate;
-            stAttr->stRcAttr.stH265Cbr.u32Gop = 10;
+            stAttr->stRcAttr.stH265Cbr.u32Gop = 30;
             stAttr->stRcAttr.stH265Cbr.fr32DstFrameRateNum = 60;
             stAttr->stRcAttr.stH265Cbr.fr32DstFrameRateDen = 1;
             stAttr->stRcAttr.stH265Cbr.u32StatTime = 1;
         } else {
             stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H264CBR;
             stAttr->stRcAttr.stH264Cbr.u32BitRate = max_bitrate;
-            stAttr->stRcAttr.stH264Cbr.u32Gop = 10;
+            stAttr->stRcAttr.stH264Cbr.u32Gop = 30;
             stAttr->stRcAttr.stH264Cbr.fr32DstFrameRateNum = 60;
             stAttr->stRcAttr.stH264Cbr.fr32DstFrameRateDen = 1;
             stAttr->stRcAttr.stH264Cbr.u32StatTime = 1;
@@ -183,17 +185,25 @@ static void populate_venc_attr(VENC_CHN_ATTR_S *stAttr, RK_U32 bitrate, RK_U32 m
         // VBR mode (default)
         if (rk_encoder == 1) {
             stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H265VBR;
+
+            stAttr->stRcAttr.stH265Vbr.u32BitRate = bitrate;
+            stAttr->stRcAttr.stH265Vbr.u32MaxBitRate = max_bitrate;
+            stAttr->stRcAttr.stH265Vbr.u32MinBitRate = bitrate / 2;  // Set minimum bitrate
+            stAttr->stRcAttr.stH265Vbr.u32Gop = 30;  // original: 60; reduced for low-latency IDR recovery
+            stAttr->stRcAttr.stH265Vbr.fr32DstFrameRateNum = 60;  // Target 60 fps
+            stAttr->stRcAttr.stH265Vbr.fr32DstFrameRateDen = 1;
+            stAttr->stRcAttr.stH265Vbr.u32StatTime = 1;  // original: 3; reduced for faster VBR bitrate adaptation
         } else {
             stAttr->stRcAttr.enRcMode = VENC_RC_MODE_H264VBR;
+
+            stAttr->stRcAttr.stH264Vbr.u32BitRate = bitrate;
+            stAttr->stRcAttr.stH264Vbr.u32MaxBitRate = max_bitrate;
+            stAttr->stRcAttr.stH264Vbr.u32MinBitRate = bitrate / 2;  // Set minimum bitrate
+            stAttr->stRcAttr.stH264Vbr.u32Gop = 30;  // original: 60; reduced for low-latency IDR recovery
+            stAttr->stRcAttr.stH264Vbr.fr32DstFrameRateNum = 60;  // Target 60 fps
+            stAttr->stRcAttr.stH264Vbr.fr32DstFrameRateDen = 1;
+            stAttr->stRcAttr.stH264Vbr.u32StatTime = 1;  // original: 3; reduced for faster VBR bitrate adaptation
         }
-        
-        stAttr->stRcAttr.stH264Vbr.u32BitRate = bitrate;
-        stAttr->stRcAttr.stH264Vbr.u32MaxBitRate = max_bitrate;
-        stAttr->stRcAttr.stH264Vbr.u32MinBitRate = bitrate / 2;  // Set minimum bitrate
-        stAttr->stRcAttr.stH264Vbr.u32Gop = 10;  // original: 60; reduced for low-latency IDR recovery
-        stAttr->stRcAttr.stH264Vbr.fr32DstFrameRateNum = 60;  // Target 60 fps
-        stAttr->stRcAttr.stH264Vbr.fr32DstFrameRateDen = 1;
-        stAttr->stRcAttr.stH264Vbr.u32StatTime = 1;  // original: 3; reduced for faster VBR bitrate adaptation
     }
 
     // Set video type based on encoder
@@ -216,15 +226,9 @@ static void populate_venc_attr(VENC_CHN_ATTR_S *stAttr, RK_U32 bitrate, RK_U32 m
     stAttr->stVencAttr.u32PicHeight = height;
     
     // Set virtual width/height based on encoder alignment requirements
-    if (rk_encoder == 1) {
-        // H.265 requires 16-byte alignment
-        stAttr->stVencAttr.u32VirWidth = RK_ALIGN_16(width);
-        stAttr->stVencAttr.u32VirHeight = RK_ALIGN_16(height);
-    } else {
-        // H.264 uses 2-byte alignment
-        stAttr->stVencAttr.u32VirWidth = RK_ALIGN_2(width);
-        stAttr->stVencAttr.u32VirHeight = RK_ALIGN_2(height);
-    }
+    // uses 2-byte alignment
+    stAttr->stVencAttr.u32VirWidth = RK_ALIGN_2(width);
+    stAttr->stVencAttr.u32VirHeight = RK_ALIGN_2(height);
     
     stAttr->stVencAttr.u32StreamBufCnt = 3;
     stAttr->stVencAttr.u32BufSize = width * height * 3 / 2;
@@ -416,7 +420,7 @@ static void *venc_read_stream(void *arg)
         if (s32Ret == RK_SUCCESS)
         {
             RK_U64 nowUs = get_us();
-            log_trace("chn:0, loopCount:%d enc->seq:%d wd:%d pts=%llu delay=%lldus",
+            log_trace("chn:0, loopCount:%d enc->seq:%d wd:%d pts=%lu delay=%luus",
                    loopCount, stFrame.u32Seq, stFrame.pstPack->u32Len,
                    stFrame.pstPack->u64PTS, nowUs - stFrame.pstPack->u64PTS);
             pData = RK_MPI_MB_Handle2VirAddr(stFrame.pstPack->pMbBlk);
