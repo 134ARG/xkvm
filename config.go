@@ -121,7 +121,7 @@ var (
 	defaultUsbConfig = usbgadget.Config{
 		VendorId:     "0x1d6b", //The Linux Foundation
 		ProductId:    "0x0104", //Multifunction Composite Gadget
-		SerialNumber: "",
+		SerialNumber: GetDeviceID(),
 		Manufacturer: "XKVM",
 		Product:      "USB Emulation Device",
 	}

@@ -53,6 +53,7 @@ const SettingsGeneralIndexRoute = lazy(() => import("@routes/devices.$id.setting
 //   () => import("@routes/devices.$id.settings.general.update"),
 // );
 const SettingsNetworkRoute = lazy(() => import("@routes/devices.$id.settings.network"));
+const SettingsHardwareRoute = lazy(() => import("@routes/devices.$id.settings.hardware"));
 const SecurityAccessLocalAuthRoute = lazy(
   () => import("@routes/devices.$id.settings.access.local-auth"),
 );
@@ -168,6 +169,10 @@ const getDeviceRoute = (r: Omit<RouteObject, "children" | "index">): RouteObject
     {
       path: "network",
       element: <SettingsNetworkRoute />,
+    },
+    {
+      path: "hardware",
+      element: <SettingsHardwareRoute />,
     },
     {
       path: "access",

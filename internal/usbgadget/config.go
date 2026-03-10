@@ -42,7 +42,7 @@ var defaultGadgetConfig = map[string]gadgetConfigItem{
 		path:       []string{"strings", "0x409"},
 		configPath: []string{"strings", "0x409"},
 		attrs: gadgetAttributes{
-			"serialnumber": "0123456789",
+			"serialnumber": "", // Will be set to device ID at runtime via loadGadgetConfig
 			"manufacturer": "XKVM",
 			"product":      "XKVM USB Emulation Device",
 		},

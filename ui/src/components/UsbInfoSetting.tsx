@@ -102,13 +102,27 @@ export function UsbInfoSetting() {
       } else {
         const usbConfigState = resp.result as UsbConfigState;
         console.log("syncUsbConfigProduct#getUsbConfig result:", usbConfigState);
-        const product = usbConfigs.map(u => u.value).includes(usbConfigState.product)
-          ? usbConfigState.product
-          : "custom";
-        setUsbConfigProduct(product);
+
+        // Check if the current config matches any preset by comparing ALL fields
+        let matchedPreset: string | null = null;
+        for (const presetKey of Object.keys(usbConfigData)) {
+          const preset = usbConfigData[presetKey];
+          if (
+            preset.vendor_id === usbConfigState.vendor_id &&
+            preset.product_id === usbConfigState.product_id &&
+            preset.manufacturer === usbConfigState.manufacturer &&
+            preset.product === usbConfigState.product
+            // Note: serial_number is intentionally not checked as it can vary
+          ) {
+            matchedPreset = presetKey;
+            break;
+          }
+        }
+
+        setUsbConfigProduct(matchedPreset || "custom");
       }
     });
-  }, [send]);
+  }, [send, usbConfigData]);
 
   const handleUsbConfigChange = useCallback(
     (usbConfig: USBConfig) => {
