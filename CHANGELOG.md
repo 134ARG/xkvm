@@ -2,6 +2,35 @@
 
 This document summarizes the major changes made to XKVM during its evolution from the original JetKVM embedded system to a full Linux-based KVM-over-IP solution.
 
+## Version 0.1.3 (2026-03-11)
+
+### Bug Fixes
+- Fixed USB HID not working on Windows
+- Fixed USB serial number default configuration
+- Fixed keyboard HID report descriptor for proper LOGICAL_MAXIMUM/USAGE_MAXIMUM encoding
+
+### USB Gadget
+- Simplified USB gadget implementation by removing unnecessary retry/backoff mechanisms
+- Disabled USB gadget health check monitoring
+- Changed absolute mouse HID protocol from 2 to 0
+- Changed mass storage stall attribute from 1 to 0
+
+### UI
+- Added USB config settings back to hardware settings page
+- Added icon margin to Tauri app icons
+
+### Native Desktop App (Tauri)
+- Allow HTTP access for macOS native wrapper
+
+### Packaging
+- Added Debian package build support with systemd service
+
+### Documentation
+- Added Chinese (zh-CN) version of README
+
+### Video
+- Updated encoding parameters in native video capture
+
 ## Version 0.1.2 (2026-03-02)
 
 ### UI
