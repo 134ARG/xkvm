@@ -497,6 +497,7 @@ func rpcSetUsbConfig(usbConfig usbgadget.Config) error {
 // 	return gadget.CheckHealth(), nil
 // }
 
+// deprecated: Wake on LAN feature
 func rpcGetWakeOnLanDevices() ([]WakeOnLanDevice, error) {
 	if config.WakeOnLanDevices == nil {
 		return []WakeOnLanDevice{}, nil
@@ -504,10 +505,12 @@ func rpcGetWakeOnLanDevices() ([]WakeOnLanDevice, error) {
 	return config.WakeOnLanDevices, nil
 }
 
+// deprecated: Wake on LAN feature
 type SetWakeOnLanDevicesParams struct {
 	Devices []WakeOnLanDevice `json:"devices"`
 }
 
+// deprecated: Wake on LAN feature
 func rpcSetWakeOnLanDevices(params SetWakeOnLanDevicesParams) error {
 	config.WakeOnLanDevices = params.Devices
 	return SaveConfig()
@@ -1161,26 +1164,27 @@ var rpcHandlers = map[string]RPCHandler{
 	"getDeviceID":     {Func: rpcGetDeviceID},
 	"getNetworkState": {Func: rpcGetNetworkState},
 	// "getNetworkSettings" is deprecated - network config is read-only, use getNetworkState instead
-	"getNetworkSettings":     {Func: rpcGetNetworkSettingsDeprecated},
-	"setNetworkSettings":     {Func: rpcSetNetworkSettings, Params: []string{"settings"}},
-	"renewDHCPLease":         {Func: rpcRenewDHCPLease},
-	"getKeyboardLedState":    {Func: rpcGetKeyboardLedState},
-	"getKeyDownState":        {Func: rpcGetKeysDownState},
-	"keyboardReport":         {Func: rpcKeyboardReport, Params: []string{"modifier", "keys"}},
-	"keypressReport":         {Func: rpcKeypressReport, Params: []string{"key", "press"}},
-	"absMouseReport":         {Func: rpcAbsMouseReport, Params: []string{"x", "y", "buttons"}},
-	"relMouseReport":         {Func: rpcRelMouseReport, Params: []string{"dx", "dy", "buttons"}},
-	"wheelReport":            {Func: rpcWheelReport, Params: []string{"wheelY"}},
-	"getVideoState":          {Func: rpcGetVideoState},
-	"getUSBState":            {Func: rpcGetUSBState},
-	"unmountImage":           {Func: rpcUnmountImage},
-	"rpcMountBuiltInImage":   {Func: rpcMountBuiltInImage, Params: []string{"filename"}},
-	"setJigglerState":        {Func: rpcSetJigglerState, Params: []string{"enabled"}},
-	"getJigglerState":        {Func: rpcGetJigglerState},
-	"setJigglerConfig":       {Func: rpcSetJigglerConfig, Params: []string{"jigglerConfig"}},
-	"getJigglerConfig":       {Func: rpcGetJigglerConfig},
-	"getTimezones":           {Func: rpcGetTimezones},
-	"sendWOLMagicPacket":     {Func: rpcSendWOLMagicPacket, Params: []string{"macAddress"}},
+	"getNetworkSettings":   {Func: rpcGetNetworkSettingsDeprecated},
+	"setNetworkSettings":   {Func: rpcSetNetworkSettings, Params: []string{"settings"}},
+	"renewDHCPLease":       {Func: rpcRenewDHCPLease},
+	"getKeyboardLedState":  {Func: rpcGetKeyboardLedState},
+	"getKeyDownState":      {Func: rpcGetKeysDownState},
+	"keyboardReport":       {Func: rpcKeyboardReport, Params: []string{"modifier", "keys"}},
+	"keypressReport":       {Func: rpcKeypressReport, Params: []string{"key", "press"}},
+	"absMouseReport":       {Func: rpcAbsMouseReport, Params: []string{"x", "y", "buttons"}},
+	"relMouseReport":       {Func: rpcRelMouseReport, Params: []string{"dx", "dy", "buttons"}},
+	"wheelReport":          {Func: rpcWheelReport, Params: []string{"wheelY"}},
+	"getVideoState":        {Func: rpcGetVideoState},
+	"getUSBState":          {Func: rpcGetUSBState},
+	"unmountImage":         {Func: rpcUnmountImage},
+	"rpcMountBuiltInImage": {Func: rpcMountBuiltInImage, Params: []string{"filename"}},
+	"setJigglerState":      {Func: rpcSetJigglerState, Params: []string{"enabled"}},
+	"getJigglerState":      {Func: rpcGetJigglerState},
+	"setJigglerConfig":     {Func: rpcSetJigglerConfig, Params: []string{"jigglerConfig"}},
+	"getJigglerConfig":     {Func: rpcGetJigglerConfig},
+	"getTimezones":         {Func: rpcGetTimezones},
+	// deprecated: Wake on LAN feature
+	// "sendWOLMagicPacket":     {Func: rpcSendWOLMagicPacket, Params: []string{"macAddress"}},
 	"getStreamQualityFactor": {Func: rpcGetStreamQualityFactor},
 	"setStreamQualityFactor": {Func: rpcSetStreamQualityFactor, Params: []string{"factor"}},
 	"getVideoCodec":          {Func: rpcGetVideoCodec},
@@ -1222,8 +1226,9 @@ var rpcHandlers = map[string]RPCHandler{
 	"listStorageFiles":       {Func: rpcListStorageFiles},
 	"deleteStorageFile":      {Func: rpcDeleteStorageFile, Params: []string{"filename"}},
 	"startStorageFileUpload": {Func: rpcStartStorageFileUpload, Params: []string{"filename", "size"}},
-	"getWakeOnLanDevices":    {Func: rpcGetWakeOnLanDevices},
-	"setWakeOnLanDevices":    {Func: rpcSetWakeOnLanDevices, Params: []string{"params"}},
+	// deprecated: Wake on LAN feature
+	// "getWakeOnLanDevices":    {Func: rpcGetWakeOnLanDevices},
+	// "setWakeOnLanDevices":    {Func: rpcSetWakeOnLanDevices, Params: []string{"params"}},
 	"resetConfig":            {Func: rpcResetConfig},
 	"getDCPowerState":        {Func: rpcGetDCPowerState},
 	"setDCPowerState":        {Func: rpcSetDCPowerState, Params: []string{"enabled"}},

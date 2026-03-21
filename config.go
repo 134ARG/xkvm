@@ -18,6 +18,7 @@ const (
 	DefaultAPIURL = ""
 )
 
+// deprecated: Wake on LAN feature
 type WakeOnLanDevice struct {
 	Name       string `json:"name"`
 	MacAddress string `json:"macAddress"`
@@ -91,7 +92,7 @@ type Config struct {
 	LocalAuthToken     string               `json:"local_auth_token"`
 	LocalAuthMode      string               `json:"localAuthMode"` //TODO: fix it with migration
 	LocalLoopbackOnly  bool                 `json:"local_loopback_only"`
-	WakeOnLanDevices   []WakeOnLanDevice    `json:"wake_on_lan_devices"`
+	WakeOnLanDevices   []WakeOnLanDevice    `json:"wake_on_lan_devices"` //deprecated: Wake on LAN feature
 	KeyboardMacros     []KeyboardMacro      `json:"keyboard_macros"`
 	KeyboardLayout     string               `json:"keyboard_layout"`
 	EdidString         string               `json:"hdmi_edid_string"`

@@ -25,7 +25,7 @@ var (
 	serialLogger   = logging.GetSubsystemLogger("serial")
 	terminalLogger = logging.GetSubsystemLogger("terminal")
 	// displayLogger  = logging.GetSubsystemLogger("display")
-	wolLogger = logging.GetSubsystemLogger("wol")
+	wolLogger = logging.GetSubsystemLogger("wol") //deprecated: Wake on LAN feature
 	usbLogger = logging.GetSubsystemLogger("usb")
 	// external components
 	ginLogger = logging.GetSubsystemLogger("gin")

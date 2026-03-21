@@ -202,7 +202,8 @@ func setupRouter() *gin.Engine {
 		protected.DELETE("/auth/local-password", handleDeletePassword)
 		protected.POST("/storage/upload", handleUploadHttp)
 
-		protected.POST("/device/send-wol/:mac-addr", handleSendWOLMagicPacket)
+		// deprecated: Wake on LAN feature
+		// protected.POST("/device/send-wol/:mac-addr", handleSendWOLMagicPacket)
 	}
 
 	// Catch-all route for SPA
@@ -770,6 +771,7 @@ func handleSetup(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Device setup completed successfully"})
 }
 
+// deprecated: Wake on LAN feature
 func handleSendWOLMagicPacket(c *gin.Context) {
 	inputMacAddr := c.Param("mac-addr")
 	macAddr, err := net.ParseMAC(inputMacAddr)

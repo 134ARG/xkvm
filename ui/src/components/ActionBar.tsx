@@ -11,7 +11,8 @@ import { useDeviceUiNavigation } from "@hooks/useAppNavigation";
 import { Button } from "@components/Button";
 import Container from "@components/Container";
 import PasteModal from "@components/popovers/PasteModal";
-import WakeOnLanModal from "@components/popovers/WakeOnLan/Index";
+// deprecated: WakeOnLan feature removed from action bar
+// import WakeOnLanModal from "@components/popovers/WakeOnLan/Index";
 import MountPopopover from "@components/popovers/MountPopover";
 import ExtensionPopover from "@components/popovers/ExtensionPopover";
 import { m } from "@localizations/messages.js";
@@ -133,6 +134,7 @@ export default function Actionbar({
               </PopoverPanel>
             </Popover>
           </div>
+          {/* deprecated: Wake on LAN button removed from action bar
           <div>
             <Popover>
               <PopoverButton as={Fragment}>
@@ -185,6 +187,7 @@ export default function Actionbar({
               </PopoverPanel>
             </Popover>
           </div>
+          */}
           <div className="hidden lg:block">
             <Button
               size="XS"

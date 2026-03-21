@@ -55,7 +55,9 @@ export interface UIState {
   disableVideoFocusTrap: boolean;
   setDisableVideoFocusTrap: (enabled: boolean) => void;
 
+  // deprecated: Wake on LAN feature
   isWakeOnLanModalVisible: boolean;
+  // deprecated: Wake on LAN feature
   setWakeOnLanModalVisibility: (enabled: boolean) => void;
 
   toggleSidebarView: (view: AvailableSidebarViews) => void;
@@ -77,7 +79,9 @@ export const useUiStore = create<UIState>(set => ({
   disableVideoFocusTrap: false,
   setDisableVideoFocusTrap: (enabled: boolean) => set({ disableVideoFocusTrap: enabled }),
 
+  // deprecated: Wake on LAN feature
   isWakeOnLanModalVisible: false,
+  // deprecated: Wake on LAN feature
   setWakeOnLanModalVisibility: (enabled: boolean) => set({ isWakeOnLanModalVisible: enabled }),
 
   toggleSidebarView: view =>

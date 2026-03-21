@@ -1,3 +1,4 @@
+// deprecated: Wake on LAN feature - entire file
 package kvm
 
 import (
