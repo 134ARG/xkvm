@@ -62,7 +62,7 @@ func runATXControl() {
 			return
 		case <-ticker.C:
 			ledPWRState = readGPIOInput(config.GPIOPwrLedChip, config.GPIOPwrLedLine)
-			ledHDDState = readGPIOInput(config.GPIOHddLedChip, config.GPIOHddLedLine)
+			ledHDDState = !readGPIOInput(config.GPIOHddLedChip, config.GPIOHddLedLine)
 
 			if ledPWRState != prevPWR || ledHDDState != prevHDD {
 				prevPWR = ledPWRState
