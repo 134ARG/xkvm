@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"net"
 	"net/http"
 	"net/http/pprof"
 	"path/filepath"
@@ -769,25 +768,4 @@ func handleSetup(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Device setup completed successfully"})
-}
-
-// deprecated: Wake on LAN feature
-func handleSendWOLMagicPacket(c *gin.Context) {
-	inputMacAddr := c.Param("mac-addr")
-	macAddr, err := net.ParseMAC(inputMacAddr)
-	if err != nil {
-		logger.Warn().Err(err).Str("inputMacAddr", inputMacAddr).Msg("Invalid MAC address provided")
-		c.String(http.StatusBadRequest, "Invalid mac address provided")
-		return
-	}
-
-	macAddrString := macAddr.String()
-	err = rpcSendWOLMagicPacket(macAddrString)
-	if err != nil {
-		logger.Warn().Err(err).Str("macAddrString", macAddrString).Msg("Failed to send WOL magic packet")
-		c.String(http.StatusInternalServerError, "Failed to send WOL to %s: %v", macAddrString, err)
-		return
-	}
-
-	c.String(http.StatusOK, "WOL sent to %s ", macAddr)
 }

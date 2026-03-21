@@ -497,25 +497,6 @@ func rpcSetUsbConfig(usbConfig usbgadget.Config) error {
 // 	return gadget.CheckHealth(), nil
 // }
 
-// deprecated: Wake on LAN feature
-func rpcGetWakeOnLanDevices() ([]WakeOnLanDevice, error) {
-	if config.WakeOnLanDevices == nil {
-		return []WakeOnLanDevice{}, nil
-	}
-	return config.WakeOnLanDevices, nil
-}
-
-// deprecated: Wake on LAN feature
-type SetWakeOnLanDevicesParams struct {
-	Devices []WakeOnLanDevice `json:"devices"`
-}
-
-// deprecated: Wake on LAN feature
-func rpcSetWakeOnLanDevices(params SetWakeOnLanDevicesParams) error {
-	config.WakeOnLanDevices = params.Devices
-	return SaveConfig()
-}
-
 func rpcResetConfig() error {
 	defaultConfig := getDefaultConfig()
 	config = &defaultConfig
@@ -540,7 +521,7 @@ func rpcGetDiagnostics() (string, error) {
 		}
 		sb.WriteString(content)
 	} else {
-		sb.WriteString(fmt.Sprintf("Error reading log: %v\n", err))
+		fmt.Fprintf(&sb, "Error reading log: %v\n", err)
 	}
 	sb.WriteString("\n\n")
 
@@ -576,7 +557,7 @@ func rpcGetDiagnostics() (string, error) {
 	if data, err := os.ReadFile(lastCrashPath); err == nil {
 		sb.WriteString(cleanLogOutput(string(data)))
 	} else {
-		sb.WriteString(fmt.Sprintf("No crash log found: %v\n", err))
+		fmt.Fprintf(&sb, "No crash log found: %v\n", err)
 	}
 	sb.WriteString("\n\n")
 
@@ -613,7 +594,7 @@ func rpcGetDiagnostics() (string, error) {
 		}
 
 		for i, cf := range crashFiles {
-			sb.WriteString(fmt.Sprintf("--- %s ---\n", cf.name))
+			fmt.Fprintf(&sb, "--- %s ---\n", cf.name)
 			crashPath := filepath.Join(supervisor.ErrorDumpDir, cf.name)
 			if data, err := os.ReadFile(crashPath); err == nil {
 				content := cleanLogOutput(string(data))
@@ -626,7 +607,7 @@ func rpcGetDiagnostics() (string, error) {
 				}
 				sb.WriteString(content)
 			} else {
-				sb.WriteString(fmt.Sprintf("Error reading: %v\n", err))
+				fmt.Fprintf(&sb, "Error reading: %v\n", err)
 			}
 			sb.WriteString("\n")
 		}
@@ -634,7 +615,7 @@ func rpcGetDiagnostics() (string, error) {
 			sb.WriteString("No crash dumps found\n")
 		}
 	} else {
-		sb.WriteString(fmt.Sprintf("Error reading crash directory: %v\n", err))
+		fmt.Fprintf(&sb, "Error reading crash directory: %v\n", err)
 	}
 	sb.WriteString("\n")
 
@@ -643,7 +624,7 @@ func rpcGetDiagnostics() (string, error) {
 	if data, err := os.ReadFile(configPath); err == nil {
 		sb.WriteString(string(data))
 	} else {
-		sb.WriteString(fmt.Sprintf("Error reading config: %v\n", err))
+		fmt.Fprintf(&sb, "Error reading config: %v\n", err)
 	}
 	sb.WriteString("\n")
 
