@@ -58,9 +58,8 @@ func runATXControl() {
 			scopedLogger.Info().Msg("ATX control polling stopped")
 			return
 		case <-ticker.C:
-			// TODO: Read actual LED states from hardware
-			// ledPWRState = readPWRLed()
-			// ledHDDState = readHDDLed()
+			ledPWRState = readGPIOInput(config.GPIOPwrLedChip, config.GPIOPwrLedLine)
+			ledHDDState = readGPIOInput(config.GPIOHddLedChip, config.GPIOHddLedLine)
 		}
 	}
 }
@@ -71,6 +70,28 @@ func pressATXPowerButton(duration time.Duration) error {
 
 func pressATXResetButton(duration time.Duration) error {
 	return pulseGPIO(config.GPIORstChip, config.GPIORstLine, duration)
+}
+
+// readGPIOInput reads a single GPIO line as input and returns its boolean value.
+// Returns false if chip/line is unconfigured (not configured → LED off).
+func readGPIOInput(chip string, line int) bool {
+	if chip == "" || line < 0 {
+		return false
+	}
+
+	l, err := gpiocdev.RequestLine(chip, line, gpiocdev.AsInput)
+	if err != nil {
+		serialLogger.Trace().Err(err).Str("chip", chip).Int("line", line).Msg("failed to request GPIO input line")
+		return false
+	}
+	defer l.Close()
+
+	val, err := l.Value()
+	if err != nil {
+		serialLogger.Trace().Err(err).Str("chip", chip).Int("line", line).Msg("failed to read GPIO input value")
+		return false
+	}
+	return val != 0
 }
 
 // pulseGPIO opens a GPIO line, drives it low to clear state, then pulses high

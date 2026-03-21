@@ -17,6 +17,10 @@ interface GPIOConfig {
   pwrLine: number;
   rstChip: string;
   rstLine: number;
+  pwrLedChip: string;
+  pwrLedLine: number;
+  hddLedChip: string;
+  hddLedLine: number;
 }
 
 export function GPIOSetting() {
@@ -27,9 +31,15 @@ export function GPIOSetting() {
     pwrLine: -1,
     rstChip: "",
     rstLine: -1,
+    pwrLedChip: "",
+    pwrLedLine: -1,
+    hddLedChip: "",
+    hddLedLine: -1,
   });
   const [pwrLineCount, setPwrLineCount] = useState(0);
   const [rstLineCount, setRstLineCount] = useState(0);
+  const [pwrLedLineCount, setPwrLedLineCount] = useState(0);
+  const [hddLedLineCount, setHddLedLineCount] = useState(0);
 
   const fetchLineCount = useCallback(
     (chip: string, setter: (n: number) => void) => {
@@ -64,6 +74,8 @@ export function GPIOSetting() {
       setGpioConfig(cfg);
       fetchLineCount(cfg.pwrChip, setPwrLineCount);
       fetchLineCount(cfg.rstChip, setRstLineCount);
+      fetchLineCount(cfg.pwrLedChip, setPwrLedLineCount);
+      fetchLineCount(cfg.hddLedChip, setHddLedLineCount);
     });
   }, [send, fetchLineCount]);
 
@@ -144,6 +156,48 @@ export function GPIOSetting() {
           disabled={!gpioConfig.rstChip}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
             const updated = { ...gpioConfig, rstLine: parseInt(e.target.value, 10) };
+            saveGPIOConfig(updated);
+          }}
+        />
+        <SelectMenuBasic
+          label={m.hardware_gpio_pwr_led_chip()}
+          options={chipOptions}
+          value={gpioConfig.pwrLedChip}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+            const chip = e.target.value;
+            const updated = { ...gpioConfig, pwrLedChip: chip, pwrLedLine: -1 };
+            saveGPIOConfig(updated);
+            fetchLineCount(chip, setPwrLedLineCount);
+          }}
+        />
+        <SelectMenuBasic
+          label={m.hardware_gpio_pwr_led_line()}
+          options={lineOptions(pwrLedLineCount)}
+          value={String(gpioConfig.pwrLedLine)}
+          disabled={!gpioConfig.pwrLedChip}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+            const updated = { ...gpioConfig, pwrLedLine: parseInt(e.target.value, 10) };
+            saveGPIOConfig(updated);
+          }}
+        />
+        <SelectMenuBasic
+          label={m.hardware_gpio_hdd_led_chip()}
+          options={chipOptions}
+          value={gpioConfig.hddLedChip}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+            const chip = e.target.value;
+            const updated = { ...gpioConfig, hddLedChip: chip, hddLedLine: -1 };
+            saveGPIOConfig(updated);
+            fetchLineCount(chip, setHddLedLineCount);
+          }}
+        />
+        <SelectMenuBasic
+          label={m.hardware_gpio_hdd_led_line()}
+          options={lineOptions(hddLedLineCount)}
+          value={String(gpioConfig.hddLedLine)}
+          disabled={!gpioConfig.hddLedChip}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+            const updated = { ...gpioConfig, hddLedLine: parseInt(e.target.value, 10) };
             saveGPIOConfig(updated);
           }}
         />

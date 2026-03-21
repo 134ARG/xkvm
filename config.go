@@ -110,6 +110,10 @@ type Config struct {
 	GPIOPwrLine        int                  `json:"gpio_pwr_line"`
 	GPIORstChip        string               `json:"gpio_rst_chip"`
 	GPIORstLine        int                  `json:"gpio_rst_line"`
+	GPIOPwrLedChip     string               `json:"gpio_pwr_led_chip"`
+	GPIOPwrLedLine     int                  `json:"gpio_pwr_led_line"`
+	GPIOHddLedChip     string               `json:"gpio_hdd_led_chip"`
+	GPIOHddLedLine     int                  `json:"gpio_hdd_led_line"`
 	SerialPortPath     string               `json:"serial_port_path"`
 }
 
@@ -164,6 +168,10 @@ func getDefaultConfig() Config {
 		GPIOPwrLine:        -1,
 		GPIORstChip:        "",
 		GPIORstLine:        -1,
+		GPIOPwrLedChip:     "",
+		GPIOPwrLedLine:     -1,
+		GPIOHddLedChip:     "",
+		GPIOHddLedLine:     -1,
 		SerialPortPath:     "",
 	}
 }
