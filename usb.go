@@ -22,7 +22,6 @@ func initUsbGadget() {
 	)
 	if err != nil {
 		usbLogger.Error().Err(err).Msg("failed to initialize USB gadget")
-		// Set gadget to nil to prevent nil pointer dereferences
 		gadget = nil
 		return
 	}

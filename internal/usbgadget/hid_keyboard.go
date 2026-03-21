@@ -292,9 +292,25 @@ func (u *UsbGadget) openKeyboardHidFile() error {
 	}
 
 	var err error
-	u.keyboardHidFile, err = os.OpenFile("/dev/hidg0", os.O_RDWR, 0666)
+	maxRetries := 3
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		u.keyboardHidFile, err = os.OpenFile("/dev/hidg0", os.O_RDWR, 0666)
+		if err == nil {
+			// Success
+			break
+		}
+
+		u.log.Warn().Err(err).Int("attempt", attempt+1).Int("max", maxRetries).Msg("failed to open hidg0")
+
+		if attempt < maxRetries-1 {
+			// Wait before retry
+			time.Sleep(time.Duration(attempt+1) * 500 * time.Millisecond)
+		}
+	}
+
 	if err != nil {
-		return fmt.Errorf("failed to open hidg0: %w", err)
+		return fmt.Errorf("failed to open hidg0 after %d attempts: %w", maxRetries, err)
 	}
 
 	if u.keyboardStateCancel != nil {
@@ -312,11 +328,33 @@ func (u *UsbGadget) OpenKeyboardHidFile() error {
 }
 
 var keyboardWriteHidFileLock sync.Mutex
+var keyboardWriteFailureCount int
+var keyboardWriteFailureLock sync.Mutex
+
+const maxKeyboardWriteFailures = 5
 
 func (u *UsbGadget) keyboardWriteHidFile(modifier byte, keys []byte) error {
 	keyboardWriteHidFileLock.Lock()
 	defer keyboardWriteHidFileLock.Unlock()
 	if err := u.openKeyboardHidFile(); err != nil {
+		keyboardWriteFailureLock.Lock()
+		keyboardWriteFailureCount++
+		failCount := keyboardWriteFailureCount
+		keyboardWriteFailureLock.Unlock()
+
+		if failCount >= maxKeyboardWriteFailures {
+			u.log.Error().Int("failures", failCount).Msg("too many keyboard write failures, triggering recovery")
+			go func() {
+				if recoveryErr := u.TryRecovery(); recoveryErr != nil {
+					u.log.Error().Err(recoveryErr).Msg("recovery failed after keyboard write failures")
+				} else {
+					// Reset failure count on successful recovery
+					keyboardWriteFailureLock.Lock()
+					keyboardWriteFailureCount = 0
+					keyboardWriteFailureLock.Unlock()
+				}
+			}()
+		}
 		return err
 	}
 
@@ -325,9 +363,22 @@ func (u *UsbGadget) keyboardWriteHidFile(modifier byte, keys []byte) error {
 		u.logWithSuppression("keyboardWriteHidFile", 100, u.log, err, "failed to write to hidg0")
 		u.keyboardHidFile.Close()
 		u.keyboardHidFile = nil
+
+		keyboardWriteFailureLock.Lock()
+		keyboardWriteFailureCount++
+		keyboardWriteFailureLock.Unlock()
+
 		return err
 	}
 	u.resetLogSuppressionCounter("keyboardWriteHidFile")
+
+	// Reset failure count on successful write
+	keyboardWriteFailureLock.Lock()
+	if keyboardWriteFailureCount > 0 {
+		keyboardWriteFailureCount = 0
+	}
+	keyboardWriteFailureLock.Unlock()
+
 	return nil
 }
 

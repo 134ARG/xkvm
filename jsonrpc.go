@@ -829,6 +829,29 @@ func rpcGetUsbDevices() (usbgadget.Devices, error) {
 	return *config.UsbDevices, nil
 }
 
+func rpcResetUsbGadget() (string, error) {
+	if gadget == nil {
+		return "", fmt.Errorf("USB gadget not initialized")
+	}
+
+	usbLogger.Warn().Msg("manual USB gadget reset requested via RPC")
+
+	go func() {
+		if err := gadget.TryRecovery(); err != nil {
+			usbLogger.Error().Err(err).Msg("USB gadget recovery failed")
+		} else {
+			usbLogger.Info().Msg("USB gadget recovery completed successfully")
+
+			// Reopen keyboard HID file after recovery
+			if err := gadget.OpenKeyboardHidFile(); err != nil {
+				usbLogger.Error().Err(err).Msg("failed to open keyboard HID file after recovery")
+			}
+		}
+	}()
+
+	return "USB gadget reset initiated", nil
+}
+
 func updateUsbRelatedConfig() error {
 	if err := gadget.UpdateGadgetConfig(); err != nil {
 		return fmt.Errorf("failed to write gadget config: %w", err)
@@ -1164,6 +1187,7 @@ var rpcHandlers = map[string]RPCHandler{
 	"getUsbDevices":          {Func: rpcGetUsbDevices},
 	"setUsbDevices":          {Func: rpcSetUsbDevices, Params: []string{"devices"}},
 	"setUsbDeviceState":      {Func: rpcSetUsbDeviceState, Params: []string{"device", "enabled"}},
+	"resetUsbGadget":         {Func: rpcResetUsbGadget},
 	"getKeyboardLayout":      {Func: rpcGetKeyboardLayout},
 	"setKeyboardLayout":      {Func: rpcSetKeyboardLayout, Params: []string{"layout"}},
 	"getKeyboardMacros":      {Func: getKeyboardMacros},
