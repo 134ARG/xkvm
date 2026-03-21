@@ -49,6 +49,9 @@ func runATXControl() {
 	// btnRSTState = false
 	// btnPWRState = false
 
+	prevPWR := ledPWRState
+	prevHDD := ledHDDState
+
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
@@ -60,8 +63,26 @@ func runATXControl() {
 		case <-ticker.C:
 			ledPWRState = readGPIOInput(config.GPIOPwrLedChip, config.GPIOPwrLedLine)
 			ledHDDState = readGPIOInput(config.GPIOHddLedChip, config.GPIOHddLedLine)
+
+			if ledPWRState != prevPWR || ledHDDState != prevHDD {
+				prevPWR = ledPWRState
+				prevHDD = ledHDDState
+				triggerATXStateUpdate()
+			}
 		}
 	}
+}
+
+func triggerATXStateUpdate() {
+	go func() {
+		if currentSession == nil {
+			return
+		}
+		writeJSONRPCEvent("atxState", ATXState{
+			Power: ledPWRState,
+			HDD:   ledHDDState,
+		}, currentSession)
+	}()
 }
 
 func pressATXPowerButton(duration time.Duration) error {
