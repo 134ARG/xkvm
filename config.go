@@ -105,6 +105,11 @@ type Config struct {
 	VideoQualityFactor float64              `json:"video_quality_factor"`
 	VideoCodec         int32                `json:"video_codec"` // 0=H.264, 1=H.265
 	NativeMaxRestart   uint                 `json:"native_max_restart_attempts"`
+	GPIOPwrChip        string               `json:"gpio_pwr_chip"`
+	GPIOPwrLine        int                  `json:"gpio_pwr_line"`
+	GPIORstChip        string               `json:"gpio_rst_chip"`
+	GPIORstLine        int                  `json:"gpio_rst_line"`
+	SerialPortPath     string               `json:"serial_port_path"`
 }
 
 const configPath = "/userdata/kvm_config.json"
@@ -154,6 +159,11 @@ func getDefaultConfig() Config {
 		DefaultLogLevel:    "INFO",
 		VideoQualityFactor: 5000.0,
 		VideoCodec:         0, // Default to H.264
+		GPIOPwrChip:        "",
+		GPIOPwrLine:        -1,
+		GPIORstChip:        "",
+		GPIORstLine:        -1,
+		SerialPortPath:     "",
 	}
 }
 

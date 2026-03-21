@@ -17,6 +17,12 @@ interface SerialSettings {
   parity: string;
 }
 
+interface SerialPort {
+  path: string;
+  type: string;
+  info: string;
+}
+
 export function SerialConsole() {
   const { send } = useJsonRpc();
   const [settings, setSettings] = useState<SerialSettings>({
@@ -25,8 +31,23 @@ export function SerialConsole() {
     stopBits: "1",
     parity: "none",
   });
+  const [availablePorts, setAvailablePorts] = useState<SerialPort[]>([]);
+  const [selectedPort, setSelectedPort] = useState("");
 
   useEffect(() => {
+    send("getSerialPorts", {}, (resp: JsonRpcResponse) => {
+      if ("error" in resp) {
+        notifications.error(
+          m.serial_console_port_load_error({ error: resp.error.data || m.unknown_error() }),
+        );
+        return;
+      }
+      setAvailablePorts((resp.result as SerialPort[]) || []);
+    });
+    send("getSerialPortPath", {}, (resp: JsonRpcResponse) => {
+      if ("error" in resp) return;
+      setSelectedPort((resp.result as string) || "");
+    });
     send("getSerialSettings", {}, (resp: JsonRpcResponse) => {
       if ("error" in resp) {
         notifications.error(
@@ -64,6 +85,33 @@ export function SerialConsole() {
 
       <Card className="animate-fadeIn opacity-0">
         <div className="space-y-4 p-3">
+          {/* Serial Port Selection */}
+          <SelectMenuBasic
+            label={m.serial_console_port()}
+            options={[
+              { label: m.serial_console_port_none(), value: "" },
+              ...availablePorts.map(p => ({
+                label: `${p.path} — ${p.info}`,
+                value: p.path,
+              })),
+            ]}
+            value={selectedPort}
+            onChange={e => {
+              const path = e.target.value;
+              send("setSerialPortPath", { path }, (resp: JsonRpcResponse) => {
+                if ("error" in resp) {
+                  notifications.error(
+                    m.serial_console_port_save_error({
+                      error: resp.error.data || m.unknown_error(),
+                    }),
+                  );
+                  return;
+                }
+                setSelectedPort(path);
+              });
+            }}
+          />
+          <hr className="border-slate-700/30 dark:border-slate-600/30" />
           {/* Open Console Button */}
           <div className="flex items-center">
             <Button
@@ -71,6 +119,7 @@ export function SerialConsole() {
               theme="primary"
               LeadingIcon={LuTerminal}
               text={m.serial_console_open_console()}
+              disabled={!selectedPort}
               onClick={() => {
                 console.log("Opening serial console with settings: ", settings);
                 setTerminalType("serial");

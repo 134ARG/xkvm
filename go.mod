@@ -91,6 +91,7 @@ require (
 	github.com/u-root/uio v0.0.0-20230220225925-ffce2a382923 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
+	github.com/warthog618/go-gpiocdev v0.9.1 // indirect
 	github.com/wlynxg/anet v0.0.5 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	golang.org/x/arch v0.20.0 // indirect

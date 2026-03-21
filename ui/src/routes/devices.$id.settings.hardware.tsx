@@ -1,6 +1,7 @@
 import { SettingsPageHeader } from "@components/SettingsPageheader";
 import { UsbDeviceSetting } from "@components/UsbDeviceSetting";
 import { UsbInfoSetting } from "@components/UsbInfoSetting";
+import { GPIOSetting } from "@components/GPIOSetting";
 import { m } from "@localizations/messages.js";
 
 export default function SettingsHardwareRoute() {
@@ -11,6 +12,8 @@ export default function SettingsHardwareRoute() {
       <UsbDeviceSetting />
 
       <UsbInfoSetting />
+
+      <GPIOSetting />
     </div>
   );
 }

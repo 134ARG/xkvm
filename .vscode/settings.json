@@ -40,5 +40,6 @@
   "[go]": {
     "editor.defaultFormatter": "golang.go"
   },
-  "kiroAgent.configureMCP": "Disabled"
+  "kiroAgent.configureMCP": "Disabled",
+  "typescript.autoClosingTags": false
 }

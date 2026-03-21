@@ -734,6 +734,56 @@ func rpcGetATXState() (ATXState, error) {
 	return state, nil
 }
 
+type GPIOConfig struct {
+	PwrChip string `json:"pwrChip"`
+	PwrLine int    `json:"pwrLine"`
+	RstChip string `json:"rstChip"`
+	RstLine int    `json:"rstLine"`
+}
+
+func rpcGetGPIOChips() ([]HardwarePort, error) {
+	return discoverGPIOChips(), nil
+}
+
+func rpcGetGPIOChipLines(chip string) (int, error) {
+	return getGPIOChipLineCount(chip)
+}
+
+func rpcGetGPIOConfig() (GPIOConfig, error) {
+	return GPIOConfig{
+		PwrChip: config.GPIOPwrChip,
+		PwrLine: config.GPIOPwrLine,
+		RstChip: config.GPIORstChip,
+		RstLine: config.GPIORstLine,
+	}, nil
+}
+
+func rpcSetGPIOConfig(gpioConfig GPIOConfig) error {
+	config.GPIOPwrChip = gpioConfig.PwrChip
+	config.GPIOPwrLine = gpioConfig.PwrLine
+	config.GPIORstChip = gpioConfig.RstChip
+	config.GPIORstLine = gpioConfig.RstLine
+	return SaveConfig()
+}
+
+func rpcGetSerialPorts() ([]HardwarePort, error) {
+	return discoverSerialPorts(), nil
+}
+
+func rpcGetSerialPortPath() (string, error) {
+	return config.SerialPortPath, nil
+}
+
+func rpcSetSerialPortPath(path string) error {
+	// Close existing port if open
+	if port != nil {
+		port.Close()
+		port = nil
+	}
+	config.SerialPortPath = path
+	return SaveConfig()
+}
+
 type SerialSettings struct {
 	BaudRate string `json:"baudRate"`
 	DataBits string `json:"dataBits"`
@@ -1182,6 +1232,13 @@ var rpcHandlers = map[string]RPCHandler{
 	"setActiveExtension":     {Func: rpcSetActiveExtension, Params: []string{"extensionId"}},
 	"getATXState":            {Func: rpcGetATXState},
 	"setATXPowerAction":      {Func: rpcSetATXPowerAction, Params: []string{"action"}},
+	"getGPIOChips":           {Func: rpcGetGPIOChips},
+	"getGPIOChipLines":       {Func: rpcGetGPIOChipLines, Params: []string{"chip"}},
+	"getGPIOConfig":          {Func: rpcGetGPIOConfig},
+	"setGPIOConfig":          {Func: rpcSetGPIOConfig, Params: []string{"gpioConfig"}},
+	"getSerialPorts":         {Func: rpcGetSerialPorts},
+	"getSerialPortPath":      {Func: rpcGetSerialPortPath},
+	"setSerialPortPath":      {Func: rpcSetSerialPortPath, Params: []string{"path"}},
 	"getSerialSettings":      {Func: rpcGetSerialSettings},
 	"setSerialSettings":      {Func: rpcSetSerialSettings, Params: []string{"settings"}},
 	"getUsbDevices":          {Func: rpcGetUsbDevices},
