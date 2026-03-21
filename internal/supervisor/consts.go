@@ -1,12 +1,34 @@
 package supervisor
 
+import (
+	"os"
+	"path/filepath"
+)
+
+func dataDir() string {
+	if v := os.Getenv("XKVM_DATA_DIR"); v != "" {
+		return v
+	}
+	return "/var/lib/xkvm"
+}
+
+func logDir() string {
+	if v := os.Getenv("XKVM_LOG_DIR"); v != "" {
+		return v
+	}
+	return "/var/log/xkvm"
+}
+
+var (
+	ErrorDumpDir = filepath.Join(dataDir(), "crashdump")
+	AppLogPath   = filepath.Join(logDir(), "last.log")
+)
+
 const (
-	EnvChildID        = "XKVM_CHILD_ID"            // The child ID is the version of the app that is running
-	EnvSubcomponent   = "XKVM_SUBCOMPONENT"        // The subcomponent is the component that is running
-	ErrorDumpDir      = "/userdata/xkvm/crashdump" // The error dump directory is the directory where the error dumps are stored
-	ErrorDumpLastFile = "last-crash.log"           // The error dump last file is the last error dump file
-	ErrorDumpTemplate = "xkvm-%s.log"              // The error dump template is the template for the error dump file
-	AppLogPath        = "/userdata/xkvm/last.log"  // The application stdout/stderr log file
+	EnvChildID        = "XKVM_CHILD_ID"
+	EnvSubcomponent   = "XKVM_SUBCOMPONENT"
+	ErrorDumpLastFile = "last-crash.log"
+	ErrorDumpTemplate = "xkvm-%s.log"
 
 	FailsafeReasonVideoMaxRestartAttemptsReached = "failsafe::video.max_restart_attempts_reached"
 )

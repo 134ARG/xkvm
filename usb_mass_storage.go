@@ -99,7 +99,7 @@ func mountImage(imagePath string) error {
 
 var nbdDevice *NBDDevice
 
-const imagesFolder = "/userdata/xkvm/images"
+var imagesFolder = DataPath("images")
 
 func initImagesFolder() error {
 	err := os.MkdirAll(imagesFolder, 0755)

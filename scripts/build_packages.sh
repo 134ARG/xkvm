@@ -104,6 +104,7 @@ EOF
     cat > "$DEB_DIR/DEBIAN/postinst" << 'EOF'
 #!/bin/bash
 systemctl daemon-reload
+mkdir -p /etc/xkvm /var/lib/xkvm /var/log/xkvm
 echo ""
 echo "XKVM has been installed successfully!"
 echo ""

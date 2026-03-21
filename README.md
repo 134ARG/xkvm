@@ -12,6 +12,29 @@ XKVM基于JetKVM，删掉依大托我用不到的功能，比如云端连接，�
 
 项目主要开发目的为个人自用，随时弃坑。其他细节见英文版readme。
 
+## 文件路径
+
+XKVM 遵循标准 Linux FHS 规范，路径可通过环境变量覆盖。
+
+| 路径 | 环境变量 | 用途 |
+|---|---|---|
+| `/etc/xkvm/` | `XKVM_CONFIG_DIR` | 配置文件 |
+| `/var/lib/xkvm/` | `XKVM_DATA_DIR` | 数据文件 |
+| `/var/log/xkvm/` | `XKVM_LOG_DIR` | 日志 |
+
+主要文件：
+
+| 文件 | 说明 |
+|---|---|
+| `/etc/xkvm/kvm_config.json` | 主配置（USB、视频、认证、宏等） |
+| `/etc/xkvm/tls/` | TLS 证书 |
+| `/etc/xkvm/.native-debug-mode` | 创建此文件启用 native 调试模式 |
+| `/var/lib/xkvm/images/` | 虚拟介质镜像（ISO/磁盘） |
+| `/var/lib/xkvm/crashdump/` | 崩溃日志 |
+| `/var/log/xkvm/last.log` | 应用标准输出/错误日志 |
+
+通过 systemd 运行时，目录由 `ConfigurationDirectory`、`StateDirectory`、`LogsDirectory` 自动创建。
+
 ## 贡献
 
 欢迎fork。

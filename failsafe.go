@@ -8,11 +8,14 @@ import (
 	"github.com/134ARG/xkvm/internal/supervisor"
 )
 
+var (
+	failsafeDefaultLastCrashPath = DataPath("crashdump", "last-crash.log")
+	failsafeFile                 = DataPath(".enablefailsafe")
+)
+
 const (
-	failsafeDefaultLastCrashPath = "/userdata/xkvm/crashdump/last-crash.log"
-	failsafeFile                 = "/userdata/xkvm/.enablefailsafe"
-	failsafeLastCrashEnv         = "XKVM_LAST_ERROR_PATH"
-	failsafeEnv                  = "XKVM_FORCE_FAILSAFE"
+	failsafeLastCrashEnv = "XKVM_LAST_ERROR_PATH"
+	failsafeEnv          = "XKVM_FORCE_FAILSAFE"
 )
 
 var (

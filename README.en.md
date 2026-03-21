@@ -21,6 +21,29 @@ XKVM focuses on core KVM functionality with a clean, maintainable codebase. It i
 - **Network Monitoring** - Real-time network status and DHCP lease information. Network manipuation is removed, now it is read-only
 
 
+## File Paths
+
+XKVM follows standard Linux FHS conventions. Paths can be overridden via environment variables.
+
+| Path | Env Override | Contents |
+|---|---|---|
+| `/etc/xkvm/` | `XKVM_CONFIG_DIR` | Configuration |
+| `/var/lib/xkvm/` | `XKVM_DATA_DIR` | Variable data |
+| `/var/log/xkvm/` | `XKVM_LOG_DIR` | Logs |
+
+Key files:
+
+| File | Description |
+|---|---|
+| `/etc/xkvm/kvm_config.json` | Main application config (USB, video, auth, macros, etc.) |
+| `/etc/xkvm/tls/` | TLS certificates (self-signed and user-defined) |
+| `/etc/xkvm/.native-debug-mode` | Create this file to enable native debug mode |
+| `/var/lib/xkvm/images/` | Virtual media ISO/disk images |
+| `/var/lib/xkvm/crashdump/` | Crash dump logs |
+| `/var/log/xkvm/last.log` | Application stdout/stderr log |
+
+When running under systemd, directories are created automatically via `ConfigurationDirectory`, `StateDirectory`, and `LogsDirectory` directives.
+
 ## Architecture
 
 XKVM consists of:

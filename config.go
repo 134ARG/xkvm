@@ -117,7 +117,7 @@ type Config struct {
 	SerialPortPath     string               `json:"serial_port_path"`
 }
 
-const configPath = "/userdata/kvm_config.json"
+var configPath = ConfigPath("kvm_config.json")
 
 // it's a temporary solution to avoid sharing the same pointer
 // we should migrate to a proper config solution in the future

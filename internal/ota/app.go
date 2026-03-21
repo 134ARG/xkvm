@@ -1,5 +1,5 @@
 package ota
 
 // const (
-// 	appUpdatePath = "/userdata/xkvm/xkvm_app.update"
+// 	appUpdatePath = "/var/lib/xkvm/xkvm_app.update"
 // )

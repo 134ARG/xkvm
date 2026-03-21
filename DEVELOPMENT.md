@@ -225,7 +225,7 @@ Runs `go vet` on all packages.
 
 ### Application Config
 
-Configuration is stored in `/userdata/kvm_config.json` on the device. The config includes:
+Configuration is stored in `/etc/xkvm/kvm_config.json` on the device. The config includes:
 
 - Network settings (read-only display)
 - USB gadget configuration

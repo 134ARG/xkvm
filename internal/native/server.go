@@ -25,7 +25,7 @@ var (
 )
 
 const (
-	DebugModeFile = "/userdata/xkvm/.native-debug-mode"
+	DebugModeFile = "/etc/xkvm/.native-debug-mode"
 )
 
 func setProcTitle(status string) {

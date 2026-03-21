@@ -116,12 +116,12 @@ jobs:
           set -e
           # Copy the binary to the remote host
           echo "+ Copying the application to the remote host"
-          cat bin/xkvm_app | gzip | ssh jkci "cat > /userdata/xkvm/xkvm_app.update.gz"
+          cat bin/xkvm_app | gzip | ssh jkci "cat > /var/lib/xkvm/xkvm_app.update.gz"
           # Deploy and run the application on the remote host
           echo "+ Deploying the application on the remote host"
           ssh jkci ash <<EOF
           # Extract the binary
-          gzip -d /userdata/xkvm/xkvm_app.update.gz
+          gzip -d /var/lib/xkvm/xkvm_app.update.gz
           # Flush filesystem buffers to ensure all data is written to disk
           sync
           # Clear the filesystem caches to force a read from disk
@@ -157,7 +157,7 @@ jobs:
           ssh jkci ash > $local_log_tar <<'EOF'
           log_path=$(mktemp -d)
           dmesg > $log_path/dmesg.log
-          cp /userdata/xkvm/last.log $log_path/last.log
+          cp /var/log/xkvm/last.log $log_path/last.log
           tar -czf - -C $log_path .
           EOF
           tar -xf $local_log_tar

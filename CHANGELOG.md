@@ -206,5 +206,5 @@ Detailed documentation for specific changes:
 
 - Existing network configurations preserved but ignored
 - Cloud tokens and URLs preserved in config files
-- SSH keys in `/userdata/dropbear/.ssh/authorized_keys` still work
+- SSH keys in `/etc/xkvm/dropbear/.ssh/authorized_keys` still work
 - USB gadget automatically recovers from crashes

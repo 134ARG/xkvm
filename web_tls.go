@@ -12,8 +12,9 @@ import (
 	"github.com/134ARG/xkvm/internal/websecure"
 )
 
+var tlsStorePath = ConfigPath("tls")
+
 const (
-	tlsStorePath                     = "/userdata/xkvm/tls"
 	webSecureListen                  = ":443"
 	webSecureSelfSignedDefaultDomain = "xkvm.local"
 	webSecureSelfSignedCAName        = "XKVM Self-Signed CA"

@@ -7,10 +7,10 @@ For performance-critical operations such as video frame, **a dedicated Unix sock
 
 ## Debugging
 
-To enable debug mode, create a file called `.native-debug-mode` in the `/userdata/xkvm` directory.
+To enable debug mode, create a file called `.native-debug-mode` in the `/etc/xkvm` directory.
 
 ```bash
-touch /userdata/xkvm/.native-debug-mode
+touch /etc/xkvm/.native-debug-mode
 ```
 
 This will cause the native process to listen for SIGHUP signal and crash the process.
