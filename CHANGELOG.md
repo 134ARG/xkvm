@@ -2,6 +2,27 @@
 
 This document summarizes the major changes made to XKVM during its evolution from the original JetKVM embedded system to a full Linux-based KVM-over-IP solution.
 
+## Version 0.1.4 (2026-03-23)
+
+### New Features
+- Added ATX power control with GPIO and serial port selection
+- Added PWR and HDD LED state reading and ATX state feedback
+- Added polarity configuration for GPIOs
+- Added experimental soft and hard reset for USB
+
+### UI
+- Synced scroll bar theme with the UI theme
+- Updated native Tauri wrapper to dark mode window
+
+### Deprecations
+- Retired Wake-on-LAN completely (previously marked deprecated)
+
+### System
+- Updated file paths to respect the Linux FHS
+
+### Documentation
+- Updated README
+
 ## Version 0.1.3 (2026-03-11)
 
 ### Bug Fixes
