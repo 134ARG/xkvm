@@ -89,11 +89,11 @@ Screenshots from the Tauri native desktop app (macOS):
 
 Video settings: adjustable 2M–20M bitrate, H.264/H.265 codec selection (H.265 macOS Safari only).
 
-<img src="images/video-demo.png" width="75%" />
+<img src="images/video-demo.png" />
 
 GPIO hardware config: ATX power control and status monitoring pin assignment.
 
-<img src="images/gpio-demo.png" width="75%" />
+<img src="images/gpio-demo.png" />
 
 ## Contributing
 

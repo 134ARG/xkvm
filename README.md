@@ -41,11 +41,11 @@ XKVM 遵循标准 Linux FHS 规范，路径可通过环境变量覆盖。
 
 视频设置：支持 2M–20M 码率调节，H.264/H.265 编码切换（H.265 仅限 macOS Safari）。
 
-<img src="images/video-demo.png" width="75%" />
+<img src="images/video-demo.png" />
 
 GPIO 硬件配置：ATX 电源控制与状态监测引脚配置。
 
-<img src="images/gpio-demo.png" width="75%" />
+<img src="images/gpio-demo.png" />
 
 ## 贡献
 
