@@ -8,11 +8,11 @@ XKVM 是一个高性能、开源、100% 本地的 KVM-over-IP 解决方案，运
 
 ## 概述
 
-XKVM基于JetKVM，删掉依大托我用不到的功能，比如云端连接，网络配置，设备管理等等（毕竟跑在一个完整的linux而非buildroot上）。添加了2M - 20M的码率调整以及H.265编码。同时还基于Tauri增加了Linux，Windows和MacOS的前端本地应用，用来解决使用tailscale等VPN进行跨LAN连接时恼人的浏览器WebRTC安全限制。
+XKVM基于JetKVM，删掉依大托我用不到的功能，比如云端连接，网络配置，设备管理等等（毕竟跑在一个完整的linux而非buildroot上）。添加了2M - 20M的码率调整以及H.265编码，可自定义GPIO的ATX电源控制与监控。同时还基于Tauri增加了Linux，Windows和MacOS的前端本地应用，用来解决使用tailscale等VPN进行跨LAN连接时恼人的浏览器WebRTC安全限制。
 
 项目主要开发目的为个人自用，随时弃坑。其他细节见英文版readme。
 
-## 文件路径
+## 配置文件路径
 
 XKVM 遵循标准 Linux FHS 规范，路径可通过环境变量覆盖。
 
@@ -34,6 +34,18 @@ XKVM 遵循标准 Linux FHS 规范，路径可通过环境变量覆盖。
 | `/var/log/xkvm/last.log` | 应用标准输出/错误日志 |
 
 通过 systemd 运行时，目录由 `ConfigurationDirectory`、`StateDirectory`、`LogsDirectory` 自动创建。
+
+## 演示
+
+以下截图来自 Tauri 原生桌面界面（macOS）:
+
+视频设置：支持 2M–20M 码率调节，H.264/H.265 编码切换（H.265 仅限 macOS Safari）。
+
+<img src="images/video-demo.png" width="75%" />
+
+GPIO 硬件配置：ATX 电源控制与状态监测引脚配置。
+
+<img src="images/gpio-demo.png" width="75%" />
 
 ## 贡献
 
