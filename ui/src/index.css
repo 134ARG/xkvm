@@ -151,6 +151,11 @@
 
 html {
   @apply scroll-smooth;
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
 }
 
 html,
