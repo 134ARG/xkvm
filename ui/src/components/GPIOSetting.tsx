@@ -15,12 +15,16 @@ interface HardwarePort {
 interface GPIOConfig {
   pwrChip: string;
   pwrLine: number;
+  pwrActiveHigh: boolean;
   rstChip: string;
   rstLine: number;
+  rstActiveHigh: boolean;
   pwrLedChip: string;
   pwrLedLine: number;
+  pwrLedActiveHigh: boolean;
   hddLedChip: string;
   hddLedLine: number;
+  hddLedActiveHigh: boolean;
 }
 
 export function GPIOSetting() {
@@ -29,12 +33,16 @@ export function GPIOSetting() {
   const [gpioConfig, setGpioConfig] = useState<GPIOConfig>({
     pwrChip: "",
     pwrLine: -1,
+    pwrActiveHigh: true,
     rstChip: "",
     rstLine: -1,
+    rstActiveHigh: true,
     pwrLedChip: "",
     pwrLedLine: -1,
+    pwrLedActiveHigh: false,
     hddLedChip: "",
     hddLedLine: -1,
+    hddLedActiveHigh: false,
   });
   const [pwrLineCount, setPwrLineCount] = useState(0);
   const [rstLineCount, setRstLineCount] = useState(0);
@@ -107,6 +115,11 @@ export function GPIOSetting() {
     return opts;
   };
 
+  const activeLevelOptions = [
+    { label: String(m.hardware_gpio_active_high()), value: "true" },
+    { label: String(m.hardware_gpio_active_low()), value: "false" },
+  ];
+
   return (
     <div className="space-y-4">
       <div className="h-px w-full bg-slate-800/10 dark:bg-slate-300/20" />
@@ -116,7 +129,7 @@ export function GPIOSetting() {
         description={m.hardware_gpio_description()}
       />
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <SelectMenuBasic
           label={m.hardware_gpio_pwr_chip()}
           options={chipOptions}
@@ -135,6 +148,16 @@ export function GPIOSetting() {
           disabled={!gpioConfig.pwrChip}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
             const updated = { ...gpioConfig, pwrLine: parseInt(e.target.value, 10) };
+            saveGPIOConfig(updated);
+          }}
+        />
+        <SelectMenuBasic
+          label={m.hardware_gpio_pwr_active_level()}
+          options={activeLevelOptions}
+          value={String(gpioConfig.pwrActiveHigh)}
+          disabled={!gpioConfig.pwrChip}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+            const updated = { ...gpioConfig, pwrActiveHigh: e.target.value === "true" };
             saveGPIOConfig(updated);
           }}
         />
@@ -160,6 +183,16 @@ export function GPIOSetting() {
           }}
         />
         <SelectMenuBasic
+          label={m.hardware_gpio_rst_active_level()}
+          options={activeLevelOptions}
+          value={String(gpioConfig.rstActiveHigh)}
+          disabled={!gpioConfig.rstChip}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+            const updated = { ...gpioConfig, rstActiveHigh: e.target.value === "true" };
+            saveGPIOConfig(updated);
+          }}
+        />
+        <SelectMenuBasic
           label={m.hardware_gpio_pwr_led_chip()}
           options={chipOptions}
           value={gpioConfig.pwrLedChip}
@@ -181,6 +214,16 @@ export function GPIOSetting() {
           }}
         />
         <SelectMenuBasic
+          label={m.hardware_gpio_pwr_led_active_level()}
+          options={activeLevelOptions}
+          value={String(gpioConfig.pwrLedActiveHigh)}
+          disabled={!gpioConfig.pwrLedChip}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+            const updated = { ...gpioConfig, pwrLedActiveHigh: e.target.value === "true" };
+            saveGPIOConfig(updated);
+          }}
+        />
+        <SelectMenuBasic
           label={m.hardware_gpio_hdd_led_chip()}
           options={chipOptions}
           value={gpioConfig.hddLedChip}
@@ -198,6 +241,16 @@ export function GPIOSetting() {
           disabled={!gpioConfig.hddLedChip}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
             const updated = { ...gpioConfig, hddLedLine: parseInt(e.target.value, 10) };
+            saveGPIOConfig(updated);
+          }}
+        />
+        <SelectMenuBasic
+          label={m.hardware_gpio_hdd_led_active_level()}
+          options={activeLevelOptions}
+          value={String(gpioConfig.hddLedActiveHigh)}
+          disabled={!gpioConfig.hddLedChip}
+          onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+            const updated = { ...gpioConfig, hddLedActiveHigh: e.target.value === "true" };
             saveGPIOConfig(updated);
           }}
         />

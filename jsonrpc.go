@@ -719,14 +719,18 @@ func rpcGetATXState() (ATXState, error) {
 }
 
 type GPIOConfig struct {
-	PwrChip    string `json:"pwrChip"`
-	PwrLine    int    `json:"pwrLine"`
-	RstChip    string `json:"rstChip"`
-	RstLine    int    `json:"rstLine"`
-	PwrLedChip string `json:"pwrLedChip"`
-	PwrLedLine int    `json:"pwrLedLine"`
-	HddLedChip string `json:"hddLedChip"`
-	HddLedLine int    `json:"hddLedLine"`
+	PwrChip          string `json:"pwrChip"`
+	PwrLine          int    `json:"pwrLine"`
+	PwrActiveHigh    bool   `json:"pwrActiveHigh"`
+	RstChip          string `json:"rstChip"`
+	RstLine          int    `json:"rstLine"`
+	RstActiveHigh    bool   `json:"rstActiveHigh"`
+	PwrLedChip       string `json:"pwrLedChip"`
+	PwrLedLine       int    `json:"pwrLedLine"`
+	PwrLedActiveHigh bool   `json:"pwrLedActiveHigh"`
+	HddLedChip       string `json:"hddLedChip"`
+	HddLedLine       int    `json:"hddLedLine"`
+	HddLedActiveHigh bool   `json:"hddLedActiveHigh"`
 }
 
 func rpcGetGPIOChips() ([]HardwarePort, error) {
@@ -739,26 +743,34 @@ func rpcGetGPIOChipLines(chip string) (int, error) {
 
 func rpcGetGPIOConfig() (GPIOConfig, error) {
 	return GPIOConfig{
-		PwrChip:    config.GPIOPwrChip,
-		PwrLine:    config.GPIOPwrLine,
-		RstChip:    config.GPIORstChip,
-		RstLine:    config.GPIORstLine,
-		PwrLedChip: config.GPIOPwrLedChip,
-		PwrLedLine: config.GPIOPwrLedLine,
-		HddLedChip: config.GPIOHddLedChip,
-		HddLedLine: config.GPIOHddLedLine,
+		PwrChip:          config.GPIOPwrChip,
+		PwrLine:          config.GPIOPwrLine,
+		PwrActiveHigh:    config.GPIOPwrActiveHigh,
+		RstChip:          config.GPIORstChip,
+		RstLine:          config.GPIORstLine,
+		RstActiveHigh:    config.GPIORstActiveHigh,
+		PwrLedChip:       config.GPIOPwrLedChip,
+		PwrLedLine:       config.GPIOPwrLedLine,
+		PwrLedActiveHigh: config.GPIOPwrLedActiveHigh,
+		HddLedChip:       config.GPIOHddLedChip,
+		HddLedLine:       config.GPIOHddLedLine,
+		HddLedActiveHigh: config.GPIOHddLedActiveHigh,
 	}, nil
 }
 
 func rpcSetGPIOConfig(gpioConfig GPIOConfig) error {
 	config.GPIOPwrChip = gpioConfig.PwrChip
 	config.GPIOPwrLine = gpioConfig.PwrLine
+	config.GPIOPwrActiveHigh = gpioConfig.PwrActiveHigh
 	config.GPIORstChip = gpioConfig.RstChip
 	config.GPIORstLine = gpioConfig.RstLine
+	config.GPIORstActiveHigh = gpioConfig.RstActiveHigh
 	config.GPIOPwrLedChip = gpioConfig.PwrLedChip
 	config.GPIOPwrLedLine = gpioConfig.PwrLedLine
+	config.GPIOPwrLedActiveHigh = gpioConfig.PwrLedActiveHigh
 	config.GPIOHddLedChip = gpioConfig.HddLedChip
 	config.GPIOHddLedLine = gpioConfig.HddLedLine
+	config.GPIOHddLedActiveHigh = gpioConfig.HddLedActiveHigh
 	return SaveConfig()
 }
 

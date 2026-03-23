@@ -61,8 +61,8 @@ func runATXControl() {
 			scopedLogger.Info().Msg("ATX control polling stopped")
 			return
 		case <-ticker.C:
-			ledPWRState = readGPIOInput(config.GPIOPwrLedChip, config.GPIOPwrLedLine)
-			ledHDDState = !readGPIOInput(config.GPIOHddLedChip, config.GPIOHddLedLine)
+			ledPWRState = readGPIOInput(config.GPIOPwrLedChip, config.GPIOPwrLedLine) == config.GPIOPwrLedActiveHigh
+			ledHDDState = readGPIOInput(config.GPIOHddLedChip, config.GPIOHddLedLine) == config.GPIOHddLedActiveHigh
 
 			if ledPWRState != prevPWR || ledHDDState != prevHDD {
 				prevPWR = ledPWRState
@@ -86,11 +86,11 @@ func triggerATXStateUpdate() {
 }
 
 func pressATXPowerButton(duration time.Duration) error {
-	return pulseGPIO(config.GPIOPwrChip, config.GPIOPwrLine, duration)
+	return pulseGPIO(config.GPIOPwrChip, config.GPIOPwrLine, duration, config.GPIOPwrActiveHigh)
 }
 
 func pressATXResetButton(duration time.Duration) error {
-	return pulseGPIO(config.GPIORstChip, config.GPIORstLine, duration)
+	return pulseGPIO(config.GPIORstChip, config.GPIORstLine, duration, config.GPIORstActiveHigh)
 }
 
 // readGPIOInput reads a single GPIO line as input and returns its boolean value.
@@ -115,38 +115,46 @@ func readGPIOInput(chip string, line int) bool {
 	return val != 0
 }
 
-// pulseGPIO opens a GPIO line, drives it low to clear state, then pulses high
-// for the given duration. No-op if chip/line is unconfigured.
-func pulseGPIO(chip string, line int, duration time.Duration) error {
+// pulseGPIO opens a GPIO line, drives it to idle state, then pulses to active
+// state for the given duration. Polarity is determined by activeHigh.
+// No-op if chip/line is unconfigured.
+func pulseGPIO(chip string, line int, duration time.Duration, activeHigh bool) error {
 	if chip == "" || line < 0 {
 		serialLogger.Debug().Msg("GPIO not configured, skipping pulse")
 		return nil
 	}
 
-	l, err := gpiocdev.RequestLine(chip, line, gpiocdev.AsOutput(0))
+	activeVal := 1
+	idleVal := 0
+	if !activeHigh {
+		activeVal = 0
+		idleVal = 1
+	}
+
+	l, err := gpiocdev.RequestLine(chip, line, gpiocdev.AsOutput(idleVal))
 	if err != nil {
 		return fmt.Errorf("failed to request GPIO %s line %d: %w", chip, line, err)
 	}
 	defer l.Close()
 
-	// Clear: drive low
-	if err := l.SetValue(0); err != nil {
-		return fmt.Errorf("failed to set GPIO low: %w", err)
+	// Clear: drive to idle
+	if err := l.SetValue(idleVal); err != nil {
+		return fmt.Errorf("failed to set GPIO idle: %w", err)
 	}
 	time.Sleep(10 * time.Millisecond)
 
-	// Pulse: drive high for duration
-	if err := l.SetValue(1); err != nil {
-		return fmt.Errorf("failed to set GPIO high: %w", err)
+	// Pulse: drive to active for duration
+	if err := l.SetValue(activeVal); err != nil {
+		return fmt.Errorf("failed to set GPIO active: %w", err)
 	}
 	time.Sleep(duration)
 
-	// Release: drive low
-	if err := l.SetValue(0); err != nil {
-		return fmt.Errorf("failed to set GPIO low after pulse: %w", err)
+	// Release: drive to idle
+	if err := l.SetValue(idleVal); err != nil {
+		return fmt.Errorf("failed to set GPIO idle after pulse: %w", err)
 	}
 
-	serialLogger.Info().Str("chip", chip).Int("line", line).Dur("duration", duration).Msg("GPIO pulse complete")
+	serialLogger.Info().Str("chip", chip).Int("line", line).Dur("duration", duration).Bool("activeHigh", activeHigh).Msg("GPIO pulse complete")
 	return nil
 }
 

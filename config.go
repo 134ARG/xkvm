@@ -83,38 +83,42 @@ func (m *KeyboardMacro) Validate() error {
 }
 
 type Config struct {
-	CloudURL           string               `json:"cloud_url"`
-	JigglerEnabled     bool                 `json:"jiggler_enabled"`
-	JigglerConfig      *JigglerConfig       `json:"jiggler_config"`
-	AutoUpdateEnabled  bool                 `json:"auto_update_enabled"`
-	IncludePreRelease  bool                 `json:"include_pre_release"`
-	HashedPassword     string               `json:"hashed_password"`
-	LocalAuthToken     string               `json:"local_auth_token"`
-	LocalAuthMode      string               `json:"localAuthMode"` //TODO: fix it with migration
-	LocalLoopbackOnly  bool                 `json:"local_loopback_only"`
-	WakeOnLanDevices   []WakeOnLanDevice    `json:"wake_on_lan_devices"` //deprecated: Wake on LAN feature
-	KeyboardMacros     []KeyboardMacro      `json:"keyboard_macros"`
-	KeyboardLayout     string               `json:"keyboard_layout"`
-	EdidString         string               `json:"hdmi_edid_string"`
-	ActiveExtension    string               `json:"active_extension"`
-	TLSMode            string               `json:"tls_mode"` // options: "self-signed", "user-defined", ""
-	UsbConfig          *usbgadget.Config    `json:"usb_config"`
-	UsbDevices         *usbgadget.Devices   `json:"usb_devices"`
-	NetworkConfig      *types.NetworkConfig `json:"network_config,omitempty"` // Deprecated: Network config is read-only on full Linux systems. This field is ignored during save/load.
-	DefaultLogLevel    string               `json:"default_log_level"`
-	VideoSleepAfterSec int                  `json:"video_sleep_after_sec"`
-	VideoQualityFactor float64              `json:"video_quality_factor"`
-	VideoCodec         int32                `json:"video_codec"` // 0=H.264, 1=H.265
-	NativeMaxRestart   uint                 `json:"native_max_restart_attempts"`
-	GPIOPwrChip        string               `json:"gpio_pwr_chip"`
-	GPIOPwrLine        int                  `json:"gpio_pwr_line"`
-	GPIORstChip        string               `json:"gpio_rst_chip"`
-	GPIORstLine        int                  `json:"gpio_rst_line"`
-	GPIOPwrLedChip     string               `json:"gpio_pwr_led_chip"`
-	GPIOPwrLedLine     int                  `json:"gpio_pwr_led_line"`
-	GPIOHddLedChip     string               `json:"gpio_hdd_led_chip"`
-	GPIOHddLedLine     int                  `json:"gpio_hdd_led_line"`
-	SerialPortPath     string               `json:"serial_port_path"`
+	CloudURL             string               `json:"cloud_url"`
+	JigglerEnabled       bool                 `json:"jiggler_enabled"`
+	JigglerConfig        *JigglerConfig       `json:"jiggler_config"`
+	AutoUpdateEnabled    bool                 `json:"auto_update_enabled"`
+	IncludePreRelease    bool                 `json:"include_pre_release"`
+	HashedPassword       string               `json:"hashed_password"`
+	LocalAuthToken       string               `json:"local_auth_token"`
+	LocalAuthMode        string               `json:"localAuthMode"` //TODO: fix it with migration
+	LocalLoopbackOnly    bool                 `json:"local_loopback_only"`
+	WakeOnLanDevices     []WakeOnLanDevice    `json:"wake_on_lan_devices"` //deprecated: Wake on LAN feature
+	KeyboardMacros       []KeyboardMacro      `json:"keyboard_macros"`
+	KeyboardLayout       string               `json:"keyboard_layout"`
+	EdidString           string               `json:"hdmi_edid_string"`
+	ActiveExtension      string               `json:"active_extension"`
+	TLSMode              string               `json:"tls_mode"` // options: "self-signed", "user-defined", ""
+	UsbConfig            *usbgadget.Config    `json:"usb_config"`
+	UsbDevices           *usbgadget.Devices   `json:"usb_devices"`
+	NetworkConfig        *types.NetworkConfig `json:"network_config,omitempty"` // Deprecated: Network config is read-only on full Linux systems. This field is ignored during save/load.
+	DefaultLogLevel      string               `json:"default_log_level"`
+	VideoSleepAfterSec   int                  `json:"video_sleep_after_sec"`
+	VideoQualityFactor   float64              `json:"video_quality_factor"`
+	VideoCodec           int32                `json:"video_codec"` // 0=H.264, 1=H.265
+	NativeMaxRestart     uint                 `json:"native_max_restart_attempts"`
+	GPIOPwrChip          string               `json:"gpio_pwr_chip"`
+	GPIOPwrLine          int                  `json:"gpio_pwr_line"`
+	GPIOPwrActiveHigh    bool                 `json:"gpio_pwr_active_high"`
+	GPIORstChip          string               `json:"gpio_rst_chip"`
+	GPIORstLine          int                  `json:"gpio_rst_line"`
+	GPIORstActiveHigh    bool                 `json:"gpio_rst_active_high"`
+	GPIOPwrLedChip       string               `json:"gpio_pwr_led_chip"`
+	GPIOPwrLedLine       int                  `json:"gpio_pwr_led_line"`
+	GPIOPwrLedActiveHigh bool                 `json:"gpio_pwr_led_active_high"`
+	GPIOHddLedChip       string               `json:"gpio_hdd_led_chip"`
+	GPIOHddLedLine       int                  `json:"gpio_hdd_led_line"`
+	GPIOHddLedActiveHigh bool                 `json:"gpio_hdd_led_active_high"`
+	SerialPortPath       string               `json:"serial_port_path"`
 }
 
 var configPath = ConfigPath("kvm_config.json")
@@ -161,18 +165,22 @@ func getDefaultConfig() Config {
 			_ = confparser.SetDefaultsAndValidate(c)
 			return c
 		}(),
-		DefaultLogLevel:    "INFO",
-		VideoQualityFactor: 5000.0,
-		VideoCodec:         0, // Default to H.264
-		GPIOPwrChip:        "",
-		GPIOPwrLine:        -1,
-		GPIORstChip:        "",
-		GPIORstLine:        -1,
-		GPIOPwrLedChip:     "",
-		GPIOPwrLedLine:     -1,
-		GPIOHddLedChip:     "",
-		GPIOHddLedLine:     -1,
-		SerialPortPath:     "",
+		DefaultLogLevel:      "INFO",
+		VideoQualityFactor:   5000.0,
+		VideoCodec:           0, // Default to H.264
+		GPIOPwrChip:          "",
+		GPIOPwrLine:          -1,
+		GPIOPwrActiveHigh:    true,
+		GPIORstChip:          "",
+		GPIORstLine:          -1,
+		GPIORstActiveHigh:    true,
+		GPIOPwrLedChip:       "",
+		GPIOPwrLedLine:       -1,
+		GPIOPwrLedActiveHigh: false,
+		GPIOHddLedChip:       "",
+		GPIOHddLedLine:       -1,
+		GPIOHddLedActiveHigh: false,
+		SerialPortPath:       "",
 	}
 }
 
