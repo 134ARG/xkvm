@@ -64,6 +64,8 @@ func runATXControl() {
 			ledPWRState = readGPIOInput(config.GPIOPwrLedChip, config.GPIOPwrLedLine) == config.GPIOPwrLedActiveHigh
 			ledHDDState = readGPIOInput(config.GPIOHddLedChip, config.GPIOHddLedLine) == config.GPIOHddLedActiveHigh
 
+			ledHDDState = ledPWRState && ledHDDState
+
 			if ledPWRState != prevPWR || ledHDDState != prevHDD {
 				prevPWR = ledPWRState
 				prevHDD = ledHDDState
