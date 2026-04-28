@@ -56,7 +56,8 @@ type UsbGadget struct {
 	configMap    map[string]gadgetConfigItem
 	customConfig Config
 
-	configLock sync.Mutex
+	configLock    sync.Mutex
+	lifecycleLock sync.Mutex
 
 	keyboardHidFile *os.File
 	keyboardLock    sync.Mutex
@@ -131,6 +132,7 @@ func newUsbGadget(name string, configMap map[string]gadgetConfigItem, enabledDev
 		configMap:            configMap,
 		customConfig:         *config,
 		configLock:           sync.Mutex{},
+		lifecycleLock:        sync.Mutex{},
 		keyboardLock:         sync.Mutex{},
 		absMouseLock:         sync.Mutex{},
 		relMouseLock:         sync.Mutex{},
@@ -183,6 +185,10 @@ func (u *UsbGadget) Close() error {
 
 // CloseHidFiles closes all open HID device files
 func (u *UsbGadget) CloseHidFiles() {
+	if u.keyboardStateCancel != nil {
+		u.keyboardStateCancel()
+	}
+
 	u.keyboardLock.Lock()
 	if u.keyboardHidFile != nil {
 		u.keyboardHidFile.Close()
@@ -206,6 +212,79 @@ func (u *UsbGadget) CloseHidFiles() {
 		u.log.Debug().Msg("closed relative mouse HID file")
 	}
 	u.relMouseLock.Unlock()
+}
+
+func (u *UsbGadget) cancelAutoReleaseTimers() {
+	u.kbdAutoReleaseLock.Lock()
+	for key, timer := range u.kbdAutoReleaseTimers {
+		if timer != nil {
+			timer.Stop()
+		}
+		delete(u.kbdAutoReleaseTimers, key)
+	}
+	u.kbdAutoReleaseLock.Unlock()
+}
+
+func (u *UsbGadget) clearKeysDownState() {
+	clearKeys := make([]byte, hidKeyBufferSize)
+
+	u.keyboardStateLock.Lock()
+	changed := u.keysDownState.Modifier != 0
+	if !changed {
+		for _, key := range u.keysDownState.Keys {
+			if key != 0 {
+				changed = true
+				break
+			}
+		}
+	}
+	u.keysDownState = KeysDownState{Modifier: 0, Keys: clearKeys}
+	u.keyboardStateLock.Unlock()
+
+	if changed && u.onKeysDownChange != nil {
+		(*u.onKeysDownChange)(u.GetKeysDownState())
+	}
+}
+
+func (u *UsbGadget) releaseHidStateBeforeClose() {
+	if u.enabledDevices.Keyboard {
+		u.keyboardLock.Lock()
+		if u.keyboardHidFile != nil {
+			clearKeys := make([]byte, hidKeyBufferSize)
+			if _, err := u.writeWithTimeout(u.keyboardHidFile, append([]byte{0, 0}, clearKeys...)); err != nil {
+				u.log.Warn().Err(err).Msg("failed to release keyboard state before HID close")
+			}
+		}
+		u.keyboardLock.Unlock()
+	}
+
+	if u.enabledDevices.AbsoluteMouse {
+		u.absMouseLock.Lock()
+		if u.absMouseHidFile != nil {
+			if _, err := u.writeWithTimeout(u.absMouseHidFile, []byte{1, 0, 0, 0, 0, 0}); err != nil {
+				u.log.Warn().Err(err).Msg("failed to release absolute mouse buttons before HID close")
+			}
+		}
+		u.absMouseLock.Unlock()
+	}
+
+	if u.enabledDevices.RelativeMouse {
+		u.relMouseLock.Lock()
+		if u.relMouseHidFile != nil {
+			if _, err := u.writeWithTimeout(u.relMouseHidFile, []byte{0, 0, 0, 0}); err != nil {
+				u.log.Warn().Err(err).Msg("failed to release relative mouse buttons before HID close")
+			}
+		}
+		u.relMouseLock.Unlock()
+	}
+}
+
+func (u *UsbGadget) prepareHidForReconfigure() {
+	u.SuspendHidOperations()
+	u.cancelAutoReleaseTimers()
+	u.releaseHidStateBeforeClose()
+	u.clearKeysDownState()
+	u.CloseHidFiles()
 }
 
 // SuspendHidOperations suspends HID operations during USB reconfiguration

@@ -271,6 +271,7 @@ func (u *UsbGadget) listenKeyboardEvents() {
 				n, err := u.keyboardHidFile.Read(buf)
 				if err != nil {
 					u.logWithSuppression("keyboardHidFileRead", 100, &l, err, "failed to read")
+					time.Sleep(100 * time.Millisecond)
 					continue
 				}
 				u.resetLogSuppressionCounter("keyboardHidFileRead")
@@ -324,18 +325,29 @@ func (u *UsbGadget) openKeyboardHidFile() error {
 }
 
 func (u *UsbGadget) OpenKeyboardHidFile() error {
+	u.keyboardLock.Lock()
+	defer u.keyboardLock.Unlock()
+
+	if !u.enabledDevices.Keyboard {
+		return nil
+	}
+
 	return u.openKeyboardHidFile()
 }
 
-var keyboardWriteHidFileLock sync.Mutex
 var keyboardWriteFailureCount int
 var keyboardWriteFailureLock sync.Mutex
 
 const maxKeyboardWriteFailures = 5
 
 func (u *UsbGadget) keyboardWriteHidFile(modifier byte, keys []byte) error {
-	keyboardWriteHidFileLock.Lock()
-	defer keyboardWriteHidFileLock.Unlock()
+	u.keyboardLock.Lock()
+	defer u.keyboardLock.Unlock()
+
+	if !u.enabledDevices.Keyboard {
+		return fmt.Errorf("keyboard HID device is disabled")
+	}
+
 	if err := u.openKeyboardHidFile(); err != nil {
 		keyboardWriteFailureLock.Lock()
 		keyboardWriteFailureCount++
@@ -425,6 +437,7 @@ func (u *UsbGadget) KeyboardReport(modifier byte, keys []byte) error {
 	err := u.keyboardWriteHidFile(modifier, keys)
 	if err != nil {
 		u.log.Warn().Uint8("modifier", modifier).Uints8("keys", keys).Msg("Could not write keyboard report to hidg0")
+		return err
 	}
 
 	u.UpdateKeysDown(modifier, keys)
@@ -537,6 +550,9 @@ func (u *UsbGadget) keypressReport(key byte, press bool) (KeysDownState, error) 
 	}
 
 	err := u.keyboardWriteHidFile(modifier, keys)
+	if err != nil {
+		return state, err
+	}
 	return u.UpdateKeysDown(modifier, keys), err
 }
 
@@ -544,6 +560,7 @@ func (u *UsbGadget) KeypressReport(key byte, press bool) error {
 	state, err := u.keypressReport(key, press)
 	if err != nil {
 		u.log.Warn().Uint8("key", key).Bool("press", press).Msg("failed to report key")
+		return err
 	}
 	isRolledOver := state.Keys[0] == hidErrorRollOver
 

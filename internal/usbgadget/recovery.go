@@ -9,10 +9,18 @@ import (
 
 // SoftReset performs a soft reset by cleaning up and reinitializing the gadget
 func (u *UsbGadget) SoftReset() error {
+	u.lifecycleLock.Lock()
+	defer u.lifecycleLock.Unlock()
+
+	u.prepareHidForReconfigure()
+	defer u.ResumeHidOperations()
+
+	return u.softResetLocked()
+}
+
+func (u *UsbGadget) softResetLocked() error {
 	u.log.Warn().Msg("performing soft reset of USB gadget")
 
-	// Close all HID files first
-	u.CloseHidFiles()
 	time.Sleep(200 * time.Millisecond)
 
 	// Use existing cleanup function
@@ -42,10 +50,18 @@ func (u *UsbGadget) SoftReset() error {
 
 // HardReset performs a hard reset by reloading kernel modules
 func (u *UsbGadget) HardReset() error {
+	u.lifecycleLock.Lock()
+	defer u.lifecycleLock.Unlock()
+
+	u.prepareHidForReconfigure()
+	defer u.ResumeHidOperations()
+
+	return u.hardResetLocked()
+}
+
+func (u *UsbGadget) hardResetLocked() error {
 	u.log.Warn().Msg("performing hard reset with kernel module reload")
 
-	// Close all HID files
-	u.CloseHidFiles()
 	time.Sleep(200 * time.Millisecond)
 
 	// Use existing cleanup function
@@ -99,7 +115,16 @@ func (u *UsbGadget) HardReset() error {
 
 // verifyHidDevices checks if HID device nodes exist and are accessible
 func (u *UsbGadget) verifyHidDevices() error {
-	devices := []string{"/dev/hidg0", "/dev/hidg1", "/dev/hidg2"}
+	devices := make([]string, 0, 3)
+	if u.enabledDevices.Keyboard {
+		devices = append(devices, "/dev/hidg0")
+	}
+	if u.enabledDevices.AbsoluteMouse {
+		devices = append(devices, "/dev/hidg1")
+	}
+	if u.enabledDevices.RelativeMouse {
+		devices = append(devices, "/dev/hidg2")
+	}
 
 	for _, device := range devices {
 		if _, err := os.Stat(device); err != nil {
@@ -116,11 +141,17 @@ func (u *UsbGadget) verifyHidDevices() error {
 
 // TryRecovery attempts recovery with escalating strategies
 func (u *UsbGadget) TryRecovery() error {
+	u.lifecycleLock.Lock()
+	defer u.lifecycleLock.Unlock()
+
+	u.prepareHidForReconfigure()
+	defer u.ResumeHidOperations()
+
 	u.log.Warn().Msg("attempting USB gadget recovery")
 
 	// Strategy 1: Soft reset (cleanup + reinit)
 	u.log.Info().Msg("trying soft reset")
-	if err := u.SoftReset(); err == nil {
+	if err := u.softResetLocked(); err == nil {
 		u.log.Info().Msg("soft reset successful")
 		return nil
 	} else {
@@ -129,7 +160,7 @@ func (u *UsbGadget) TryRecovery() error {
 
 	// Strategy 2: Hard reset (module reload)
 	u.log.Info().Msg("escalating to hard reset with kernel module reload")
-	if err := u.HardReset(); err == nil {
+	if err := u.hardResetLocked(); err == nil {
 		u.log.Info().Msg("hard reset successful")
 		return nil
 	} else {

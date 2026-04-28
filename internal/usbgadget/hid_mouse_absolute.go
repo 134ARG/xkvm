@@ -66,6 +66,10 @@ var absoluteMouseCombinedReportDesc = []byte{
 }
 
 func (u *UsbGadget) absMouseWriteHidFile(data []byte) error {
+	if !u.enabledDevices.AbsoluteMouse {
+		return fmt.Errorf("absolute mouse HID device is disabled")
+	}
+
 	if u.absMouseHidFile == nil {
 		var err error
 		u.absMouseHidFile, err = os.OpenFile("/dev/hidg1", os.O_RDWR, 0666)

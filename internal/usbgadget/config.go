@@ -192,6 +192,12 @@ func (u *UsbGadget) Init() error {
 }
 
 func (u *UsbGadget) UpdateGadgetConfig() error {
+	u.lifecycleLock.Lock()
+	defer u.lifecycleLock.Unlock()
+
+	u.prepareHidForReconfigure()
+	defer u.ResumeHidOperations()
+
 	u.configLock.Lock()
 	defer u.configLock.Unlock()
 
@@ -211,7 +217,6 @@ func (u *UsbGadget) configureUsbGadget(resetUsb bool) error {
 		u.tx.CreateConfigPath()
 		u.tx.WriteGadgetConfig()
 		if resetUsb {
-			// u.CloseHidFiles()
 			u.tx.RebindUsb(true)
 		}
 		return nil

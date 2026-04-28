@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"sync"
 	"time"
 
 	"github.com/134ARG/xkvm/internal/hidrpc"
@@ -65,8 +67,38 @@ func handleHidRPCMessage(message hidrpc.Message, session *Session) {
 	}
 
 	if rpcErr != nil {
-		logger.Warn().Err(rpcErr).Msg("failed to handle HID RPC message")
+		logHidRPCError(rpcErr)
 	}
+}
+
+var (
+	hidRPCErrorSuppressionLock sync.Mutex
+	hidRPCErrorSuppression     = map[string]int{}
+)
+
+func logHidRPCError(err error) {
+	if errors.Is(err, os.ErrDeadlineExceeded) {
+		const every = 10
+
+		key := err.Error()
+		hidRPCErrorSuppressionLock.Lock()
+		hidRPCErrorSuppression[key]++
+		count := hidRPCErrorSuppression[key]
+		hidRPCErrorSuppressionLock.Unlock()
+
+		if count%every != 1 {
+			return
+		}
+
+		logger.Warn().
+			Err(err).
+			Int("count", count).
+			Int("sample_rate", every).
+			Msg("failed to handle HID RPC message")
+		return
+	}
+
+	logger.Warn().Err(err).Msg("failed to handle HID RPC message")
 }
 
 func onHidMessage(msg hidQueueMessage, session *Session) {

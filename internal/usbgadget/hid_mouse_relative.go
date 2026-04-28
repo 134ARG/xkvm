@@ -56,11 +56,15 @@ var relativeMouseCombinedReportDesc = []byte{
 }
 
 func (u *UsbGadget) relMouseWriteHidFile(data []byte) error {
+	if !u.enabledDevices.RelativeMouse {
+		return fmt.Errorf("relative mouse HID device is disabled")
+	}
+
 	if u.relMouseHidFile == nil {
 		var err error
 		u.relMouseHidFile, err = os.OpenFile("/dev/hidg2", os.O_RDWR, 0666)
 		if err != nil {
-			return fmt.Errorf("failed to open hidg1: %w", err)
+			return fmt.Errorf("failed to open hidg2: %w", err)
 		}
 	}
 
