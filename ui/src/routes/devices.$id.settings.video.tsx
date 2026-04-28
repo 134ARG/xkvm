@@ -10,6 +10,7 @@ import { SelectMenuBasic } from "@components/SelectMenuBasic";
 import { NestedSettingsGroup } from "@components/NestedSettingsGroup";
 import Fieldset from "@components/Fieldset";
 import notifications from "@/notifications";
+import { supportsH265WebRTC } from "@/utils";
 import { m } from "@localizations/messages.js";
 
 const defaultEdid =
@@ -43,6 +44,7 @@ const edids = [
 
 export default function SettingsVideoRoute() {
   const { send } = useJsonRpc();
+  const h265Supported = supportsH265WebRTC();
   const [streamQuality, setStreamQuality] = useState(5000);
   const [videoCodec, setVideoCodec] = useState<number>(0);
   const [customEdidValue, setCustomEdidValue] = useState<string | null>(null);
@@ -114,6 +116,14 @@ export default function SettingsVideoRoute() {
   };
 
   const handleVideoCodecChange = (codec: number) => {
+    if (codec === 1 && !h265Supported) {
+      notifications.error(
+        m.video_failed_set_codec({ error: "H.265 is only supported in macOS Safari." }),
+      );
+      setVideoCodec(0);
+      return;
+    }
+
     send("setVideoCodec", { codec }, (resp: JsonRpcResponse) => {
       if ("error" in resp) {
         notifications.error(
@@ -214,7 +224,11 @@ export default function SettingsVideoRoute() {
                 onChange={e => handleVideoCodecChange(Number(e.target.value))}
                 options={[
                   { value: "0", label: "H.264 (AVC)" },
-                  { value: "1", label: "H.265 (HEVC)" },
+                  {
+                    value: "1",
+                    label: h265Supported ? "H.265 (HEVC)" : "H.265 (HEVC, Safari only)",
+                    disabled: !h265Supported,
+                  },
                 ]}
               />
             </SettingsItem>

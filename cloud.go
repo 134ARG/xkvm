@@ -114,11 +114,12 @@ func handleSessionRequest(
 	defer timer.ObserveDuration()
 
 	session, err := newSession(SessionConfig{
-		ws:         c,
-		IsCloud:    isCloudConnection,
-		LocalIP:    req.IP,
-		ICEServers: req.ICEServers,
-		Logger:     scopedLogger,
+		ws:                  c,
+		IsCloud:             isCloudConnection,
+		LocalIP:             req.IP,
+		ICEServers:          req.ICEServers,
+		Logger:              scopedLogger,
+		PreferredVideoCodec: req.PreferredVideoCodec,
 	})
 	if err != nil {
 		_ = wsjson.Write(context.Background(), c, gin.H{"error": err})

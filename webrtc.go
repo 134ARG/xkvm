@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net"
 	"strings"
 	"sync"
@@ -43,6 +44,9 @@ type Session struct {
 var (
 	actionSessions      int = 0
 	activeSessionsMutex     = &sync.Mutex{}
+
+	activeSessionVideoCodec   int32 = -1
+	activeSessionVideoCodecMu sync.Mutex
 )
 
 func incrActiveSessions() int {
@@ -118,11 +122,12 @@ type hidQueueMessage struct {
 }
 
 type SessionConfig struct {
-	ICEServers []string
-	LocalIP    string
-	IsCloud    bool
-	ws         *websocket.Conn
-	Logger     *zerolog.Logger
+	ICEServers          []string
+	LocalIP             string
+	IsCloud             bool
+	ws                  *websocket.Conn
+	Logger              *zerolog.Logger
+	PreferredVideoCodec *int32
 }
 
 func (s *Session) ExchangeOffer(offerStr string) (string, error) {
@@ -249,6 +254,12 @@ func newSession(config SessionConfig) (*Session, error) {
 	// Get codec from global config before it's shadowed
 	globalConfig := getGlobalConfig()
 	videoCodec := globalConfig.VideoCodec
+	if config.PreferredVideoCodec != nil {
+		if *config.PreferredVideoCodec != 0 && *config.PreferredVideoCodec != 1 {
+			return nil, fmt.Errorf("invalid preferred video codec: %d", *config.PreferredVideoCodec)
+		}
+		videoCodec = *config.PreferredVideoCodec
+	}
 
 	webrtcSettingEngine := webrtc.SettingEngine{
 		LoggerFactory: logging.GetPionDefaultLoggerFactory(),
@@ -288,6 +299,17 @@ func newSession(config SessionConfig) (*Session, error) {
 			}
 		}
 	}
+
+	activeSessionVideoCodecMu.Lock()
+	if activeSessionVideoCodec != videoCodec {
+		if err := nativeInstance.VideoSetEncoder(videoCodec); err != nil {
+			activeSessionVideoCodecMu.Unlock()
+			scopedLogger.Warn().Err(err).Int32("codec", videoCodec).Msg("Failed to set video encoder for session")
+			return nil, err
+		}
+		activeSessionVideoCodec = videoCodec
+	}
+	activeSessionVideoCodecMu.Unlock()
 
 	api := webrtc.NewAPI(webrtc.WithSettingEngine(webrtcSettingEngine))
 	peerConnection, err := api.NewPeerConnection(webrtc.Configuration{

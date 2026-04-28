@@ -225,6 +225,22 @@ export function isMac() {
   return !!/mac/i.exec(navigator.platform);
 }
 
+export function isSafari() {
+  return (
+    /safari/i.test(navigator.userAgent) &&
+    /apple/i.test(navigator.vendor) &&
+    !/(crios|fxios|edgios|chrome|chromium|android)/i.test(navigator.userAgent)
+  );
+}
+
+export function supportsH265WebRTC() {
+  return isMac() && (isSafari() || import.meta.env.MODE === "tauri");
+}
+
+export function getPreferredVideoCodec() {
+  return supportsH265WebRTC() ? 1 : 0;
+}
+
 export function isWindows() {
   return !!/win/i.exec(navigator.platform);
 }

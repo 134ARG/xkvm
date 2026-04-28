@@ -52,6 +52,7 @@ import { FeatureFlagProvider } from "@providers/FeatureFlagProvider";
 import { m } from "@localizations/messages.js";
 import { doRpcHidHandshake, useHidRpc } from "@hooks/useHidRpc";
 import useKeyboard from "@hooks/useKeyboard";
+import { getPreferredVideoCodec } from "@/utils";
 import { registerTestHandlers, cleanupTestHooks } from "@/test/testHooks";
 
 export type AuthMode = "password" | "noPassword" | null;
@@ -375,6 +376,7 @@ export default function KvmIdRoute() {
       );
       const res = await api.POST(sessionUrl, {
         sd,
+        preferredVideoCodec: getPreferredVideoCodec(),
         // When on device, we don't need to specify the device id, as it's already known
         ...(isOnDevice || isNative ? {} : { id: params.id }),
       });
@@ -438,7 +440,7 @@ export default function KvmIdRoute() {
         const sd = btoa(JSON.stringify(pc.localDescription));
         const isNewSignalingEnabled = isLegacySignalingEnabled.current === false;
         if (isNewSignalingEnabled) {
-          sendWebRTCSignal("offer", { sd: sd });
+          sendWebRTCSignal("offer", { sd: sd, preferredVideoCodec: getPreferredVideoCodec() });
         } else {
           console.log("Legacy signaling. Waiting for ICE Gathering to complete...");
         }

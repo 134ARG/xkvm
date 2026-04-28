@@ -34,10 +34,11 @@ import (
 var staticFiles embed.FS
 
 type WebRTCSessionRequest struct {
-	Sd         string   `json:"sd"`
-	OidcGoogle string   `json:"OidcGoogle,omitempty"`
-	IP         string   `json:"ip,omitempty"`
-	ICEServers []string `json:"iceServers,omitempty"`
+	Sd                  string   `json:"sd"`
+	OidcGoogle          string   `json:"OidcGoogle,omitempty"`
+	IP                  string   `json:"ip,omitempty"`
+	ICEServers          []string `json:"iceServers,omitempty"`
+	PreferredVideoCodec *int32   `json:"preferredVideoCodec,omitempty"`
 }
 
 type SetPasswordRequest struct {
@@ -228,7 +229,9 @@ func handleWebRTCSession(c *gin.Context) {
 		return
 	}
 
-	session, err := newSession(SessionConfig{})
+	session, err := newSession(SessionConfig{
+		PreferredVideoCodec: req.PreferredVideoCodec,
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
