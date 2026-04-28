@@ -70,13 +70,10 @@
 #define RK_ALIGN_16(x) RK_ALIGN(x, 16)
 #define RK_ALIGN_32(x) RK_ALIGN(x, 32)
 
-// original: RK_FMT_YUV422_UYVY (16bpp 4:2:2 packed)
-// changed to NV12 (12bpp 4:2:0) for lower memory bandwidth and faster HW encode path
-// #define RK_PIXEL_FORMAT RK_FMT_YUV422_UYVY
-#define RK_PIXEL_FORMAT RK_FMT_YUV420SP
-// original: V4L2_PIX_FMT_UYVY
-// #define V4L2_PIXEL_FORMAT V4L2_PIX_FMT_UYVY
-#define V4L2_PIXEL_FORMAT V4L2_PIX_FMT_NV12
+// Use packed 4:2:2 to avoid the chroma downsampling/siting artifacts seen
+// with NV12 4:2:0 on sharp desktop/video capture content.
+#define RK_PIXEL_FORMAT RK_FMT_YUV422_UYVY
+#define V4L2_PIXEL_FORMAT V4L2_PIX_FMT_UYVY
 
 int sub_dev_fd = -1;
 #define VENC_CHANNEL 0
@@ -89,6 +86,107 @@ int32_t rk_encoder = 0; // 0=H.264, 1=H.265
 int32_t rate_control_mode = 0; // 0=VBR, 1=CBR
 
 static void *venc_read_stream(void *arg);
+
+static RK_U32 get_frame_buffer_size(RK_U32 vir_width, RK_U32 vir_height)
+{
+    switch (RK_PIXEL_FORMAT)
+    {
+    case RK_FMT_YUV422_UYVY:
+        return vir_width * vir_height * 2;
+    case RK_FMT_YUV420SP:
+    default:
+        return vir_width * vir_height * 3 / 2;
+    }
+}
+
+static RK_U32 get_vir_width_from_bytesperline(RK_U32 width, RK_U32 bytesperline)
+{
+    if (bytesperline == 0)
+    {
+        return RK_ALIGN_2(width);
+    }
+
+    switch (V4L2_PIXEL_FORMAT)
+    {
+    case V4L2_PIX_FMT_UYVY:
+        return bytesperline / 2;
+    case V4L2_PIX_FMT_NV12:
+    default:
+        return bytesperline;
+    }
+}
+
+static RK_U32 get_vir_height_from_sizeimage(RK_U32 height, RK_U32 bytesperline, RK_U32 sizeimage)
+{
+    RK_U32 fallback = RK_ALIGN_2(height);
+    if (bytesperline == 0 || sizeimage == 0)
+    {
+        return fallback;
+    }
+
+    RK_U32 derived_height = fallback;
+    switch (V4L2_PIXEL_FORMAT)
+    {
+    case V4L2_PIX_FMT_UYVY:
+        if (sizeimage % bytesperline == 0)
+        {
+            derived_height = sizeimage / bytesperline;
+        }
+        break;
+    case V4L2_PIX_FMT_NV12:
+    default:
+    {
+        uint64_t numerator = (uint64_t)sizeimage * 2;
+        uint64_t denominator = (uint64_t)bytesperline * 3;
+        if (denominator > 0 && numerator % denominator == 0)
+        {
+            derived_height = (RK_U32)(numerator / denominator);
+        }
+        break;
+    }
+    }
+
+    return derived_height >= height ? derived_height : fallback;
+}
+
+static void set_vui_bt709_limited(void)
+{
+    RK_S32 ret;
+
+    if (rk_encoder == 1)
+    {
+        VENC_H265_VUI_S vui;
+        memset(&vui, 0, sizeof(vui));
+        vui.stVuiVideoSignal.video_signal_type_present_flag = 1;
+        vui.stVuiVideoSignal.video_format = 5; // unspecified video format
+        vui.stVuiVideoSignal.video_full_range_flag = 0;
+        vui.stVuiVideoSignal.colour_description_present_flag = 1;
+        vui.stVuiVideoSignal.colour_primaries = 1; // BT.709
+        vui.stVuiVideoSignal.transfer_characteristics = 1; // BT.709
+        vui.stVuiVideoSignal.matrix_coefficients = 1; // BT.709
+
+        ret = RK_MPI_VENC_SetH265Vui(VENC_CHANNEL, &vui);
+    }
+    else
+    {
+        VENC_H264_VUI_S vui;
+        memset(&vui, 0, sizeof(vui));
+        vui.stVuiVideoSignal.video_signal_type_present_flag = 1;
+        vui.stVuiVideoSignal.video_format = 5; // unspecified video format
+        vui.stVuiVideoSignal.video_full_range_flag = 0;
+        vui.stVuiVideoSignal.colour_description_present_flag = 1;
+        vui.stVuiVideoSignal.colour_primaries = 1; // BT.709
+        vui.stVuiVideoSignal.transfer_characteristics = 1; // BT.709
+        vui.stVuiVideoSignal.matrix_coefficients = 1; // BT.709
+
+        ret = RK_MPI_VENC_SetH264Vui(VENC_CHANNEL, &vui);
+    }
+
+    if (ret != RK_SUCCESS)
+    {
+        log_warn("failed to set BT.709 limited-range VUI, ret=%#x", ret);
+    }
+}
 
 RK_U64 get_us()
 {
@@ -159,7 +257,7 @@ double calculate_bitrate(float bitrate_factor, int width, int height)
     return bitrate;
 }
 
-static void populate_venc_attr(VENC_CHN_ATTR_S *stAttr, RK_U32 bitrate, RK_U32 max_bitrate, RK_U32 width, RK_U32 height)
+static void populate_venc_attr(VENC_CHN_ATTR_S *stAttr, RK_U32 bitrate, RK_U32 max_bitrate, RK_U32 width, RK_U32 height, RK_U32 vir_width, RK_U32 vir_height)
 {
     memset(stAttr, 0, sizeof(VENC_CHN_ATTR_S));
 
@@ -225,23 +323,23 @@ static void populate_venc_attr(VENC_CHN_ATTR_S *stAttr, RK_U32 bitrate, RK_U32 m
     stAttr->stVencAttr.u32PicWidth = width;
     stAttr->stVencAttr.u32PicHeight = height;
     
-    // Set virtual width/height based on encoder alignment requirements
-    // uses 2-byte alignment
-    stAttr->stVencAttr.u32VirWidth = RK_ALIGN_2(width);
-    stAttr->stVencAttr.u32VirHeight = RK_ALIGN_2(height);
+    // Set virtual width/height to the capture buffer stride/height so VENC
+    // reads the real DMA buffer layout instead of assuming packed dimensions.
+    stAttr->stVencAttr.u32VirWidth = vir_width;
+    stAttr->stVencAttr.u32VirHeight = vir_height;
     
     stAttr->stVencAttr.u32StreamBufCnt = 3;
-    stAttr->stVencAttr.u32BufSize = width * height * 3 / 2;
+    stAttr->stVencAttr.u32BufSize = get_frame_buffer_size(vir_width, vir_height);
     stAttr->stVencAttr.enMirror = MIRROR_NONE;
 }
 
 pthread_t *venc_read_thread = NULL;
 volatile bool venc_running = false;
-static int32_t venc_start(int32_t bitrate, int32_t max_bitrate, int32_t width, int32_t height)
+static int32_t venc_start(int32_t bitrate, int32_t max_bitrate, int32_t width, int32_t height, int32_t vir_width, int32_t vir_height)
 {
     int32_t ret;
     VENC_CHN_ATTR_S stAttr;
-    populate_venc_attr(&stAttr, bitrate, max_bitrate, width, height);
+    populate_venc_attr(&stAttr, bitrate, max_bitrate, width, height, vir_width, vir_height);
 
     ret = RK_MPI_VENC_CreateChn(VENC_CHANNEL, &stAttr);
     if (ret < 0)
@@ -249,6 +347,8 @@ static int32_t venc_start(int32_t bitrate, int32_t max_bitrate, int32_t width, i
         RK_LOGE("error RK_MPI_VENC_CreateChn, %d", ret);
         return ret;
     }
+
+    set_vui_bt709_limited();
 
     VENC_RECV_PIC_PARAM_S stRecvParam;
     memset(&stRecvParam, 0, sizeof(VENC_RECV_PIC_PARAM_S));
@@ -533,6 +633,10 @@ void *run_video_stream(void *arg)
         fmt.fmt.pix_mp.height = height;
         fmt.fmt.pix_mp.pixelformat = V4L2_PIXEL_FORMAT;
         fmt.fmt.pix_mp.field = V4L2_FIELD_ANY;
+        fmt.fmt.pix_mp.colorspace = V4L2_COLORSPACE_REC709;
+        fmt.fmt.pix_mp.ycbcr_enc = V4L2_YCBCR_ENC_709;
+        fmt.fmt.pix_mp.quantization = V4L2_QUANTIZATION_LIM_RANGE;
+        fmt.fmt.pix_mp.xfer_func = V4L2_XFER_FUNC_709;
 
         if (ioctl(video_dev_fd, VIDIOC_S_FMT, &fmt) < 0)
         {
@@ -542,9 +646,18 @@ void *run_video_stream(void *arg)
             continue;
         }
 
+        width = fmt.fmt.pix_mp.width;
+        height = fmt.fmt.pix_mp.height;
+
+        uint32_t capture_bytesperline = fmt.fmt.pix_mp.plane_fmt[0].bytesperline;
+        uint32_t capture_sizeimage = fmt.fmt.pix_mp.plane_fmt[0].sizeimage;
+        uint32_t capture_vir_width = get_vir_width_from_bytesperline(width, capture_bytesperline);
+        uint32_t capture_vir_height = get_vir_height_from_sizeimage(height, capture_bytesperline, capture_sizeimage);
+
         struct v4l2_buffer buf;
 
         struct v4l2_requestbuffers req;
+        memset(&req, 0, sizeof(req));
         req.count = input_buffer_count;
         req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
         req.memory = V4L2_MEMORY_DMABUF;
@@ -639,7 +752,7 @@ void *run_video_stream(void *arg)
                 bitrate / 2, bitrate, width, height);
         log_info("Starting video encoder with bitrate: %d kbps, max: %d kbps, resolution: %dx%d", 
                  bitrate / 2, bitrate, width, height);
-        RK_S32 ret = venc_start(bitrate / 2, bitrate, width, height);
+        RK_S32 ret = venc_start(bitrate / 2, bitrate, width, height, capture_vir_width, capture_vir_height);
         if (ret != RK_SUCCESS)
         {
             log_error("Set VENC parameters failed with %#x", ret);
@@ -678,6 +791,7 @@ void *run_video_stream(void *arg)
                 break;
             }
             memset(&buf, 0, sizeof(buf));
+            memset(&tmp_plane, 0, sizeof(tmp_plane));
             buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
             buf.memory = V4L2_MEMORY_DMABUF;
             buf.m.planes = &tmp_plane;
@@ -696,13 +810,10 @@ void *run_video_stream(void *arg)
             stFrame.stVFrame.u32Width = width;
             stFrame.stVFrame.u32Height = height;
             
-            // Virtual width/height must match the actual V4L2 capture buffer stride,
-            // not the encoder's internal alignment. Using RK_ALIGN_16 here for H.265
-            // caused the encoder to miscalculate the UV plane offset in NV12, shifting
-            // chroma vertically (e.g. ALIGN_16(1080)=1088 vs actual buffer height 1080).
-            // original: H.265 used RK_ALIGN_16, H.264 used RK_ALIGN_2
-            stFrame.stVFrame.u32VirWidth = RK_ALIGN_2(width);
-            stFrame.stVFrame.u32VirHeight = RK_ALIGN_2(height);
+            // Virtual width/height must match the actual V4L2 capture buffer
+            // stride, not the encoder's internal alignment.
+            stFrame.stVFrame.u32VirWidth = capture_vir_width;
+            stFrame.stVFrame.u32VirHeight = capture_vir_height;
             
             stFrame.stVFrame.u32TimeRef = num; // frame number
             stFrame.stVFrame.u64PTS = get_us();
