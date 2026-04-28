@@ -19,6 +19,7 @@ OTA_GO="$PROJECT_ROOT/ota.go"
 CARGO_TOML="$PROJECT_ROOT/ui/src-tauri/Cargo.toml"
 SYNC_SCRIPT="$PROJECT_ROOT/ui/scripts/sync-version.cjs"
 PACKAGING_VERSION="$PROJECT_ROOT/packaging/version.txt"
+UI_PACKAGE_LOCK="$PROJECT_ROOT/ui/package-lock.json"
 
 # Function to print colored output
 print_info() {
@@ -80,7 +81,7 @@ main() {
 
     # Check if all required files exist
     print_info "Checking required files..."
-    for file in "$MAKEFILE" "$OTA_GO" "$CARGO_TOML" "$SYNC_SCRIPT" "$PACKAGING_VERSION"; do
+    for file in "$MAKEFILE" "$OTA_GO" "$CARGO_TOML" "$SYNC_SCRIPT" "$PACKAGING_VERSION" "$UI_PACKAGE_LOCK"; do
         if [ ! -f "$file" ]; then
             print_error "Required file not found: $file"
             exit 1
@@ -155,6 +156,18 @@ main() {
         exit 1
     fi
 
+    # Step 6: Refresh package-lock.json with npm audit fixes
+    print_info "Running npm audit fix to update package-lock.json..."
+    if command -v npm &> /dev/null; then
+        cd "$PROJECT_ROOT/ui"
+        npm audit fix --package-lock-only
+        cd "$PROJECT_ROOT"
+        print_success "package-lock.json updated with npm audit fixes"
+    else
+        print_error "npm not found. Please run manually: cd ui && npm audit fix --package-lock-only"
+        exit 1
+    fi
+
     echo ""
     print_success "Version bump completed successfully!"
     echo ""
@@ -164,6 +177,7 @@ main() {
     echo "  • ui/src-tauri/Cargo.toml → $CARGO_VERSION"
     echo "  • packaging/version.txt → $NEW_VERSION"
     echo "  • ui/package.json (via sync script)"
+    echo "  • ui/package-lock.json (via npm audit fix)"
     echo "  • ui/src-tauri/tauri.conf.json (via sync script)"
     echo ""
     print_warning "Don't forget to update CHANGELOG.md!"

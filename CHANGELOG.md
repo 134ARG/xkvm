@@ -2,6 +2,33 @@
 
 This document summarizes the major changes made to XKVM during its evolution from the original JetKVM embedded system to a full Linux-based KVM-over-IP solution.
 
+## Version 0.1.5 (2026-04-28)
+
+### New Features
+- Added automatic H.264 fallback for clients without H.265 WebRTC support
+- Added one-click build script support with environment-based ARM64 sysroot configuration
+
+### Bug Fixes
+- Fixed HDD LED state reporting so HDD activity is only shown while power LED state is active
+
+### Video System
+- Improved streaming color accuracy by switching capture back to UYVY 4:2:2
+- Added BT.709 limited-range color metadata for H.264 and H.265 encoder output
+- Updated encoder buffer sizing and virtual stride handling to match the real V4L2 capture layout
+
+### USB Gadget
+- Hardened USB gadget reconfiguration with lifecycle locking around config updates, soft reset, hard reset, and recovery
+- Suspended and resumed HID operations safely during gadget reconfiguration
+- Improved HID error propagation and reduced repeated timeout log noise
+- Respected enabled HID device configuration when opening, verifying, and writing keyboard and mouse reports
+
+### UI
+- Disabled H.265 selection on unsupported browser/platform combinations and labeled it as Safari-only when unavailable
+- Sent preferred video codec during WebRTC session setup so compatible clients can use H.265 automatically
+
+### Documentation
+- Adjusted README demo image scaling
+
 ## Version 0.1.4 (2026-03-23)
 
 ### New Features
