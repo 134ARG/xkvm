@@ -26,7 +26,7 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   const videoElm = useRef<HTMLVideoElement>(null);
   const fullscreenContainerRef = useRef<HTMLDivElement>(null);
   const [videoElement, setLocalVideoElement] = useState<HTMLVideoElement | null>(null);
-  const [videoRect, setVideoRect] = useState({ left: 0, top: 0, width: 0, height: 0 });
+  const [casFrameSize, setCasFrameSize] = useState({ width: 0, height: 0 });
   const [casReadyKey, setCasReadyKey] = useState<string | null>(null);
   const { mediaStream, peerConnectionState } = useRTCStore();
   const [isPlaying, setIsPlaying] = useState(false);
@@ -72,25 +72,12 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
     !hdmiError &&
     !hasConnectionIssues &&
     peerConnectionState === "connected";
-  const casRenderKey = shouldRenderCas
-    ? `${Math.round(videoRect.width)}x${Math.round(videoRect.height)}`
-    : null;
+  const hasCasFrameSize = casFrameSize.width > 0 && casFrameSize.height > 0;
+  const casRenderKey =
+    shouldRenderCas && hasCasFrameSize
+      ? `${Math.round(casFrameSize.width)}x${Math.round(casFrameSize.height)}`
+      : null;
   const isCasActive = casRenderKey !== null && casReadyKey === casRenderKey;
-
-  // Video-related
-  const updateVideoRect = useCallback(() => {
-    if (!videoElm.current || !fullscreenContainerRef.current) return;
-
-    const videoBounds = videoElm.current.getBoundingClientRect();
-    const containerBounds = fullscreenContainerRef.current.getBoundingClientRect();
-
-    setVideoRect({
-      left: videoBounds.left - containerBounds.left,
-      top: videoBounds.top - containerBounds.top,
-      width: videoBounds.width,
-      height: videoBounds.height,
-    });
-  }, []);
 
   const handleResize = useCallback(
     ({ width, height }: { width: number | undefined; height: number | undefined }) => {
@@ -98,9 +85,8 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
       // Do something with width and height, e.g.:
       setVideoClientSize(width || 0, height || 0);
       setVideoSize(videoElm.current.videoWidth, videoElm.current.videoHeight);
-      updateVideoRect();
     },
-    [setVideoClientSize, setVideoSize, updateVideoRect],
+    [setVideoClientSize, setVideoSize],
   );
 
   // AltGr Fix for Windows Clients
@@ -114,13 +100,46 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
     onResize: handleResize,
   });
 
+  const updateCasFrameSize = useCallback(() => {
+    if (!fullscreenContainerRef.current) return;
+
+    const { width: containerWidth, height: containerHeight } =
+      fullscreenContainerRef.current.getBoundingClientRect();
+    if (containerWidth <= 0 || containerHeight <= 0) return;
+
+    const videoAspectRatio = videoWidth > 0 && videoHeight > 0 ? videoWidth / videoHeight : 4 / 3;
+
+    let width = containerWidth;
+    let height = width / videoAspectRatio;
+
+    if (height > containerHeight) {
+      height = containerHeight;
+      width = height * videoAspectRatio;
+    }
+
+    setCasFrameSize(prev => {
+      if (
+        Math.round(prev.width) === Math.round(width) &&
+        Math.round(prev.height) === Math.round(height)
+      ) {
+        return prev;
+      }
+      return { width, height };
+    });
+    setVideoClientSize(width, height);
+  }, [setVideoClientSize, videoHeight, videoWidth]);
+
+  useResizeObserver({
+    ref: fullscreenContainerRef as React.RefObject<HTMLElement>,
+    onResize: updateCasFrameSize,
+  });
+
   const updateVideoSizeStore = useCallback(
     (videoElm: HTMLVideoElement) => {
       setVideoClientSize(videoElm.clientWidth, videoElm.clientHeight);
       setVideoSize(videoElm.videoWidth, videoElm.videoHeight);
-      updateVideoRect();
     },
-    [setVideoClientSize, setVideoSize, updateVideoRect],
+    [setVideoClientSize, setVideoSize],
   );
 
   const onVideoPlaying = useCallback(() => {
@@ -141,9 +160,12 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
       videoElm.current = element;
       setLocalVideoElement(element);
       setVideoElement(element);
-      if (element) updateVideoSizeStore(element);
+      if (element) {
+        if (mediaStream && element.srcObject !== mediaStream) element.srcObject = mediaStream;
+        updateVideoSizeStore(element);
+      }
     },
-    [setVideoElement, updateVideoSizeStore],
+    [mediaStream, setVideoElement, updateVideoSizeStore],
   );
 
   // On mount, get the video size
@@ -155,19 +177,20 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   );
 
   useEffect(
-    function updateCasCanvasRect() {
-      updateVideoRect();
-      const handleLayoutChange = () => requestAnimationFrame(updateVideoRect);
+    function updateCasFrameOnLayoutChange() {
+      const animationFrame = requestAnimationFrame(updateCasFrameSize);
+      const handleLayoutChange = () => requestAnimationFrame(updateCasFrameSize);
 
       window.addEventListener("resize", handleLayoutChange);
       document.addEventListener("fullscreenchange", handleLayoutChange);
 
       return () => {
+        cancelAnimationFrame(animationFrame);
         window.removeEventListener("resize", handleLayoutChange);
         document.removeEventListener("fullscreenchange", handleLayoutChange);
       };
     },
-    [updateVideoRect],
+    [updateCasFrameSize],
   );
 
   // Pointer lock and keyboard lock related
@@ -645,47 +668,45 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
                       ref={fullscreenContainerRef}
                       className="relative flex h-full w-full items-center justify-center"
                     >
-                      <video
-                        ref={setVideoNode}
-                        autoPlay
-                        controls={false}
-                        onPlaying={onVideoPlaying}
-                        onPlay={onVideoPlaying}
-                        muted
-                        playsInline
-                        disablePictureInPicture
-                        controlsList="nofullscreen"
-                        style={videoStyle}
-                        className={cx(
-                          "max-h-full max-w-full bg-black/50 object-contain transition-all duration-1000 sm:min-h-[384px] sm:min-w-[512px]",
-                          {
-                            "cursor-none": settings.isCursorHidden,
-                            "opacity-0!":
-                              isVideoLoading ||
-                              isCasActive ||
-                              hdmiError ||
-                              hasConnectionIssues ||
-                              peerConnectionState !== "connected",
-                            "opacity-60!": showPointerLockBar,
-                            "animate-slideUpFade border border-slate-800/30 shadow-xs dark:border-slate-300/20":
-                              isPlaying,
-                          },
-                        )}
-                      />
-                      {shouldRenderCas && (
-                        <div
-                          className="pointer-events-none absolute"
-                          style={{
-                            left: videoRect.left,
-                            top: videoRect.top,
-                            width: videoRect.width,
-                            height: videoRect.height,
-                          }}
-                        >
+                      <div
+                        className="relative bg-black/50"
+                        style={{
+                          width: casFrameSize.width,
+                          height: casFrameSize.height,
+                        }}
+                      >
+                        <video
+                          ref={setVideoNode}
+                          autoPlay
+                          controls={false}
+                          onPlaying={onVideoPlaying}
+                          onPlay={onVideoPlaying}
+                          muted
+                          playsInline
+                          disablePictureInPicture
+                          controlsList="nofullscreen"
+                          style={videoStyle}
+                          className={cx(
+                            "h-full w-full object-contain transition-all duration-1000",
+                            {
+                              "cursor-none": settings.isCursorHidden,
+                              "opacity-0!":
+                                isVideoLoading ||
+                                isCasActive ||
+                                hdmiError ||
+                                hasConnectionIssues ||
+                                peerConnectionState !== "connected",
+                              "opacity-60!": showPointerLockBar,
+                              "animate-slideUpFade border border-slate-800/30 shadow-xs dark:border-slate-300/20":
+                                isPlaying,
+                            },
+                          )}
+                        />
+                        {shouldRenderCas && hasCasFrameSize && (
                           <VideoCasCanvas
                             video={videoElement}
-                            width={videoRect.width}
-                            height={videoRect.height}
+                            width={casFrameSize.width}
+                            height={casFrameSize.height}
                             sharpness={videoSharpness}
                             saturation={videoSaturation}
                             brightness={videoBrightness}
@@ -693,8 +714,8 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
                             onReady={handleCasReady}
                             onUnavailable={handleCasUnavailable}
                           />
-                        </div>
-                      )}
+                        )}
+                      </div>
                       {peerConnection?.connectionState == "connected" && !hasConnectionIssues && (
                         <div
                           style={{ animationDuration: "500ms" }}
