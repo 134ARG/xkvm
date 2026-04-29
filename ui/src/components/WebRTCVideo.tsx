@@ -10,6 +10,7 @@ import VirtualKeyboard from "@components/VirtualKeyboard";
 import Actionbar from "@components/ActionBar";
 import MacroBar from "@components/MacroBar";
 import InfoBar from "@components/InfoBar";
+import VideoCasCanvas from "@components/VideoCasCanvas";
 import {
   HDMIErrorOverlay,
   LoadingVideoOverlay,
@@ -24,6 +25,8 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   // Video and stream related refs and states
   const videoElm = useRef<HTMLVideoElement>(null);
   const fullscreenContainerRef = useRef<HTMLDivElement>(null);
+  const [videoRect, setVideoRect] = useState({ left: 0, top: 0, width: 0, height: 0 });
+  const [isCasCanvasReady, setIsCasCanvasReady] = useState(false);
   const { mediaStream, peerConnectionState } = useRTCStore();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPointerLockActive, setIsPointerLockActive] = useState(false);
@@ -53,7 +56,8 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   } = useVideoStore();
 
   // Video enhancement settings
-  const { videoSaturation, videoBrightness, videoContrast } = useSettingsStore();
+  const { videoSaturation, videoBrightness, videoContrast, videoSharpness } = useSettingsStore();
+  const isCasEnabled = videoSharpness > 0;
 
   // RTC related states
   const { peerConnection } = useRTCStore();
@@ -61,16 +65,38 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   // HDMI and UI states
   const hdmiError = ["no_lock", "no_signal", "out_of_range"].includes(hdmiState);
   const isVideoLoading = !isPlaying;
+  const shouldRenderCas =
+    isCasEnabled &&
+    isPlaying &&
+    !hdmiError &&
+    !hasConnectionIssues &&
+    peerConnectionState === "connected";
+  const isCasActive = shouldRenderCas && isCasCanvasReady;
 
   // Video-related
+  const updateVideoRect = useCallback(() => {
+    if (!videoElm.current || !fullscreenContainerRef.current) return;
+
+    const videoBounds = videoElm.current.getBoundingClientRect();
+    const containerBounds = fullscreenContainerRef.current.getBoundingClientRect();
+
+    setVideoRect({
+      left: videoBounds.left - containerBounds.left,
+      top: videoBounds.top - containerBounds.top,
+      width: videoBounds.width,
+      height: videoBounds.height,
+    });
+  }, []);
+
   const handleResize = useCallback(
     ({ width, height }: { width: number | undefined; height: number | undefined }) => {
       if (!videoElm.current) return;
       // Do something with width and height, e.g.:
       setVideoClientSize(width || 0, height || 0);
       setVideoSize(videoElm.current.videoWidth, videoElm.current.videoHeight);
+      updateVideoRect();
     },
-    [setVideoClientSize, setVideoSize],
+    [setVideoClientSize, setVideoSize, updateVideoRect],
   );
 
   // AltGr Fix for Windows Clients
@@ -88,14 +114,23 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
     (videoElm: HTMLVideoElement) => {
       setVideoClientSize(videoElm.clientWidth, videoElm.clientHeight);
       setVideoSize(videoElm.videoWidth, videoElm.videoHeight);
+      updateVideoRect();
     },
-    [setVideoClientSize, setVideoSize],
+    [setVideoClientSize, setVideoSize, updateVideoRect],
   );
 
   const onVideoPlaying = useCallback(() => {
     setIsPlaying(true);
     if (videoElm.current) updateVideoSizeStore(videoElm.current);
   }, [updateVideoSizeStore]);
+
+  const handleCasReady = useCallback(() => {
+    setIsCasCanvasReady(true);
+  }, []);
+
+  const handleCasUnavailable = useCallback(() => {
+    setIsCasCanvasReady(false);
+  }, []);
 
   // On mount, get the video size
   useEffect(
@@ -104,6 +139,26 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
     },
     [updateVideoSizeStore],
   );
+
+  useEffect(
+    function updateCasCanvasRect() {
+      updateVideoRect();
+      const handleLayoutChange = () => requestAnimationFrame(updateVideoRect);
+
+      window.addEventListener("resize", handleLayoutChange);
+      document.addEventListener("fullscreenchange", handleLayoutChange);
+
+      return () => {
+        window.removeEventListener("resize", handleLayoutChange);
+        document.removeEventListener("fullscreenchange", handleLayoutChange);
+      };
+    },
+    [updateVideoRect],
+  );
+
+  useEffect(() => {
+    setIsCasCanvasReady(false);
+  }, [shouldRenderCas, videoRect.width, videoRect.height]);
 
   // Store video element reference for E2E test hooks
   useEffect(
@@ -548,13 +603,14 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
 
   // Conditionally set the filter style so we don't fallback to software rendering if these values are default of 1.0
   const videoStyle = useMemo(() => {
-    const isDefault = videoSaturation === 1.0 && videoBrightness === 1.0 && videoContrast === 1.0;
+    const isDefault =
+      isCasActive || (videoSaturation === 1.0 && videoBrightness === 1.0 && videoContrast === 1.0);
     return isDefault
       ? {} // No filter if all settings are default (1.0)
       : {
           filter: `saturate(${videoSaturation}) brightness(${videoBrightness}) contrast(${videoContrast})`,
         };
-  }, [videoSaturation, videoBrightness, videoContrast]);
+  }, [isCasActive, videoSaturation, videoBrightness, videoContrast]);
 
   return (
     <div className="grid h-full w-full grid-rows-(--grid-layout)">
@@ -605,6 +661,7 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
                             "cursor-none": settings.isCursorHidden,
                             "opacity-0!":
                               isVideoLoading ||
+                              isCasActive ||
                               hdmiError ||
                               hasConnectionIssues ||
                               peerConnectionState !== "connected",
@@ -614,6 +671,29 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
                           },
                         )}
                       />
+                      {shouldRenderCas && (
+                        <div
+                          className="pointer-events-none absolute"
+                          style={{
+                            left: videoRect.left,
+                            top: videoRect.top,
+                            width: videoRect.width,
+                            height: videoRect.height,
+                          }}
+                        >
+                          <VideoCasCanvas
+                            video={videoElm.current}
+                            width={videoRect.width}
+                            height={videoRect.height}
+                            sharpness={videoSharpness}
+                            saturation={videoSaturation}
+                            brightness={videoBrightness}
+                            contrast={videoContrast}
+                            onReady={handleCasReady}
+                            onUnavailable={handleCasUnavailable}
+                          />
+                        </div>
+                      )}
                       {peerConnection?.connectionState == "connected" && !hasConnectionIssues && (
                         <div
                           style={{ animationDuration: "500ms" }}

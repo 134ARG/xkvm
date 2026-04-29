@@ -59,6 +59,8 @@ export default function SettingsVideoRoute() {
     setVideoBrightness,
     videoContrast,
     setVideoContrast,
+    videoSharpness,
+    setVideoSharpness,
   } = useSettingsStore();
 
   useEffect(() => {
@@ -285,6 +287,21 @@ export default function SettingsVideoRoute() {
                 />
               </SettingsItem>
 
+              <SettingsItem
+                title="Sharpness"
+                description={`CAS prototype sharpness (${videoSharpness.toFixed(2)})`}
+              >
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={videoSharpness}
+                  onChange={e => setVideoSharpness(Number.parseFloat(e.target.value))}
+                  className="h-2 w-32 cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
+                />
+              </SettingsItem>
+
               <div className="flex gap-2">
                 <Button
                   size="SM"
@@ -294,6 +311,7 @@ export default function SettingsVideoRoute() {
                     setVideoSaturation(1);
                     setVideoBrightness(1);
                     setVideoContrast(1);
+                    setVideoSharpness(0);
                   }}
                 />
               </div>

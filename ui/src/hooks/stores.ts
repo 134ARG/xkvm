@@ -344,6 +344,9 @@ export interface SettingsState {
 
   videoContrast: number;
   setVideoContrast: (value: number) => void;
+
+  videoSharpness: number;
+  setVideoSharpness: (value: number) => void;
 }
 
 export const useSettingsStore = create(
@@ -376,6 +379,9 @@ export const useSettingsStore = create(
 
       videoContrast: 1.0,
       setVideoContrast: (value: number) => set({ videoContrast: value }),
+
+      videoSharpness: 0,
+      setVideoSharpness: (value: number) => set({ videoSharpness: value }),
     }),
     {
       name: "settings",
