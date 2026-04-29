@@ -11,10 +11,11 @@ void main() {
 `;
 
 const fragmentShaderSource = `
-precision mediump float;
+precision highp float;
 
 uniform sampler2D uTexture;
-uniform vec2 uTexel;
+uniform vec2 uInputSize;
+uniform vec2 uOutputSize;
 uniform float uSharpness;
 uniform float uSaturation;
 uniform float uBrightness;
@@ -30,21 +31,78 @@ vec3 adjustColor(vec3 color) {
   return color;
 }
 
+vec3 loadTexel(vec2 pixel) {
+  vec2 clampedPixel = clamp(pixel, vec2(0.0), uInputSize - vec2(1.0));
+  return texture2D(uTexture, (clampedPixel + vec2(0.5)) / uInputSize).rgb;
+}
+
+float casWeight(float mn, float mx, float peak) {
+  float amp = clamp(min(mn, 1.0 - mx) / max(mx, 0.001), 0.0, 1.0);
+  return sqrt(amp) * peak;
+}
+
 void main() {
-  vec3 center = texture2D(uTexture, vUv).rgb;
-  vec3 up = texture2D(uTexture, vUv + vec2(0.0, -uTexel.y)).rgb;
-  vec3 down = texture2D(uTexture, vUv + vec2(0.0, uTexel.y)).rgb;
-  vec3 left = texture2D(uTexture, vUv + vec2(-uTexel.x, 0.0)).rgb;
-  vec3 right = texture2D(uTexture, vUv + vec2(uTexel.x, 0.0)).rgb;
+  // Port of ffx_cas.h CasFilter() scaling path with default fast green-channel weights.
+  vec2 outputPixel = floor(vec2(gl_FragCoord.x, uOutputSize.y - gl_FragCoord.y));
+  vec2 scale = uInputSize / uOutputSize;
+  vec2 sourcePosition = outputPixel * scale + 0.5 * scale - 0.5;
+  vec2 basePixel = floor(sourcePosition);
+  vec2 phase = sourcePosition - basePixel;
 
-  vec3 minColor = min(center, min(min(up, down), min(left, right)));
-  vec3 maxColor = max(center, max(max(up, down), max(left, right)));
-  vec3 range = min(minColor, 1.0 - maxColor);
-  float adaptive = clamp(max(max(range.r, range.g), range.b) / max(max(maxColor.r, maxColor.g), max(maxColor.b, 0.001)), 0.0, 1.0);
-  float weight = -sqrt(adaptive) * uSharpness * 0.125;
-  vec3 sharpened = (center + weight * (up + down + left + right)) / (1.0 + 4.0 * weight);
+  vec3 b = loadTexel(basePixel + vec2( 0.0, -1.0));
+  vec3 c = loadTexel(basePixel + vec2( 1.0, -1.0));
+  vec3 e = loadTexel(basePixel + vec2(-1.0,  0.0));
+  vec3 f = loadTexel(basePixel);
+  vec3 g = loadTexel(basePixel + vec2( 1.0,  0.0));
+  vec3 h = loadTexel(basePixel + vec2( 2.0,  0.0));
+  vec3 i = loadTexel(basePixel + vec2(-1.0,  1.0));
+  vec3 j = loadTexel(basePixel + vec2( 0.0,  1.0));
+  vec3 k = loadTexel(basePixel + vec2( 1.0,  1.0));
+  vec3 l = loadTexel(basePixel + vec2( 2.0,  1.0));
+  vec3 n = loadTexel(basePixel + vec2( 0.0,  2.0));
+  vec3 o = loadTexel(basePixel + vec2( 1.0,  2.0));
 
-  gl_FragColor = vec4(adjustColor(clamp(sharpened, 0.0, 1.0)), 1.0);
+  float mnf = min(min(min(b.g, e.g), min(f.g, g.g)), j.g);
+  float mxf = max(max(max(b.g, e.g), max(f.g, g.g)), j.g);
+  float mng = min(min(min(c.g, f.g), min(g.g, h.g)), k.g);
+  float mxg = max(max(max(c.g, f.g), max(g.g, h.g)), k.g);
+  float mnj = min(min(min(f.g, i.g), min(j.g, k.g)), n.g);
+  float mxj = max(max(max(f.g, i.g), max(j.g, k.g)), n.g);
+  float mnk = min(min(min(g.g, j.g), min(k.g, l.g)), o.g);
+  float mxk = max(max(max(g.g, j.g), max(k.g, l.g)), o.g);
+
+  float peak = -1.0 / mix(8.0, 5.0, clamp(uSharpness, 0.0, 1.0));
+  float wf = casWeight(mnf, mxf, peak);
+  float wg = casWeight(mng, mxg, peak);
+  float wj = casWeight(mnj, mxj, peak);
+  float wk = casWeight(mnk, mxk, peak);
+
+  float s = (1.0 - phase.x) * (1.0 - phase.y);
+  float t = phase.x * (1.0 - phase.y);
+  float u = (1.0 - phase.x) * phase.y;
+  float v = phase.x * phase.y;
+
+  float thin = 1.0 / 32.0;
+  s /= thin + (mxf - mnf);
+  t /= thin + (mxg - mng);
+  u /= thin + (mxj - mnj);
+  v /= thin + (mxk - mnk);
+
+  float qbe = wf * s;
+  float qch = wg * t;
+  float qf = wg * t + wj * u + s;
+  float qg = wf * s + wk * v + t;
+  float qj = wf * s + wk * v + u;
+  float qk = wg * t + wj * u + v;
+  float qin = wj * u;
+  float qlo = wk * v;
+  float weightSum = 2.0 * qbe + 2.0 * qch + 2.0 * qin + 2.0 * qlo + qf + qg + qj + qk;
+
+  vec3 color =
+    (b * qbe + e * qbe + c * qch + h * qch + i * qin + n * qin +
+     l * qlo + o * qlo + f * qf + g * qg + j * qj + k * qk) / weightSum;
+
+  gl_FragColor = vec4(adjustColor(clamp(color, 0.0, 1.0)), 1.0);
 }
 `;
 
@@ -161,11 +219,12 @@ export default function VideoCasCanvas({
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
     const textureUniform = gl.getUniformLocation(program, "uTexture");
-    const texelUniform = gl.getUniformLocation(program, "uTexel");
+    const inputSizeUniform = gl.getUniformLocation(program, "uInputSize");
+    const outputSizeUniform = gl.getUniformLocation(program, "uOutputSize");
     const sharpnessUniform = gl.getUniformLocation(program, "uSharpness");
     const saturationUniform = gl.getUniformLocation(program, "uSaturation");
     const brightnessUniform = gl.getUniformLocation(program, "uBrightness");
@@ -191,11 +250,8 @@ export default function VideoCasCanvas({
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
 
       const current = settingsRef.current;
-      gl.uniform2f(
-        texelUniform,
-        1 / Math.max(1, video.videoWidth),
-        1 / Math.max(1, video.videoHeight),
-      );
+      gl.uniform2f(inputSizeUniform, video.videoWidth, video.videoHeight);
+      gl.uniform2f(outputSizeUniform, canvas.width, canvas.height);
       gl.uniform1f(sharpnessUniform, current.sharpness);
       gl.uniform1f(saturationUniform, current.saturation);
       gl.uniform1f(brightnessUniform, current.brightness);
