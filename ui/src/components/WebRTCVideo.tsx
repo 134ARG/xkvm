@@ -25,8 +25,9 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   // Video and stream related refs and states
   const videoElm = useRef<HTMLVideoElement>(null);
   const fullscreenContainerRef = useRef<HTMLDivElement>(null);
+  const [videoElement, setLocalVideoElement] = useState<HTMLVideoElement | null>(null);
   const [videoRect, setVideoRect] = useState({ left: 0, top: 0, width: 0, height: 0 });
-  const [isCasCanvasReady, setIsCasCanvasReady] = useState(false);
+  const [casReadyKey, setCasReadyKey] = useState<string | null>(null);
   const { mediaStream, peerConnectionState } = useRTCStore();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPointerLockActive, setIsPointerLockActive] = useState(false);
@@ -71,7 +72,10 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
     !hdmiError &&
     !hasConnectionIssues &&
     peerConnectionState === "connected";
-  const isCasActive = shouldRenderCas && isCasCanvasReady;
+  const casRenderKey = shouldRenderCas
+    ? `${Math.round(videoRect.width)}x${Math.round(videoRect.height)}`
+    : null;
+  const isCasActive = casRenderKey !== null && casReadyKey === casRenderKey;
 
   // Video-related
   const updateVideoRect = useCallback(() => {
@@ -125,12 +129,22 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   }, [updateVideoSizeStore]);
 
   const handleCasReady = useCallback(() => {
-    setIsCasCanvasReady(true);
-  }, []);
+    if (casRenderKey) setCasReadyKey(casRenderKey);
+  }, [casRenderKey]);
 
   const handleCasUnavailable = useCallback(() => {
-    setIsCasCanvasReady(false);
+    setCasReadyKey(null);
   }, []);
+
+  const setVideoNode = useCallback(
+    (element: HTMLVideoElement | null) => {
+      videoElm.current = element;
+      setLocalVideoElement(element);
+      setVideoElement(element);
+      if (element) updateVideoSizeStore(element);
+    },
+    [setVideoElement, updateVideoSizeStore],
+  );
 
   // On mount, get the video size
   useEffect(
@@ -154,19 +168,6 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
       };
     },
     [updateVideoRect],
-  );
-
-  useEffect(() => {
-    setIsCasCanvasReady(false);
-  }, [shouldRenderCas, videoRect.width, videoRect.height]);
-
-  // Store video element reference for E2E test hooks
-  useEffect(
-    function storeVideoElementRef() {
-      setVideoElement(videoElm.current);
-      return () => setVideoElement(null);
-    },
-    [setVideoElement],
   );
 
   // Pointer lock and keyboard lock related
@@ -645,7 +646,7 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
                       className="relative flex h-full w-full items-center justify-center"
                     >
                       <video
-                        ref={videoElm}
+                        ref={setVideoNode}
                         autoPlay
                         controls={false}
                         onPlaying={onVideoPlaying}
@@ -682,7 +683,7 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
                           }}
                         >
                           <VideoCasCanvas
-                            video={videoElm.current}
+                            video={videoElement}
                             width={videoRect.width}
                             height={videoRect.height}
                             sharpness={videoSharpness}
