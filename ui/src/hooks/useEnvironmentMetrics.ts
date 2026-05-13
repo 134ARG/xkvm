@@ -12,7 +12,12 @@ export interface EnvironmentMetrics {
 
 export function useEnvironmentMetrics() {
   const { send } = useJsonRpc();
-  const [metrics, setMetrics] = useState<EnvironmentMetrics | null>(null);
+  const [metrics, setMetrics] = useState<EnvironmentMetrics>({
+    caseTemperatureC: null,
+    caseHumidityPercent: null,
+    socTemperatureC: null,
+    updatedAt: 0,
+  });
   const [supported, setSupported] = useState(true);
   const [now, setNow] = useState(0);
 
@@ -24,22 +29,22 @@ export function useEnvironmentMetrics() {
         if (resp.error.code === RpcMethodNotFound) setSupported(false);
         return;
       }
-      setMetrics(resp.result as EnvironmentMetrics);
+      setMetrics({
+        caseTemperatureC: null,
+        caseHumidityPercent: null,
+        socTemperatureC: null,
+        updatedAt: 0,
+        ...(resp.result as Partial<EnvironmentMetrics>),
+      });
       setNow(Date.now());
     });
   }, [send, supported]);
 
   useEffect(fetchMetrics, [fetchMetrics]);
   useInterval(fetchMetrics, supported ? 2000 : null);
-  useInterval(() => setNow(Date.now()), metrics ? 2000 : null);
+  useInterval(() => setNow(Date.now()), 2000);
 
-  const stale = metrics ? now - metrics.updatedAt > 15000 : false;
-  const available =
-    supported &&
-    !!metrics &&
-    (metrics.caseTemperatureC != null ||
-      metrics.caseHumidityPercent != null ||
-      metrics.socTemperatureC != null);
+  const stale = metrics.updatedAt > 0 ? now - metrics.updatedAt > 15000 : false;
 
-  return { metrics, available, stale };
+  return { metrics, supported, stale };
 }

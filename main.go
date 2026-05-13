@@ -146,6 +146,7 @@ func Main() {
 	initPublicIPState()
 
 	initSerialPort()
+	initVFD()
 
 	setProcTitle("ready")
 

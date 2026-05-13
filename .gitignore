@@ -24,3 +24,5 @@ build/
 
 .kiro/
 .codex
+
+third-party/
