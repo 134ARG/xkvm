@@ -118,6 +118,11 @@ type Config struct {
 	GPIOHddLedChip       string               `json:"gpio_hdd_led_chip"`
 	GPIOHddLedLine       int                  `json:"gpio_hdd_led_line"`
 	GPIOHddLedActiveHigh bool                 `json:"gpio_hdd_led_active_high"`
+	SensorEnvChip        string               `json:"sensor_env_chip"`
+	SensorTempFeature    string               `json:"sensor_temp_feature"`
+	SensorHumFeature     string               `json:"sensor_hum_feature"`
+	SensorSocChip        string               `json:"sensor_soc_chip"`
+	SensorSocFeature     string               `json:"sensor_soc_feature"`
 	SerialPortPath       string               `json:"serial_port_path"`
 }
 
@@ -180,6 +185,11 @@ func getDefaultConfig() Config {
 		GPIOHddLedChip:       "",
 		GPIOHddLedLine:       -1,
 		GPIOHddLedActiveHigh: false,
+		SensorEnvChip:        "sht4x-i2c-3-44",
+		SensorTempFeature:    "temp1.temp1_input",
+		SensorHumFeature:     "humidity1.humidity1_input",
+		SensorSocChip:        "soc_thermal-virtual-0",
+		SensorSocFeature:     "temp1.temp1_input",
 		SerialPortPath:       "",
 	}
 }

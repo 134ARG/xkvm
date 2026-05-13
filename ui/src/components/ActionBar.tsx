@@ -15,6 +15,7 @@ import PasteModal from "@components/popovers/PasteModal";
 // import WakeOnLanModal from "@components/popovers/WakeOnLan/Index";
 import MountPopopover from "@components/popovers/MountPopover";
 import ExtensionPopover from "@components/popovers/ExtensionPopover";
+import { EnvironmentMetricsBadge } from "@components/EnvironmentMetricsBadge";
 import { m } from "@localizations/messages.js";
 
 export default function Actionbar({
@@ -200,6 +201,8 @@ export default function Actionbar({
         </div>
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+          <EnvironmentMetricsBadge />
+
           <Popover>
             <PopoverButton as={Fragment}>
               <Button
