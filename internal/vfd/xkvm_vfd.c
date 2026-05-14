@@ -60,12 +60,13 @@ int xkvm_vfd_init(const char* device_path) {
 }
 
 void xkvm_vfd_shutdown(void) {
-    if (!atomic_load_explicit(&render_running, memory_order_acquire))
+    if (!atomic_exchange_explicit(&render_running, false, memory_order_acq_rel))
         return;
-    atomic_store_explicit(&render_running, false, memory_order_release);
+
     pthread_join(render_thread, NULL);
-    if (spi)
+    if (spi) {
         spi->close();
+    }
 }
 
 void xkvm_vfd_update_host_metrics(const xkvm_vfd_host_metrics_t* metrics) {

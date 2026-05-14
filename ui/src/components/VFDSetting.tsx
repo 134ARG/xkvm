@@ -37,6 +37,7 @@ export function VFDSetting() {
           return;
         }
         setVFDConfig(updated);
+        notifications.success("VFD config saved. Restart xKVM to apply changes.");
       });
     },
     [send],

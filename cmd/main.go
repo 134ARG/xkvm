@@ -14,11 +14,13 @@ import (
 	kvm "github.com/134ARG/xkvm"
 	"github.com/134ARG/xkvm/internal/native"
 	"github.com/134ARG/xkvm/internal/supervisor"
+	"github.com/134ARG/xkvm/internal/vfd"
 	"github.com/erikdubbelboer/gspt"
 )
 
 var (
-	subcomponent string
+	subcomponent  string
+	vfdDevicePath string
 )
 
 func program() {
@@ -29,6 +31,8 @@ func program() {
 	switch subcomponent {
 	case "native":
 		native.RunNativeProcess(os.Args[0])
+	case "vfd":
+		vfd.RunVFDProcess(vfdDevicePath)
 	default:
 		kvm.Main()
 	}
@@ -46,6 +50,7 @@ func main() {
 	versionPtr := flag.Bool("version", false, "print version and exit")
 	versionJSONPtr := flag.Bool("version-json", false, "print version as json and exit")
 	flag.StringVar(&subcomponent, "subcomponent", "", "subcomponent to run")
+	flag.StringVar(&vfdDevicePath, "vfd-device", "", "VFD device path")
 	flag.Parse()
 
 	if *versionPtr || *versionJSONPtr {

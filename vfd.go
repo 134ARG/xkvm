@@ -3,13 +3,14 @@ package kvm
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"io"
 	"net"
+	"os"
+	"os/exec"
 	"sync"
+	"syscall"
 	"time"
-
-	"github.com/134ARG/xkvm/internal/vfd"
 )
 
 type VFDConfig struct {
@@ -61,76 +62,138 @@ type hostMetricsPayload struct {
 
 var vfdState = struct {
 	sync.Mutex
-	started     bool
-	listener    net.Listener
-	serverDone  chan struct{}
-	conns       map[net.Conn]struct{}
 	hostMetrics VFDHostMetrics
-}{conns: make(map[net.Conn]struct{})}
+	childStdin  io.WriteCloser
+}{}
 
-var vfdApplyLock sync.Mutex
+const (
+	vfdChildReadyMessage = "READY"
+	vfdChildMaxAttempts  = 3
+	vfdChildReadyTimeout = 10 * time.Second
+)
 
 func initVFD() {
-	if err := applyVFDConfig(VFDConfig{
-		Enabled:    config.VFDEnabled,
-		DevicePath: config.VFDDevicePath,
-		ListenPort: config.VFDListenPort,
-	}); err != nil {
-		logger.Warn().Err(err).Msg("failed to apply VFD config")
+	if !config.VFDEnabled {
+		return
 	}
+
+	listenPort := config.VFDListenPort
+	if listenPort <= 0 {
+		listenPort = 9101
+	}
+
+	go runVFDHostMetricsServer(listenPort)
+	startVFDChild(config.VFDDevicePath)
+	logger.Info().Int("port", listenPort).Msg("VFD initialized")
 }
 
-func applyVFDConfig(vfdConfig VFDConfig) error {
-	if vfdConfig.ListenPort <= 0 {
-		vfdConfig.ListenPort = 9101
+func startVFDChild(devicePath string) {
+	for attempt := 1; attempt <= vfdChildMaxAttempts; attempt++ {
+		if startVFDChildAttempt(devicePath, attempt) {
+			return
+		}
+		time.Sleep(time.Second)
 	}
+	logger.Warn().Int("attempts", vfdChildMaxAttempts).Msg("VFD child failed to start; disabling VFD runtime until next xKVM restart")
+}
 
-	done := stopVFD()
-	waitVFDServer(done)
-
-	if !vfdConfig.Enabled {
-		return nil
-	}
-
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", vfdConfig.ListenPort))
+func startVFDChildAttempt(devicePath string, attempt int) bool {
+	binaryPath, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("failed to listen for VFD host metrics on port %d: %w", vfdConfig.ListenPort, err)
+		logger.Warn().Err(err).Msg("failed to resolve executable for VFD child")
+		return false
 	}
 
-	done = make(chan struct{})
-	vfdState.Lock()
-	vfdState.listener = listener
-	vfdState.serverDone = done
-	vfdState.Unlock()
+	cmd := exec.Command(binaryPath, "-subcomponent=vfd", "-vfd-device", devicePath)
+	cmd.Stderr = os.Stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid:   true,
+		Pdeathsig: syscall.SIGTERM,
+	}
 
-	go runVFDHostMetricsServer(listener, done)
-	logger.Info().Int("port", vfdConfig.ListenPort).Msg("VFD host metrics server started")
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		logger.Warn().Err(err).Int("attempt", attempt).Msg("failed to open VFD child stdout")
+		return false
+	}
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		logger.Warn().Err(err).Int("attempt", attempt).Msg("failed to open VFD child stdin")
+		return false
+	}
+	if err := cmd.Start(); err != nil {
+		_ = stdin.Close()
+		logger.Warn().Err(err).Int("attempt", attempt).Msg("failed to start VFD child")
+		return false
+	}
 
-	if err := vfd.Init(vfdConfig.DevicePath); err != nil {
-		done := stopVFD()
-		waitVFDServer(done)
-		logger.Warn().Err(err).Msg("failed to initialize VFD")
-		return err
+	ready := make(chan bool, 1)
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		readySeen := false
+		for scanner.Scan() {
+			line := scanner.Text()
+			if !readySeen && line == vfdChildReadyMessage {
+				readySeen = true
+				ready <- true
+				continue
+			}
+			fmt.Fprintln(os.Stdout, line)
+		}
+		if !readySeen {
+			ready <- false
+		}
+	}()
+
+	select {
+	case ok := <-ready:
+		if !ok {
+			_ = stdin.Close()
+			_ = cmd.Wait()
+			logger.Warn().Int("attempt", attempt).Msg("VFD child exited before ready")
+			return false
+		}
+	case <-time.After(vfdChildReadyTimeout):
+		_ = stdin.Close()
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
+		logger.Warn().Int("attempt", attempt).Dur("timeout", vfdChildReadyTimeout).Msg("VFD child ready timeout")
+		return false
 	}
 
 	vfdState.Lock()
-	vfdState.started = true
+	vfdState.childStdin = stdin
 	vfdState.Unlock()
 
-	logger.Info().Int("port", vfdConfig.ListenPort).Msg("VFD initialized")
-	return nil
+	go func() {
+		if err := cmd.Wait(); err != nil {
+			logger.Warn().Err(err).Msg("VFD child exited")
+		} else {
+			logger.Info().Msg("VFD child exited")
+		}
+		vfdState.Lock()
+		if vfdState.childStdin == stdin {
+			vfdState.childStdin = nil
+		}
+		vfdState.Unlock()
+	}()
+	logger.Info().Int("pid", cmd.Process.Pid).Int("attempt", attempt).Msg("VFD child started")
+	return true
 }
 
-func runVFDHostMetricsServer(listener net.Listener, done chan<- struct{}) {
-	defer close(done)
+func runVFDHostMetricsServer(port int) {
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		logger.Warn().Err(err).Int("port", port).Msg("failed to listen for VFD host metrics")
+		return
+	}
 	defer listener.Close()
+
+	logger.Info().Int("port", port).Msg("VFD host metrics server started")
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			if errors.Is(err, net.ErrClosed) {
-				return
-			}
 			logger.Warn().Err(err).Msg("VFD metrics accept failed")
 			time.Sleep(time.Second)
 			continue
@@ -139,37 +202,8 @@ func runVFDHostMetricsServer(listener net.Listener, done chan<- struct{}) {
 	}
 }
 
-func stopVFD() chan struct{} {
-	vfdState.Lock()
-	defer vfdState.Unlock()
-
-	done := vfdState.serverDone
-	if vfdState.listener != nil {
-		_ = vfdState.listener.Close()
-		vfdState.listener = nil
-		vfdState.serverDone = nil
-	}
-	for conn := range vfdState.conns {
-		_ = conn.Close()
-	}
-	if vfdState.started {
-		vfd.Shutdown()
-		vfdState.started = false
-	}
-	vfdState.hostMetrics = VFDHostMetrics{UpdatedAt: time.Now().UnixMilli()}
-	vfd.UpdateHostMetrics(vfd.HostMetrics{})
-	return done
-}
-
-func waitVFDServer(done <-chan struct{}) {
-	if done != nil {
-		<-done
-	}
-}
-
 func handleVFDHostMetricsConn(conn net.Conn) {
-	registerVFDHostMetricsConn(conn)
-	defer unregisterVFDHostMetricsConn(conn)
+	defer conn.Close()
 	logger.Info().Str("remote", conn.RemoteAddr().String()).Msg("VFD host metrics connected")
 
 	scanner := bufio.NewScanner(conn)
@@ -182,36 +216,13 @@ func handleVFDHostMetricsConn(conn net.Conn) {
 		}
 		hostMetrics := hostMetricsFromPayload(payload, true)
 		setVFDHostMetrics(hostMetrics)
-		vfd.UpdateHostMetrics(vfd.HostMetrics{
-			CPUUtil:     payload.Metrics.CPU.Util,
-			RAMUtil:     payload.Metrics.RAM.Util,
-			GPUUtil:     payload.Metrics.GPU.Util,
-			CPUTemp:     floatValue(payload.Metrics.Temp.CPU),
-			GPUTemp:     floatValue(gpuTempFromPayload(payload)),
-			NetRxBytes:  payload.Metrics.Net.RxBytes,
-			NetTxBytes:  payload.Metrics.Net.TxBytes,
-			UptimeSec:   payload.Metrics.Sys.Uptime,
-			FailedUnits: payload.Metrics.Sys.FailedUnits,
-			Connected:   true,
-		})
+		writeVFDChildMetrics(hostMetrics)
 	}
 
-	setVFDHostMetrics(VFDHostMetrics{UpdatedAt: time.Now().UnixMilli()})
-	vfd.UpdateHostMetrics(vfd.HostMetrics{})
+	hostMetrics := VFDHostMetrics{UpdatedAt: time.Now().UnixMilli()}
+	setVFDHostMetrics(hostMetrics)
+	writeVFDChildMetrics(hostMetrics)
 	logger.Info().Str("remote", conn.RemoteAddr().String()).Msg("VFD host metrics disconnected")
-}
-
-func registerVFDHostMetricsConn(conn net.Conn) {
-	vfdState.Lock()
-	defer vfdState.Unlock()
-	vfdState.conns[conn] = struct{}{}
-}
-
-func unregisterVFDHostMetricsConn(conn net.Conn) {
-	_ = conn.Close()
-	vfdState.Lock()
-	defer vfdState.Unlock()
-	delete(vfdState.conns, conn)
 }
 
 func hostMetricsFromPayload(payload hostMetricsPayload, connected bool) VFDHostMetrics {
@@ -237,17 +248,30 @@ func gpuTempFromPayload(payload hostMetricsPayload) *float64 {
 	return payload.Metrics.GPU.Temp
 }
 
-func floatValue(value *float64) float64 {
-	if value == nil {
-		return 0
-	}
-	return *value
-}
-
 func setVFDHostMetrics(metrics VFDHostMetrics) {
 	vfdState.Lock()
 	defer vfdState.Unlock()
 	vfdState.hostMetrics = metrics
+}
+
+func writeVFDChildMetrics(metrics VFDHostMetrics) {
+	payload, err := json.Marshal(metrics)
+	if err != nil {
+		logger.Warn().Err(err).Msg("failed to marshal VFD child metrics")
+		return
+	}
+	payload = append(payload, '\n')
+
+	vfdState.Lock()
+	defer vfdState.Unlock()
+	if vfdState.childStdin == nil {
+		return
+	}
+	if _, err := vfdState.childStdin.Write(payload); err != nil {
+		logger.Warn().Err(err).Msg("failed to write VFD child metrics")
+		_ = vfdState.childStdin.Close()
+		vfdState.childStdin = nil
+	}
 }
 
 func ptr[T any](value T) *T {
@@ -267,35 +291,10 @@ func rpcSetVFDConfig(vfdConfig VFDConfig) error {
 		return fmt.Errorf("invalid VFD listen port: %d", vfdConfig.ListenPort)
 	}
 
-	vfdApplyLock.Lock()
-	defer vfdApplyLock.Unlock()
-
-	oldConfig := VFDConfig{
-		Enabled:    config.VFDEnabled,
-		DevicePath: config.VFDDevicePath,
-		ListenPort: config.VFDListenPort,
-	}
-
-	if err := applyVFDConfig(vfdConfig); err != nil {
-		if rollbackErr := applyVFDConfig(oldConfig); rollbackErr != nil {
-			logger.Warn().Err(rollbackErr).Msg("failed to restore previous VFD config after apply failure")
-		}
-		return err
-	}
-
 	config.VFDEnabled = vfdConfig.Enabled
 	config.VFDDevicePath = vfdConfig.DevicePath
 	config.VFDListenPort = vfdConfig.ListenPort
-	if err := SaveConfig(); err != nil {
-		config.VFDEnabled = oldConfig.Enabled
-		config.VFDDevicePath = oldConfig.DevicePath
-		config.VFDListenPort = oldConfig.ListenPort
-		if rollbackErr := applyVFDConfig(oldConfig); rollbackErr != nil {
-			logger.Warn().Err(rollbackErr).Msg("failed to restore previous VFD config after save failure")
-		}
-		return err
-	}
-	return nil
+	return SaveConfig()
 }
 
 func rpcGetVFDHostMetrics() (VFDHostMetrics, error) {
