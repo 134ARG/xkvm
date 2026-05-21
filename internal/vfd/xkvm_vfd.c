@@ -15,11 +15,13 @@
 static pthread_t render_thread;
 static atomic_bool render_running = false;
 
+#define VFD_RENDER_INTERVAL_US (10 * 1000)
+
 static void* render_loop(void* arg) {
     (void)arg;
     while (atomic_load_explicit(&render_running, memory_order_acquire)) {
-        triple_bar_monitor();
-        usleep(50 * 1000);
+        numeric_map_monitor();
+        usleep(VFD_RENDER_INTERVAL_US);
     }
     return NULL;
 }
