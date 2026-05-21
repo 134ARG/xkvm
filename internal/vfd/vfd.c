@@ -84,16 +84,31 @@ bool vfd_direct_write_vram(uint8_t begin_idx, uint8_t* ram_grid,
 // -----------------------
 
 bool vfd_update_all_vram(void) {
-    if (shadow_init && memcmp(vram, vram_shadow, sizeof(vram)) == 0) {
-        return true; // Skip SPI entirely
+    if (!shadow_init) {
+        bool ret = vfd_direct_write_vram(0, (uint8_t*)vram, NUM_GRID);
+        if (ret) {
+            memcpy(vram_shadow, vram, sizeof(vram));
+            shadow_init = true;
+        }
+        return ret;
     }
 
-    bool ret = vfd_direct_write_vram(0, (uint8_t*)vram, 8);
-
-    if (ret) {
-        memcpy(vram_shadow, vram, sizeof(vram));
-        shadow_init = true;
+    int first = -1;
+    int last = -1;
+    for (int grid = 0; grid < NUM_GRID; grid++) {
+        if (memcmp(vram[grid], vram_shadow[grid], GRID_SIZE) != 0) {
+            if (first < 0) first = grid;
+            last = grid;
+        }
     }
+
+    if (first < 0)
+        return true;
+
+    int count = last - first + 1;
+    bool ret = vfd_direct_write_vram(first, vram[first], count);
+    if (ret)
+        memcpy(vram_shadow[first], vram[first], GRID_SIZE * count);
     return ret;
 }
 

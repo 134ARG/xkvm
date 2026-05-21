@@ -8,7 +8,6 @@
 #include <time.h>
 
 #include "remote.h"
-#include "spi.h"
 #include "vfd.h"
 
 // -----------------------
@@ -115,8 +114,6 @@ static bool show_connection_wait(void) {
     } else {
         vfd_display_string(0, "        ");
     }
-    uint8_t show[] = {0xe8};
-    spi_write(sizeof(show), show);
     return true;
 }
 
@@ -139,8 +136,6 @@ void cpu_monitor(void) {
         render_cpu_bar(0, 0);
         vfd_update_all_vram();
         vfd_write_dc(0, (uint8_t[]){'C', 'P', 'U', 3, 4, 5, 6, 7}, 8);
-        uint8_t show[] = {0xe8};
-        spi_write(sizeof(show), show);
         return;
     }
 
@@ -167,9 +162,6 @@ void cpu_monitor(void) {
     render_cpu_bar(fill_cols, frac_rows);
     vfd_update_all_vram();
     vfd_write_dc(0, (uint8_t[]){'C', 'P', 'U', 3, 4, 5, 6, 7}, 8);
-
-    uint8_t show[] = {0xe8};
-    spi_write(sizeof(show), show);
 }
 
 // -----------------------
@@ -196,8 +188,6 @@ void triple_bar_monitor(void) {
             memset(vram[g], 0, GRID_SIZE);
         vfd_update_all_vram();
         vfd_write_dc(0, (uint8_t[]){'N', 'R', 'M', 3, 4, 5, 6, 7}, 8);
-        uint8_t show[] = {0xe8};
-        spi_write(sizeof(show), show);
 
         metrics_snapshot_t snap;
         get_remote_metrics_full(&snap);
@@ -307,7 +297,4 @@ void triple_bar_monitor(void) {
     } else {
         vfd_write_dc(0, (uint8_t[]){'N', 'R', 'M', 3, 4, 5, 6, 7}, 8);
     }
-
-    uint8_t show[] = {0xe8};
-    spi_write(sizeof(show), show);
 }

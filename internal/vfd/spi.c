@@ -115,7 +115,7 @@ static bool ch347_init(const char* device_path) {
     }
 
     ch347_config.iMode = 0x03;
-    ch347_config.iClock = 0x04;
+    ch347_config.iClock = 0x03;
     ch347_config.iByteOrder = 0x00;
     ch347_config.iSpiWriteReadInterval = 0x0002;
     ch347_config.iSpiOutDefaultData = 0xff;

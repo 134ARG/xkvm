@@ -6,7 +6,6 @@
 #include <time.h>
 
 #include "remote.h"
-#include "spi.h"
 #include "vfd.h"
 
 #define DENSE_DOTS_PER_CELL 35
@@ -134,8 +133,6 @@ static bool dense_show_connection_wait(void) {
     static int frame = 0;
     frame++;
     vfd_display_string(0, (frame % 10) < 8 ? "CON WAIT" : "        ");
-    uint8_t show[] = {0xe8};
-    spi_write(sizeof(show), show);
     return true;
 }
 
@@ -210,6 +207,4 @@ void dense_map_monitor(void) {
 
     vfd_update_all_vram();
     vfd_display_all_vram();
-    uint8_t show[] = {0xe8};
-    spi_write(sizeof(show), show);
 }

@@ -1,10 +1,13 @@
+#define _GNU_SOURCE
 #include "xkvm_vfd.h"
 
+#include <stdbool.h>
 #include <stdatomic.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "remote.h"
@@ -15,13 +18,38 @@
 static pthread_t render_thread;
 static atomic_bool render_running = false;
 
-#define VFD_RENDER_INTERVAL_US (10 * 1000)
+#define VFD_RENDER_HZ 60
+#define VFD_RENDER_INTERVAL_NS (1000000000L / VFD_RENDER_HZ)
+
+static void add_nsec(struct timespec* ts, long ns) {
+    ts->tv_nsec += ns;
+    ts->tv_sec += ts->tv_nsec / 1000000000L;
+    ts->tv_nsec %= 1000000000L;
+}
+
+static bool timespec_less(const struct timespec* a,
+                          const struct timespec* b) {
+    return a->tv_sec < b->tv_sec ||
+           (a->tv_sec == b->tv_sec && a->tv_nsec < b->tv_nsec);
+}
 
 static void* render_loop(void* arg) {
     (void)arg;
+    struct timespec next_frame;
+    clock_gettime(CLOCK_MONOTONIC, &next_frame);
+
     while (atomic_load_explicit(&render_running, memory_order_acquire)) {
         numeric_map_monitor();
-        usleep(VFD_RENDER_INTERVAL_US);
+
+        struct timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        add_nsec(&next_frame, VFD_RENDER_INTERVAL_NS);
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        if (timespec_less(&now, &next_frame)) {
+            clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_frame, NULL);
+        } else {
+            next_frame = now;
+        }
     }
     return NULL;
 }

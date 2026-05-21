@@ -7,7 +7,6 @@
 
 #include "font_3x5.h"
 #include "remote.h"
-#include "spi.h"
 #include "vfd.h"
 
 #define NUMERIC_CANVAS_WIDTH 7
@@ -233,9 +232,11 @@ static void numeric_render_roll(int cell, const numeric_roll_state_t* state) {
 
 static void numeric_render_uptime_remainder(int cell, int remainder_hours) {
     remainder_hours = numeric_clamp_int(remainder_hours, 0, 2);
-    static const int y_positions[2] = {2, 1};
-    for (int i = 0; i < remainder_hours; i++) {
-        numeric_set_pixel(cell, 3, y_positions[i]);
+    if (remainder_hours == 1) {
+        numeric_set_pixel(cell, 3, 2);
+    } else if (remainder_hours == 2) {
+        numeric_set_pixel(cell, 3, 1);
+        numeric_set_pixel(cell, 3, 3);
     }
 }
 
@@ -402,8 +403,6 @@ static bool numeric_show_connection_wait(void) {
     static int frame = 0;
     frame++;
     vfd_display_string(0, (frame % 10) < 8 ? "CON WAIT" : "        ");
-    uint8_t show[] = {0xe8};
-    spi_write(sizeof(show), show);
     return true;
 }
 
@@ -488,6 +487,4 @@ void numeric_map_monitor(void) {
 
     vfd_update_all_vram();
     vfd_display_all_vram();
-    uint8_t show[] = {0xe8};
-    spi_write(sizeof(show), show);
 }
