@@ -30,6 +30,7 @@
 #define HBAR_NUM_GRIDS 4
 #define HBAR_TOTAL_COLS (HBAR_NUM_GRIDS * GRID_SIZE) // 20
 #define VERT_GRID 3
+#define NET_IDLE_ZERO_SEC 1.0
 
 // -----------------------
 // Render functions
@@ -263,6 +264,14 @@ void triple_bar_monitor(void) {
         prev_rx = snap.net_rx_bytes;
         prev_tx = snap.net_tx_bytes;
         prev_ts = now_ts;
+    } else {
+        double idle_dt = (now_ts.tv_sec - prev_ts.tv_sec) +
+                         (now_ts.tv_nsec - prev_ts.tv_nsec) / 1e9;
+        if (idle_dt > NET_IDLE_ZERO_SEC) {
+            rx_rate_smooth = 0.0;
+            tx_rate_smooth = 0.0;
+            prev_ts = now_ts;
+        }
     }
 
     vram[VERT_GRID][3] = partial_col_up[net_rate_to_level(rx_rate_smooth)];

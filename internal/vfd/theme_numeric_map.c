@@ -20,6 +20,7 @@
 #define NUMERIC_NET_COMMIT_FRAMES 12
 #define NUMERIC_NET_MODE_UP_BPS 1250000.0
 #define NUMERIC_NET_MODE_DOWN_BPS 750000.0
+#define NUMERIC_NET_IDLE_ZERO_SEC 1.0
 #define NUMERIC_ALERT_BLINK_PERIOD_MS 500
 #define NUMERIC_ALERT_BLANK_MS 100
 
@@ -445,6 +446,14 @@ void numeric_map_monitor(void) {
         prev_rx = snap.net_rx_bytes;
         prev_tx = snap.net_tx_bytes;
         prev_ts = now_ts;
+    } else {
+        double idle_dt = (now_ts.tv_sec - prev_ts.tv_sec) +
+                         (now_ts.tv_nsec - prev_ts.tv_nsec) / 1e9;
+        if (idle_dt > NUMERIC_NET_IDLE_ZERO_SEC) {
+            rx_rate = 0.0;
+            tx_rate = 0.0;
+            prev_ts = now_ts;
+        }
     }
 
     int uptime_hours = snap.uptime_sec / 3600;

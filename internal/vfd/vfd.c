@@ -2,7 +2,6 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "spi.h"
@@ -49,14 +48,13 @@ bool vfd_write_dc(uint8_t begin_idx, const uint8_t* addrs, uint8_t len) {
     }
 
     len += 1;
-    uint8_t* buffer = calloc(len, 1);
+    uint8_t buffer[NUM_GRID + 1];
     buffer[0] = DC_ADDR_START + begin_idx;
     for (int i = 1; i < len; i++) {
         buffer[i] = addrs[i - 1];
     }
 
     bool ret = spi_write(len, buffer);
-    free(buffer);
     return ret;
 }
 
@@ -130,6 +128,8 @@ bool vfd_display_string(uint8_t idx, const char* str) {
 // -----------------------
 
 void vfd_init(void) {
+    shadow_init = false;
+
     uint8_t dim[] = {0xe0, 0x07};
     uint8_t lightness[] = {0xe4, 0x3F};
     uint8_t show[] = {0xe8};

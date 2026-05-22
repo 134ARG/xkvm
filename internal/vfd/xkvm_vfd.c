@@ -18,7 +18,7 @@
 static pthread_t render_thread;
 static atomic_bool render_running = false;
 
-#define VFD_RENDER_HZ 60
+#define VFD_RENDER_HZ 75
 #define VFD_RENDER_INTERVAL_NS (1000000000L / VFD_RENDER_HZ)
 
 static void add_nsec(struct timespec* ts, long ns) {
@@ -42,7 +42,6 @@ static void* render_loop(void* arg) {
         numeric_map_monitor();
 
         struct timespec now;
-        clock_gettime(CLOCK_MONOTONIC, &now);
         add_nsec(&next_frame, VFD_RENDER_INTERVAL_NS);
         clock_gettime(CLOCK_MONOTONIC, &now);
         if (timespec_less(&now, &next_frame)) {

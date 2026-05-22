@@ -160,9 +160,8 @@ static bool ch347_init(const char* device_path) {
 }
 
 // CH347 write with SIGUSR1-based timeout.
-// Worker thread does the blocking CH347SPI_Write. On timeout, main
-// thread sends SIGUSR1 to interrupt the blocked write() syscall,
-// then joins the worker cleanly.
+// Worker thread does the blocking CH347SPI_Write. On timeout, main thread
+// sends SIGUSR1 and waits briefly so a stuck vendor call cannot hang forever.
 
 typedef struct {
     int fd;
@@ -178,17 +177,24 @@ static void* ch347_write_worker(void* arg) {
 }
 
 #define CH347_WRITE_TIMEOUT_MS 50
+#define CH347_WRITE_GRACE_MS 50
 #define CH347_WRITE_RETRIES 3
 
 static bool ch347_stalled = false;
 
 static bool ch347_timed_write(int fd, int len, uint8_t* buffer) {
-    ch347_write_arg_t arg = { .fd = fd, .len = len, .result = false };
-    memcpy(arg.buf, buffer, len);
+    ch347_write_arg_t* arg = calloc(1, sizeof(*arg));
+    if (!arg)
+        return false;
+    arg->fd = fd;
+    arg->len = len;
+    memcpy(arg->buf, buffer, len);
 
     pthread_t tid;
-    if (pthread_create(&tid, NULL, ch347_write_worker, &arg) != 0)
+    if (pthread_create(&tid, NULL, ch347_write_worker, arg) != 0) {
+        free(arg);
         return false;
+    }
 
     struct timespec deadline;
     clock_gettime(CLOCK_REALTIME, &deadline);
@@ -200,13 +206,25 @@ static bool ch347_timed_write(int fd, int len, uint8_t* buffer) {
     if (rc != 0) {
         // Timed out — interrupt the blocked syscall and join
         pthread_kill(tid, SIGUSR1);
-        pthread_join(tid, NULL);
+        clock_gettime(CLOCK_REALTIME, &deadline);
+        ns = deadline.tv_nsec + (long)CH347_WRITE_GRACE_MS * 1000000L;
+        deadline.tv_sec += ns / 1000000000L;
+        deadline.tv_nsec = ns % 1000000000L;
+        if (pthread_timedjoin_np(tid, NULL, &deadline) != 0) {
+            pthread_detach(tid);
+            fprintf(stderr, "CH347: SPI write stuck after timeout\n");
+            ch347_stalled = true;
+            return false;
+        }
         fprintf(stderr, "CH347: SPI write timed out (%dms)\n",
                 CH347_WRITE_TIMEOUT_MS);
+        free(arg);
         return false;
     }
 
-    return arg.result;
+    bool result = arg->result;
+    free(arg);
+    return result;
 }
 
 static bool ch347_write(int len, uint8_t* buffer) {
@@ -221,6 +239,8 @@ static bool ch347_write(int len, uint8_t* buffer) {
     for (int i = 0; i < CH347_WRITE_RETRIES; i++) {
         if (ch347_timed_write(ch347_fd, len, buffer))
             return true;
+        if (ch347_stalled)
+            break;
         fprintf(stderr, "CH347: retry %d/%d\n", i + 1, CH347_WRITE_RETRIES);
     }
 
@@ -279,6 +299,7 @@ spi_backend_t ch347_backend = {
 
 static int spidev_fd = -1;
 #define SPIDEV_MAX_CHUNK 4096
+#define SPIDEV_SPEED_HZ 1000000
 
 static bool spidev_init(const char* device_path) {
     spidev_fd = open(device_path, O_RDWR);
@@ -289,8 +310,8 @@ static bool spidev_init(const char* device_path) {
 
     uint8_t mode = SPI_MODE_3;
     uint8_t bits = 8;
-    // Align with CH347 iClock = 0x03 (7.5 MHz)
-    uint32_t speed = 1000000; 
+    // Conservative spidev fallback speed.
+    uint32_t speed = SPIDEV_SPEED_HZ;
 
     if (ioctl(spidev_fd, SPI_IOC_WR_MODE, &mode) < 0 ||
         ioctl(spidev_fd, SPI_IOC_WR_BITS_PER_WORD, &bits) < 0 ||
@@ -303,12 +324,12 @@ static bool spidev_init(const char* device_path) {
 
     uint8_t lsb_first = 1; 
 
-if (ioctl(spidev_fd, SPI_IOC_WR_LSB_FIRST, &lsb_first) < 0) {
-    perror("spidev: failed to set LSB first");
-    // You might want to continue anyway, some drivers don't support 
-    // the ioctl and require you to reverse bits in software, but 
-    // try the ioctl first!
-}
+    if (ioctl(spidev_fd, SPI_IOC_WR_LSB_FIRST, &lsb_first) < 0) {
+        perror("spidev: failed to set LSB first");
+        // You might want to continue anyway, some drivers don't support
+        // the ioctl and require you to reverse bits in software, but
+        // try the ioctl first!
+    }
 
     // Reminder: If CH347 was using 0x80 (CS1), ensure your device_path 
     // is /dev/spidevX.1, not /dev/spidevX.0
@@ -334,7 +355,7 @@ static bool spidev_write(int len, uint8_t* buffer) {
 
         xfers[i].tx_buf = (uint64_t)(uintptr_t)(buffer + offset);
         xfers[i].len = chunk_len;
-        xfers[i].speed_hz = 1000000; // 7.5 MHz to match CH347T
+        xfers[i].speed_hz = SPIDEV_SPEED_HZ;
         xfers[i].bits_per_word = 8;
         xfers[i].delay_usecs = 10; // Pause for 10 microseconds after this chunk
         

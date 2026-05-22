@@ -11,6 +11,7 @@
 #define DENSE_DOTS_PER_CELL 35
 #define DENSE_TOP_ROW 6
 #define DENSE_WEAR_SWAP_SEC (4 * 60 * 60)
+#define DENSE_NET_IDLE_ZERO_SEC 1.0
 
 static double dense_clamp_double(double value, double min, double max) {
     if (value < min) return min;
@@ -179,6 +180,14 @@ void dense_map_monitor(void) {
         prev_rx = snap.net_rx_bytes;
         prev_tx = snap.net_tx_bytes;
         prev_ts = now_ts;
+    } else {
+        double idle_dt = (now_ts.tv_sec - prev_ts.tv_sec) +
+                         (now_ts.tv_nsec - prev_ts.tv_nsec) / 1e9;
+        if (idle_dt > DENSE_NET_IDLE_ZERO_SEC) {
+            rx_rate = 0.0;
+            tx_rate = 0.0;
+            prev_ts = now_ts;
+        }
     }
 
     bool flipped = dense_flip_top_bottom();
