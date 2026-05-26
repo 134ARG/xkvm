@@ -29,6 +29,7 @@ tar -czf "$SOURCE" \
 rpmbuild -bb packaging/vfd-agent/rpm/xkvm-vfd-agent.spec \
     --define "_topdir $TOPDIR" \
     --define "_tmppath $TMPDIR" \
+    --define "source_date_epoch_from_changelog 0" \
     --define "xkvm_version $VERSION"
 
 RPM_FILE="$(find "$TOPDIR/RPMS" -type f -name "$PKG_NAME-$VERSION-*.rpm" | head -n 1)"

@@ -1,4 +1,4 @@
-%{!?xkvm_version:%global xkvm_version 0.1.5}
+%{!?xkvm_version:%{error:xkvm_version must be defined by the package build script}}
 
 Name:           xkvm-vfd-agent
 Version:        %{xkvm_version}
@@ -47,7 +47,3 @@ install -D -m 0644 packaging/vfd-agent/xkvm-vfd-agent.conf %{buildroot}%{_syscon
 %{_unitdir}/xkvm-vfd-agent.service
 %dir %{_sysconfdir}/xkvm-vfd-agent
 %config(noreplace) %{_sysconfdir}/xkvm-vfd-agent/agent.conf
-
-%changelog
-* Tue May 26 2026 134ARG <xen134@outlook.com> - 0.1.5-1
-- Add xkVM VFD metric agent package.
