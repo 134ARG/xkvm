@@ -175,5 +175,9 @@ _build_release_inner: build_native
 	@./scripts/create_self_extract.sh
 
 build_packages: build_release
-	@echo "Building DEB and RPM packages..."
+	@echo "Building xkVM packages..."
 	@./scripts/build_packages.sh
+	@./scripts/build_vfd_agent_rpm.sh
+
+build_vfd_agent_rpm:
+	@./scripts/build_vfd_agent_rpm.sh

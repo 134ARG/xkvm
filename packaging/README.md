@@ -1,6 +1,6 @@
 # XKVM Packaging
 
-This directory contains files for building DEB packages.
+This directory contains package assets for xkVM and related components.
 
 ## Structure
 
@@ -8,12 +8,16 @@ This directory contains files for building DEB packages.
 - `bin/xkvm-wrapper.sh` - Wrapper script installed to `/usr/bin/xkvm`
 - `systemd/xkvm.service` - Systemd service unit file
 - `deb/copyright` - Debian copyright file
+- `vfd-agent/` - RPM packaging for the host-side VFD metric agent
 
 ## Building Packages
 
 ```bash
-# Build DEB package
-make build_deb
+# Build the main xkVM package and the host-side VFD agent RPM
+make build_packages
+
+# Optional: build only the host-side VFD agent RPM
+make build_vfd_agent_rpm
 ```
 
 ## Dependencies
@@ -29,15 +33,20 @@ If the Mali library is missing, you'll see errors like:
 RTLibraryLoader failed to load library(libgraphic_lsf.so) error: No such file or directory
 ```
 
-## Package Contents
+## Main Package Contents
 
-The package installs:
+The `xkvm` package installs:
 - `/usr/bin/xkvm` - Wrapper script (sets LD_LIBRARY_PATH)
 - `/usr/lib/xkvm/xkvm_app` - Main binary
 - `/usr/lib/xkvm/*.so*` - Bundled libraries (librockit, libgraphic_lsf, librockchip_mpp)
 - `/etc/systemd/system/xkvm.service` - Systemd service (not enabled by default)
 - `/usr/share/doc/xkvm/LICENSE` - License file
 - `/usr/share/doc/xkvm/copyright` - Copyright file
+
+The `xkvm-vfd-agent` RPM installs:
+- `/usr/bin/xkvm-vfd-agent` - Host-side metric collector
+- `/etc/xkvm-vfd-agent/agent.conf` - Agent connection config
+- `/usr/lib/systemd/system/xkvm-vfd-agent.service` - Agent systemd service
 
 ## Post-Install
 

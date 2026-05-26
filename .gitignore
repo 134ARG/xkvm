@@ -9,6 +9,8 @@ static/*
 
 device-tests.tar.gz
 node_modules
+__pycache__/
+*.pyc
 
 # generated during the build process
 #internal/native/include
