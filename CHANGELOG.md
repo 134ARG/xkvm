@@ -2,6 +2,33 @@
 
 This document summarizes the major changes made to XKVM during its evolution from the original JetKVM embedded system to a full Linux-based KVM-over-IP solution.
 
+## Version 0.1.6 (2026-05-26)
+
+### New Features
+- Added optional VFD display support for CH347-driven VFD modules
+- Added a host metrics receiver for CPU, RAM, GPU, temperature, uptime, network counters, and failed systemd units
+- Added a host-side `xkvm-vfd-agent` metric collector for controlled machines
+- Added lm-sensors based environment metrics for case temperature, humidity, and SoC temperature
+- Added WebGL CAS-based video sharpening with existing brightness, contrast, and saturation adjustments
+
+### UI
+- Added a metrics badge in the action bar showing device environment metrics and connected host metrics
+- Added hardware settings for VFD enablement, CH347 device path, and host metrics receiver port
+- Added hardware settings for mapping lm-sensors chips and features used by the environment metrics badge
+- Added video sharpness configuration backed by the new CAS renderer
+
+### Packaging
+- Added RPM packaging, systemd service, and config file for `xkvm-vfd-agent`
+- Included the VFD agent RPM in the normal package build flow
+- Made the VFD agent RPM version follow `packaging/version.txt`
+- Updated packaging documentation for the split xKVM device package and host-side VFD agent package
+
+### VFD Runtime
+- Runs VFD rendering in a dedicated xKVM subprocess so VFD failures are isolated from the main service
+- Added dense-map and numeric VFD themes for compact status display
+- Added smooth numeric rendering, hex uptime encoding, fractional network readouts, and failure-state uptime blinking
+- Added CH347 timeout, retry, SPI re-init, VRAM shadowing, and lazy grid update handling
+
 ## Version 0.1.5 (2026-04-28)
 
 ### New Features
