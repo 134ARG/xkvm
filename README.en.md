@@ -91,9 +91,13 @@ Video settings: adjustable 2M–20M bitrate, H.264/H.265 codec selection (H.265 
 
 <img src="images/video-demo.png" />
 
-GPIO hardware config: ATX power control and status monitoring pin assignment.
+Hardware settings: USB device classes, GPIO ATX control, case sensors, and VFD display configuration.
 
-<img src="images/gpio-demo.png" />
+<img src="images/gpio-sensor-vfd-settings.png" />
+
+Sensors and host metrics: the main interface shows device environment readings, host load, temperatures, network traffic, and runtime status.
+
+<img src="images/sensors-demo.png" />
 
 ## Contributing
 

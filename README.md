@@ -43,9 +43,13 @@ XKVM 遵循标准 Linux FHS 规范，路径可通过环境变量覆盖。
 
 <img src="images/video-demo.png" />
 
-GPIO 硬件配置：ATX 电源控制与状态监测引脚配置。
+硬件设置：USB 设备类型、GPIO ATX 控制、机箱传感器与 VFD 显示配置。
 
-<img src="images/gpio-demo.png" />
+<img src="images/gpio-sensor-vfd-settings.png" />
+
+传感器与主机指标：主界面可查看设备环境传感器、主机负载、温度、网络流量与运行状态。
+
+<img src="images/sensors-demo.png" />
 
 ## 贡献
 
