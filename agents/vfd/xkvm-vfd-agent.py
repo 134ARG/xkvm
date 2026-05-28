@@ -16,6 +16,30 @@ CPU_TEMP_PATH = None
 LAST_SYSTEMD_CHECK = 0.0
 CACHED_FAILED_UNITS = 0
 CONNECT_TIMEOUT_SECONDS = 2.0
+IGNORED_NET_PREFIXES = (
+    "lo",
+    "docker",
+    "br-",
+    "veth",
+    "vnet",
+    "vmnet",
+    "virbr",
+    "lxc",
+    "lxdbr",
+    "podman",
+    "cni",
+    "flannel",
+    "kube",
+    "tunl",
+    "tailscale",
+    "zt",
+    "zerotier",
+    "wg",
+    "tun",
+    "tap",
+    "ppp",
+    "ipsec",
+)
 
 
 def init_hardware_paths():
@@ -95,10 +119,26 @@ def collect_failed_units(now):
     return CACHED_FAILED_UNITS
 
 
+def collect_net_bytes():
+    rx_bytes = 0
+    tx_bytes = 0
+
+    try:
+        for iface, counters in psutil.net_io_counters(pernic=True).items():
+            if iface.startswith(IGNORED_NET_PREFIXES):
+                continue
+            rx_bytes += counters.bytes_recv
+            tx_bytes += counters.bytes_sent
+        return rx_bytes, tx_bytes
+    except Exception:
+        counters = psutil.net_io_counters()
+        return counters.bytes_recv, counters.bytes_sent
+
+
 def collect_metrics():
     now = time.time()
     mem = psutil.virtual_memory()
-    net = psutil.net_io_counters()
+    net_rx_bytes, net_tx_bytes = collect_net_bytes()
 
     gpu_util = read_float(AMD_GPU_BUSY_PATH) if AMD_GPU_BUSY_PATH else 0.0
     gpu_temp = int(read_int(AMD_GPU_TEMP_PATH, 1000)) if AMD_GPU_TEMP_PATH else 0
@@ -115,7 +155,7 @@ def collect_metrics():
             },
             "gpu": {"util": round(gpu_util, 1), "temp": gpu_temp},
             "temp": {"cpu": cpu_temp, "gpu": gpu_temp},
-            "net": {"rx_bytes": net.bytes_recv, "tx_bytes": net.bytes_sent},
+            "net": {"rx_bytes": net_rx_bytes, "tx_bytes": net_tx_bytes},
             "sys": {
                 "uptime": int(now - BOOT_TIME),
                 "failed_units": collect_failed_units(now),
