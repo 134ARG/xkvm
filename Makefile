@@ -36,7 +36,7 @@ GO_ARGS := GOOS=linux GOARCH=arm64 CGO_ENABLED=1 ARCHFLAGS="-arch arm64" \
 	CXX=aarch64-linux-gnu-g++ \
 	ARM64_SYSROOT=$(ARM64_SYSROOT) \
 	CGO_CFLAGS="--sysroot=$(ARM64_SYSROOT) -I$(ARM64_SYSROOT)/usr/include/aarch64-linux-gnu" \
-	CGO_LDFLAGS="--sysroot=$(ARM64_SYSROOT) -B$(ARM64_SYSROOT)/lib64 -L$(ARM64_SYSROOT)/lib64 -L$(ARM64_SYSROOT)/usr/lib/aarch64-linux-gnu -L$(shell pwd)/internal/native/cgo/sdk/vendor/rockit/lib/lib64 -L$(shell pwd)/internal/native/cgo/sdk/mpp/lib"
+	CGO_LDFLAGS="--sysroot=$(ARM64_SYSROOT) -fno-link-libatomic -B$(ARM64_SYSROOT)/lib64 -L$(ARM64_SYSROOT)/lib64 -L$(ARM64_SYSROOT)/usr/lib/aarch64-linux-gnu -L$(shell pwd)/internal/native/cgo/sdk/vendor/rockit/lib/lib64 -L$(shell pwd)/internal/native/cgo/sdk/mpp/lib"
 
 GO_CMD := $(GO_ARGS) go
 

@@ -41,8 +41,8 @@ set(CMAKE_C_FLAGS_INIT "-march=armv8.2-a+fp16 -mtune=cortex-a55 --sysroot=${CMAK
 set(CMAKE_CXX_FLAGS_INIT "-march=armv8.2-a+fp16 -mtune=cortex-a55 --sysroot=${CMAKE_SYSROOT} -I${CMAKE_SYSROOT}/usr/include/aarch64-linux-gnu")
 
 # Linker flags - add lib64 directory for startup files and libraries
-set(CMAKE_EXE_LINKER_FLAGS_INIT "--sysroot=${CMAKE_SYSROOT} -L${CMAKE_SYSROOT}/lib64 -Wl,-rpath-link,${CMAKE_SYSROOT}/lib64")
-set(CMAKE_SHARED_LINKER_FLAGS_INIT "--sysroot=${CMAKE_SYSROOT} -L${CMAKE_SYSROOT}/lib64 -Wl,-rpath-link,${CMAKE_SYSROOT}/lib64")
+set(CMAKE_EXE_LINKER_FLAGS_INIT "--sysroot=${CMAKE_SYSROOT} -fno-link-libatomic -L${CMAKE_SYSROOT}/lib64 -Wl,-rpath-link,${CMAKE_SYSROOT}/lib64")
+set(CMAKE_SHARED_LINKER_FLAGS_INIT "--sysroot=${CMAKE_SYSROOT} -fno-link-libatomic -L${CMAKE_SYSROOT}/lib64 -Wl,-rpath-link,${CMAKE_SYSROOT}/lib64")
 
 # Tell the compiler where to find startup files
 set(CMAKE_C_LINK_FLAGS "-B${CMAKE_SYSROOT}/lib64")
