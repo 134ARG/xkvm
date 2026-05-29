@@ -12,6 +12,7 @@ import {
 import { cx } from "@/cva.config";
 import { useEnvironmentMetrics } from "@hooks/useEnvironmentMetrics";
 import { useVFDHostMetrics } from "@hooks/useVFDHostMetrics";
+import { m } from "@localizations/messages.js";
 
 function formatMetric(value: number | null | undefined, suffix: string) {
   return value == null ? "-" : `${value.toFixed(1)}${suffix}`;
@@ -129,7 +130,7 @@ export function EnvironmentMetricsBadge() {
   return (
     <Popover>
       <PopoverButton
-        title="Metrics"
+        title={m.environment_metrics_title()}
         className={cx(
           "hidden h-[24.5px] items-center gap-x-2 rounded-sm border border-slate-800/20 px-2 text-xs font-medium text-slate-700 transition hover:bg-blue-50/80 md:flex dark:border-slate-300/20 dark:text-slate-200 dark:hover:bg-slate-800",
           stale && "opacity-60",
@@ -159,20 +160,26 @@ export function EnvironmentMetricsBadge() {
         <div className="space-y-4">
           <section className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-950 dark:text-white">Device</h3>
+              <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                {m.environment_metrics_device()}
+              </h3>
               <span className="text-xs text-slate-500 dark:text-slate-400">
-                {!supported ? "unsupported" : stale ? "stale" : "live"}
+                {!supported
+                  ? m.environment_metrics_unsupported()
+                  : stale
+                    ? m.environment_metrics_stale()
+                    : m.environment_metrics_live()}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2">
               <MetricTile
                 icon={<LuThermometer className="h-3.5 w-3.5 text-red-500" />}
-                label="Case"
+                label={m.environment_metrics_case()}
                 value={caseTemp}
               />
               <MetricTile
                 icon={<LuDroplets className="h-3.5 w-3.5 text-blue-500" />}
-                label="Humidity"
+                label={m.environment_metrics_humidity()}
                 value={humidity}
               />
               <MetricTile
@@ -187,7 +194,9 @@ export function EnvironmentMetricsBadge() {
 
           <section className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-950 dark:text-white">Host</h3>
+              <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                {m.environment_metrics_host()}
+              </h3>
               <span
                 className={cx(
                   "inline-flex items-center gap-x-1.5 text-xs",
@@ -202,7 +211,9 @@ export function EnvironmentMetricsBadge() {
                     hostMetrics.connected ? "bg-green-500" : "bg-slate-400",
                   )}
                 />
-                {hostMetrics.connected ? "connected" : "disconnected"}
+                {hostMetrics.connected
+                  ? m.environment_metrics_connected()
+                  : m.environment_metrics_disconnected()}
               </span>
             </div>
 
@@ -225,17 +236,17 @@ export function EnvironmentMetricsBadge() {
               />
               <HostDetail
                 icon={<LuClock3 className="h-3.5 w-3.5 text-slate-500" />}
-                label="Uptime"
+                label={m.environment_metrics_uptime()}
                 value={formatUptime(hostMetrics.uptimeSec)}
               />
               <HostDetail
                 icon={<LuArrowDown className="h-3.5 w-3.5 text-blue-500" />}
-                label="Received"
+                label={m.environment_metrics_received()}
                 value={formatBytes(hostMetrics.netRxBytes)}
               />
               <HostDetail
                 icon={<LuArrowUp className="h-3.5 w-3.5 text-green-500" />}
-                label="Sent"
+                label={m.environment_metrics_sent()}
                 value={formatBytes(hostMetrics.netTxBytes)}
               />
               <HostDetail
@@ -247,7 +258,7 @@ export function EnvironmentMetricsBadge() {
                     )}
                   />
                 }
-                label="Failed units"
+                label={m.environment_metrics_failed_units()}
                 value={formatPlain(hostMetrics.failedUnits)}
                 alert={(hostMetrics.failedUnits ?? 0) > 0}
               />

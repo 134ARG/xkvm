@@ -91,7 +91,7 @@ export default function SettingsGeneralRoute() {
         <div className="space-y-4 pb-2">
           <div className="space-y-4">
             <SettingsItem
-              badge="Beta"
+              badge={m.beta()}
               badgeTheme="info"
               title={m.user_interface_language_title()}
               description={m.user_interface_language_description()}

@@ -16,7 +16,9 @@ import { decodeModifiers, keys, latchingKeys, modifiers } from "@/keyboardMappin
 import { m } from "@localizations/messages.js";
 
 export const DetachIcon = ({ className }: { className?: string }) => {
-  return <img src={DetachIconRaw} alt="Detach Icon" className={className} />;
+  return (
+    <img src={DetachIconRaw} alt={m.virtual_keyboard_detach_icon_alt()} className={className} />
+  );
 };
 
 function KeyboardWrapper() {

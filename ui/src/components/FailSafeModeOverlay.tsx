@@ -10,6 +10,7 @@ import { useDeviceUiNavigation } from "@hooks/useAppNavigation";
 import { useVersion } from "@hooks/useVersion";
 import { useDeviceStore } from "@hooks/stores";
 import notifications from "@/notifications";
+import { m } from "@localizations/messages.js";
 
 interface FailSafeModeOverlayProps {
   reason: string;
@@ -40,13 +41,11 @@ export function FailSafeModeOverlay({ reason }: FailSafeModeOverlayProps) {
     switch (reason) {
       case "video":
         return {
-          message:
-            "We've detected an issue with the video capture process. Your device is still running and accessible, but video streaming is temporarily unavailable.",
+          message: m.fail_safe_video_message(),
         };
       default:
         return {
-          message:
-            "A critical process has encountered an issue. Your device is still accessible, but some functionality may be temporarily unavailable.",
+          message: m.fail_safe_default_message(),
         };
     }
   };
@@ -60,7 +59,7 @@ export function FailSafeModeOverlay({ reason }: FailSafeModeOverlayProps) {
       setIsDownloadingLogs(false);
 
       if ("error" in resp) {
-        notifications.error(`Failed to get diagnostics: ${resp.error.message}`);
+        notifications.error(m.fail_safe_diagnostics_get_error({ error: resp.error.message }));
         return;
       }
 
@@ -81,7 +80,7 @@ export function FailSafeModeOverlay({ reason }: FailSafeModeOverlayProps) {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      notifications.success("Crash logs downloaded successfully");
+      notifications.success(m.fail_safe_logs_download_success());
 
       // Open GitHub issue
 
@@ -116,7 +115,7 @@ export function FailSafeModeOverlay({ reason }: FailSafeModeOverlayProps) {
             <div className="text-left text-sm text-slate-700 dark:text-slate-300">
               <div className="space-y-4">
                 <div className="space-y-2 text-black dark:text-white">
-                  <h2 className="text-xl font-bold">Fail safe mode activated</h2>
+                  <h2 className="text-xl font-bold">{m.fail_safe_activated_title()}</h2>
                   <p className="text-sm">{message}</p>
                 </div>
                 <div className="space-y-3">
@@ -129,7 +128,9 @@ export function FailSafeModeOverlay({ reason }: FailSafeModeOverlayProps) {
                       LeadingIcon={GitHubIcon}
                       loading={isDownloadingLogs}
                       text={
-                        isDownloadingLogs ? "Downloading Logs..." : "Download Logs & Report Issue"
+                        isDownloadingLogs
+                          ? m.fail_safe_downloading_logs()
+                          : m.fail_safe_download_logs_report_issue()
                       }
                     />
 

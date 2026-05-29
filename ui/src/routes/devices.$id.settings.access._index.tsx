@@ -121,7 +121,7 @@ export default function SettingsAccessIndexRoute() {
             <>
               <SettingsItem
                 title={m.access_https_mode_title()}
-                badge="Experimental"
+                badge={m.experimental()}
                 description={m.access_https_description()}
               >
                 <SelectMenuBasic

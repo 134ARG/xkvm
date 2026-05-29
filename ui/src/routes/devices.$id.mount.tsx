@@ -299,7 +299,7 @@ function ModeSelectionView({
         }}
       >
         <div className="flex gap-x-2 pt-2">
-          <Button size="MD" theme="blank" onClick={onClose} text="Cancel" />
+          <Button size="MD" theme="blank" onClick={onClose} text={m.cancel()} />
           <Button
             size="MD"
             theme="primary"
@@ -367,7 +367,7 @@ function UrlView({
       name: "netboot.xyz",
       url: "https://boot.netboot.xyz/ipxe/netboot.xyz.iso",
       icon: NetBootIcon,
-      description: "Boot and install various operating systems over network",
+      description: m.mount_os_netboot_description(),
     },
   ];
 
@@ -442,7 +442,11 @@ function UrlView({
           {popularImages.map((image, index) => (
             <div key={index} className="flex items-center justify-between gap-x-4 p-3.5">
               <div className="flex items-center gap-x-4">
-                <img src={image.icon} alt={`${image.name} Icon`} className="w-6" />
+                <img
+                  src={image.icon}
+                  alt={m.mount_image_icon_alt({ name: image.name })}
+                  className="w-6"
+                />
                 <div className="flex flex-col gap-y-1">
                   <h3 className="text-sm leading-none font-semibold dark:text-white">
                     {formatters.truncateMiddle(image.name, 40)}
@@ -694,7 +698,7 @@ function DeviceFileView({
             <UsbModeSelector usbMode={usbMode} setUsbMode={setUsbMode} />
           </Fieldset>
           <div className="flex items-center gap-x-2">
-            <Button size="MD" theme="blank" text="Back" onClick={() => onBack()} />
+            <Button size="MD" theme="blank" text={m.back()} onClick={() => onBack()} />
             <Button
               size="MD"
               disabled={selected === null || mountInProgress}
@@ -719,7 +723,7 @@ function DeviceFileView({
           }}
         >
           <div className="flex items-center gap-x-2">
-            <Button size="MD" theme="light" text="Back" onClick={() => onBack()} />
+            <Button size="MD" theme="light" text={m.back()} onClick={() => onBack()} />
           </div>
         </div>
       )}
@@ -1348,7 +1352,7 @@ function UsbModeSelector({
 }) {
   return (
     <div className="flex flex-col items-start space-y-1 select-none">
-      <label className="text-sm font-semibold text-black dark:text-white">Mount as</label>
+      <label className="text-sm font-semibold text-black dark:text-white">{m.mount_as()}</label>
       <div className="flex space-x-4">
         {/* CDROM option hidden - causes USB stability issues */}
         {/* <label htmlFor="cdrom" className="flex items-center">

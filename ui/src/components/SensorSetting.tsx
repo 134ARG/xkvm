@@ -4,6 +4,7 @@ import { JsonRpcResponse, useJsonRpc } from "@hooks/useJsonRpc";
 import { SelectMenuBasic } from "@components/SelectMenuBasic";
 import { SettingsSectionHeader } from "@components/SettingsSectionHeader";
 import notifications from "@/notifications";
+import { m } from "@localizations/messages.js";
 
 interface SensorFeature {
   path: string;
@@ -53,7 +54,9 @@ export function SensorSetting() {
     (updated: SensorConfig) => {
       send("setSensorConfig", { sensorConfig: updated }, (resp: JsonRpcResponse) => {
         if ("error" in resp) {
-          notifications.error(`Failed to save sensor config: ${String(resp.error.data || "")}`);
+          notifications.error(
+            m.sensor_save_error({ error: String(resp.error.data || m.unknown_error()) }),
+          );
           return;
         }
         setSensorConfig(updated);
@@ -64,7 +67,7 @@ export function SensorSetting() {
 
   const chipOptions = useMemo(
     () => [
-      { label: "None", value: "" },
+      { label: m.sensor_none(), value: "" },
       ...chips.map(c => ({ label: `${c.chip} - ${c.adapter}`, value: c.chip })),
     ],
     [chips],
@@ -74,7 +77,7 @@ export function SensorSetting() {
     (chipName: string) => {
       const chip = chips.find(c => c.chip === chipName);
       return [
-        { label: "None", value: "" },
+        { label: m.sensor_none(), value: "" },
         ...(chip?.features.map(f => ({
           label: `${f.label} (${f.value.toFixed(1)})`,
           value: f.path,
@@ -89,13 +92,13 @@ export function SensorSetting() {
       <div className="h-px w-full bg-slate-800/10 dark:bg-slate-300/20" />
 
       <SettingsSectionHeader
-        title="Case sensors"
-        description="Map lm-sensors readings used by the main page environment badge."
+        title={m.sensor_case_sensors_title()}
+        description={m.sensor_case_sensors_description()}
       />
 
       <div className="grid grid-cols-3 gap-4">
         <SelectMenuBasic
-          label="Environment chip"
+          label={m.sensor_environment_chip()}
           options={chipOptions}
           value={sensorConfig.envChip}
           onChange={(e: ChangeEvent<HTMLSelectElement>) => {
@@ -109,7 +112,7 @@ export function SensorSetting() {
           }}
         />
         <SelectMenuBasic
-          label="Temperature"
+          label={m.sensor_temperature()}
           options={featureOptions(sensorConfig.envChip)}
           value={sensorConfig.tempFeature}
           disabled={!sensorConfig.envChip}
@@ -118,7 +121,7 @@ export function SensorSetting() {
           }}
         />
         <SelectMenuBasic
-          label="Humidity"
+          label={m.sensor_humidity()}
           options={featureOptions(sensorConfig.envChip)}
           value={sensorConfig.humFeature}
           disabled={!sensorConfig.envChip}
@@ -127,7 +130,7 @@ export function SensorSetting() {
           }}
         />
         <SelectMenuBasic
-          label="SoC chip"
+          label={m.sensor_soc_chip()}
           options={chipOptions}
           value={sensorConfig.socChip}
           onChange={(e: ChangeEvent<HTMLSelectElement>) => {
@@ -136,7 +139,7 @@ export function SensorSetting() {
           }}
         />
         <SelectMenuBasic
-          label="SoC temperature"
+          label={m.sensor_soc_temperature()}
           options={featureOptions(sensorConfig.socChip)}
           value={sensorConfig.socFeature}
           disabled={!sensorConfig.socChip}

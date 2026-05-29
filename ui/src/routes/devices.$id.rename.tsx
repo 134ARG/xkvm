@@ -71,7 +71,7 @@ export default function DeviceIdRename() {
     <div className="grid min-h-screen grid-rows-(--grid-layout)">
       <DashboardNavbar
         isLoggedIn={!!user}
-        primaryLinks={[{ title: "Cloud Devices", to: "/devices" }]}
+        primaryLinks={[{ title: m.cloud_devices(), to: "/devices" }]}
         userEmail={user?.email}
         picture={user?.picture}
         kvmName={device?.name}

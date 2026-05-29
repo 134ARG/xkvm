@@ -18,7 +18,7 @@ export default function StaticIpv6Card({ ipv6Static }: StaticIpv6CardProps) {
             {m.network_static_ipv6_header()}
           </h3>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            No static IPv6 configuration available
+            {m.network_static_ipv6_none()}
           </p>
         </div>
       </GridCard>
@@ -33,7 +33,7 @@ export default function StaticIpv6Card({ ipv6Static }: StaticIpv6CardProps) {
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
               {m.network_static_ipv6_header()}
             </h3>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Read-only</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{m.read_only()}</div>
           </div>
 
           <div className="space-y-3 text-sm">

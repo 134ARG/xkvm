@@ -101,7 +101,7 @@ export default function DashboardNavbar({
                             {picture ? (
                               <img
                                 src={picture}
-                                alt="Avatar"
+                                alt={m.user_avatar_alt()}
                                 className="size-6 rounded-full border-2 border-transparent transition-colors group-hover:border-blue-700"
                               />
                             ) : userEmail ? (

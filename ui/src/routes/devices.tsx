@@ -49,7 +49,7 @@ export default function DevicesRoute() {
       <div className="grid h-full grid-rows-(--grid-headerBody) select-none">
         <DashboardNavbar
           isLoggedIn={!!user}
-          primaryLinks={[{ title: "Cloud Devices", to: "/devices" }]}
+          primaryLinks={[{ title: m.cloud_devices(), to: "/devices" }]}
           userEmail={user?.email}
           picture={user?.picture}
         />

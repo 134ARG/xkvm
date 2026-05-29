@@ -112,7 +112,7 @@ export default function SettingsNetworkRoute() {
         action={
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
             <LuInfo className="h-4 w-4" />
-            <span>Read-only - Use OS network tools to configure</span>
+            <span>{m.network_os_tools_note()}</span>
           </div>
         }
       />
@@ -168,37 +168,47 @@ export default function SettingsNetworkRoute() {
               <GridCard>
                 <div className="space-y-4 p-4">
                   <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                    Network Status
+                    {m.network_status_title()}
                   </h3>
                   <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
                     <div>
-                      <span className="text-slate-600 dark:text-slate-400">Interface:</span>
+                      <span className="text-slate-600 dark:text-slate-400">
+                        {m.network_interface_label()}:
+                      </span>
                       <span className="ml-2 font-mono">
-                        {networkState?.interface_name || "N/A"}
+                        {networkState?.interface_name || m.not_available()}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-600 dark:text-slate-400">Hostname:</span>
-                      <span className="ml-2 font-mono">{networkState?.hostname || "N/A"}</span>
+                      <span className="text-slate-600 dark:text-slate-400">
+                        {m.network_hostname_title()}:
+                      </span>
+                      <span className="ml-2 font-mono">
+                        {networkState?.hostname || m.not_available()}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-slate-600 dark:text-slate-400">Status:</span>
+                      <span className="text-slate-600 dark:text-slate-400">
+                        {m.network_status_label()}:
+                      </span>
                       <span className="ml-2 font-mono">
                         {networkState?.online ? (
-                          <span className="text-green-600 dark:text-green-400">Online</span>
+                          <span className="text-green-600 dark:text-green-400">{m.online()}</span>
                         ) : networkState?.up ? (
                           <span className="text-yellow-600 dark:text-yellow-400">
-                            Up (No Internet)
+                            {m.network_status_up_no_internet()}
                           </span>
                         ) : (
-                          <span className="text-red-600 dark:text-red-400">Down</span>
+                          <span className="text-red-600 dark:text-red-400">
+                            {m.network_status_down()}
+                          </span>
                         )}
                       </span>
                     </div>
                     <div>
                       <span className="text-slate-600 dark:text-slate-400">IPv4:</span>
                       <span className="ml-2 font-mono">
-                        {networkState?.ipv4_address || "Not configured"}
+                        {networkState?.ipv4_address || m.network_not_configured()}
                       </span>
                     </div>
                   </div>
@@ -215,12 +225,14 @@ export default function SettingsNetworkRoute() {
                     {!networkState?.ipv6_address && (
                       <div>
                         <span className="text-slate-600 dark:text-slate-400">IPv6:</span>
-                        <span className="ml-2 font-mono">Not configured</span>
+                        <span className="ml-2 font-mono">{m.network_not_configured()}</span>
                       </div>
                     )}
                     {networkState?.ipv6_link_local && (
                       <div>
-                        <span className="text-slate-600 dark:text-slate-400">IPv6 Link-Local:</span>
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {m.ipv6_link_local()}:
+                        </span>
                         <div className="ml-2 font-mono text-xs break-all">
                           {networkState.ipv6_link_local}
                         </div>
@@ -240,27 +252,27 @@ export default function SettingsNetworkRoute() {
                       networkState={networkState}
                       setShowRenewLeaseConfirm={() => {
                         // DHCP lease renewal is disabled - show notification
-                        notifications.error(
-                          "DHCP lease renewal is disabled. Use OS network management tools.",
-                        );
+                        notifications.error(m.network_dhcp_lease_renew_disabled());
                       }}
                     />
                   ) : networkState?.ipv4_address ? (
                     <GridCard>
                       <div className="space-y-4 p-4">
                         <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                          IPv4 Configuration
+                          {m.network_ipv4_configuration()}
                         </h3>
                         <div className="space-y-2 text-sm">
                           <div>
-                            <span className="text-slate-600 dark:text-slate-400">Address:</span>
+                            <span className="text-slate-600 dark:text-slate-400">
+                              {m.ip_address()}:
+                            </span>
                             <span className="ml-2 font-mono">{networkState.ipv4_address}</span>
                           </div>
                           {networkState.ipv4_addresses &&
                             networkState.ipv4_addresses.length > 1 && (
                               <div>
                                 <span className="text-slate-600 dark:text-slate-400">
-                                  All Addresses:
+                                  {m.network_all_addresses()}:
                                 </span>
                                 <div className="ml-2 space-y-1 font-mono text-xs">
                                   {networkState.ipv4_addresses.map((addr, idx) => (
@@ -296,17 +308,16 @@ export default function SettingsNetworkRoute() {
                     <LuInfo className="mt-0.5 h-5 w-5 shrink-0 text-blue-500" />
                     <div className="space-y-2">
                       <h4 className="font-medium text-slate-900 dark:text-white">
-                        Network Configuration is Read-Only
+                        {m.network_configuration_read_only_title()}
                       </h4>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Network settings cannot be modified through this interface. Use your
-                        operating system&apos;s network management tools such as:
+                        {m.network_configuration_read_only_description()}
                       </p>
                       <ul className="ml-2 list-inside list-disc space-y-1 text-sm text-slate-600 dark:text-slate-400">
                         <li>NetworkManager (nmcli, nmtui)</li>
-                        <li>systemd-networkd</li>
-                        <li>Manual configuration files (/etc/network/interfaces, /etc/netplan/)</li>
-                        <li>Your distribution&apos;s network configuration tools</li>
+                        <li>{m.network_systemd_networkd()}</li>
+                        <li>{m.network_manual_config_files()}</li>
+                        <li>{m.network_distribution_tools()}</li>
                       </ul>
                     </div>
                   </div>

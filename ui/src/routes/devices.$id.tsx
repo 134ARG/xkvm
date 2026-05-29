@@ -928,7 +928,7 @@ export default function KvmIdRoute() {
         <div className="grid h-full grid-rows-(--grid-headerBody) select-none">
           <DashboardNavbar
             primaryLinks={
-              isOnDevice || isNative ? [] : [{ title: "Cloud Devices", to: "/devices" }]
+              isOnDevice || isNative ? [] : [{ title: m.cloud_devices(), to: "/devices" }]
             }
             showConnectionStatus={true}
             isLoggedIn={authMode === "password" || !!user}

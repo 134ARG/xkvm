@@ -156,7 +156,9 @@ export function UsbInfoSetting() {
     send("getDeviceID", {}, (resp: JsonRpcResponse) => {
       if ("error" in resp) {
         return notifications.error(
-          `Failed to get device ID: ${resp.error.data || m.unknown_error()}`,
+          m.usb_config_get_device_id_error({
+            error: String(resp.error.data || m.unknown_error()),
+          }),
         );
       }
       setDeviceId(resp.result as string);

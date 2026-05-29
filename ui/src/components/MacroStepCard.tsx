@@ -41,7 +41,7 @@ const basePresetDelays = [
 
 const PRESET_DELAYS = basePresetDelays.map(delay => {
   if (Number.parseInt(delay.value, 10) === DEFAULT_DELAY) {
-    return { ...delay, label: "Default" };
+    return { ...delay, label: m.default_option() };
   }
   return delay;
 });

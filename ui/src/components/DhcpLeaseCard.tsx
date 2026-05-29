@@ -23,9 +23,9 @@ export default function DhcpLeaseCard({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                IPv4 Address Information
+                {m.network_ipv4_address_information()}
               </h3>
-              <div className="text-xs text-slate-500 dark:text-slate-400">Read-only</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">{m.read_only()}</div>
             </div>
 
             <div className="space-y-2">
@@ -42,7 +42,7 @@ export default function DhcpLeaseCard({
               {networkState?.ipv4_addresses && networkState.ipv4_addresses.length > 1 && (
                 <div className="flex justify-between border-t border-slate-800/10 pt-2 dark:border-slate-300/20">
                   <span className="text-sm text-slate-600 dark:text-slate-400">
-                    Additional Addresses
+                    {m.network_additional_addresses()}
                   </span>
                   &nbsp;
                   <span className="text-right text-sm font-medium">
@@ -57,8 +57,7 @@ export default function DhcpLeaseCard({
 
               <div className="mt-4 rounded-md bg-blue-50 p-3 dark:bg-blue-900/20">
                 <p className="text-xs text-blue-700 dark:text-blue-300">
-                  Detailed DHCP lease information is not available. Use OS network tools (nmcli, ip
-                  addr) for complete network details.
+                  {m.network_dhcp_lease_details_unavailable()}
                 </p>
               </div>
             </div>
@@ -86,7 +85,7 @@ export default function DhcpLeaseCard({
               {m.dhcp_lease_header()}
             </h3>
 
-            <div className="text-xs text-slate-500 dark:text-slate-400">Read-only</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{m.read_only()}</div>
           </div>
 
           <div className="flex gap-x-6 gap-y-2">

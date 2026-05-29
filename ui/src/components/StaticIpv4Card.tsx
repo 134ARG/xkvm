@@ -18,7 +18,7 @@ export default function StaticIpv4Card({ ipv4Static }: StaticIpv4CardProps) {
             {m.network_static_ipv4_header()}
           </h3>
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            No static IPv4 configuration available
+            {m.network_static_ipv4_none()}
           </p>
         </div>
       </GridCard>
@@ -33,7 +33,7 @@ export default function StaticIpv4Card({ ipv4Static }: StaticIpv4CardProps) {
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
               {m.network_static_ipv4_header()}
             </h3>
-            <div className="text-xs text-slate-500 dark:text-slate-400">Read-only</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{m.read_only()}</div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">

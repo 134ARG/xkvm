@@ -75,7 +75,7 @@ export default function SetupRoute() {
 
               <div className="space-y-2 text-center">
                 <h1 className="text-4xl font-semibold text-black dark:text-white">
-                  Let&apos;s name your device
+                  {m.register_device_setup_title()}
                 </h1>
                 <p className="text-slate-600 dark:text-slate-400">
                   {m.register_device_name_description()}

@@ -3,6 +3,7 @@ import { useNativeConfig } from "@/stores/nativeConfigStore";
 import { Button } from "@/components/Button";
 import { InputFieldWithLabel } from "@/components/InputField";
 import Card from "@/components/Card";
+import { m } from "@localizations/messages.js";
 
 export default function ConnectionSettings() {
   const { config, addConnection, removeConnection, setDefaultConnection, loadConfig } =
@@ -28,13 +29,13 @@ export default function ConnectionSettings() {
     const newErrors: { name?: string; url?: string } = {};
 
     if (!newConnection.name.trim()) {
-      newErrors.name = "Name is required";
+      newErrors.name = m.connection_name_required();
     }
 
     if (!newConnection.url.trim()) {
-      newErrors.url = "URL is required";
+      newErrors.url = m.connection_url_required();
     } else if (!validateUrl(newConnection.url)) {
-      newErrors.url = "Invalid URL (must start with http:// or https://)";
+      newErrors.url = m.connection_url_invalid();
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -49,26 +50,26 @@ export default function ConnectionSettings() {
   };
 
   const handleRemove = async (id: string) => {
-    if (confirm("Are you sure you want to remove this connection?")) {
+    if (confirm(m.connection_confirm_remove())) {
       await removeConnection(id);
     }
   };
 
   const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "Never";
+    if (!dateStr) return m.date_never();
     try {
       return new Date(dateStr).toLocaleString();
     } catch {
-      return "Never";
+      return m.date_never();
     }
   };
 
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Backend Connections</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{m.connection_title()}</h2>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Manage your XKVM backend server connections
+          {m.connection_manage_description()}
         </p>
       </div>
 
@@ -83,26 +84,26 @@ export default function ConnectionSettings() {
                   </h3>
                   {conn.is_default && (
                     <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                      Default
+                      {m.connection_default()}
                     </span>
                   )}
                 </div>
                 <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{conn.url}</p>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Last connected: {formatDate(conn.last_connected)}
+                  {m.connection_last_connected()} {formatDate(conn.last_connected)}
                 </p>
               </div>
               <div className="flex gap-2">
                 {!conn.is_default && (
                   <Button
-                    text="Set as Default"
+                    text={m.connection_set_as_default()}
                     theme="light"
                     size="SM"
                     onClick={() => setDefaultConnection(conn.id)}
                   />
                 )}
                 <Button
-                  text="Remove"
+                  text={m.connection_remove()}
                   theme="danger"
                   size="SM"
                   onClick={() => handleRemove(conn.id)}
@@ -116,9 +117,7 @@ export default function ConnectionSettings() {
         {config?.connections.length === 0 && !isAdding && (
           <Card>
             <div className="p-8 text-center">
-              <p className="text-gray-500 dark:text-gray-400">
-                No connections configured. Add your first backend connection to get started.
-              </p>
+              <p className="text-gray-500 dark:text-gray-400">{m.connection_no_connections()}</p>
             </div>
           </Card>
         )}
@@ -128,26 +127,26 @@ export default function ConnectionSettings() {
         <Card>
           <div className="space-y-4 p-4">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Add New Connection
+              {m.connection_add_new()}
             </h3>
             <InputFieldWithLabel
-              label="Connection Name"
-              placeholder="My XKVM Device"
+              label={m.connection_name_label()}
+              placeholder={m.connection_name_placeholder()}
               value={newConnection.name}
               onChange={e => setNewConnection({ ...newConnection, name: e.target.value })}
               error={errors.name}
             />
             <InputFieldWithLabel
-              label="Backend URL"
+              label={m.connection_backend_url_label()}
               placeholder="https://xkvm.example.com"
               value={newConnection.url}
               onChange={e => setNewConnection({ ...newConnection, url: e.target.value })}
               error={errors.url}
             />
             <div className="flex gap-2">
-              <Button text="Add Connection" theme="primary" size="SM" onClick={handleAdd} />
+              <Button text={m.connection_add()} theme="primary" size="SM" onClick={handleAdd} />
               <Button
-                text="Cancel"
+                text={m.cancel()}
                 theme="light"
                 size="SM"
                 onClick={() => {
@@ -160,7 +159,12 @@ export default function ConnectionSettings() {
           </div>
         </Card>
       ) : (
-        <Button text="Add Connection" theme="primary" size="SM" onClick={() => setIsAdding(true)} />
+        <Button
+          text={m.connection_add()}
+          theme="primary"
+          size="SM"
+          onClick={() => setIsAdding(true)}
+        />
       )}
     </div>
   );

@@ -119,9 +119,7 @@ export default function SettingsVideoRoute() {
 
   const handleVideoCodecChange = (codec: number) => {
     if (codec === 1 && !h265Supported) {
-      notifications.error(
-        m.video_failed_set_codec({ error: "H.265 is only supported in macOS Safari." }),
-      );
+      notifications.error(m.video_failed_set_codec({ error: m.video_h265_safari_only_error() }));
       setVideoCodec(0);
       return;
     }
@@ -156,7 +154,7 @@ export default function SettingsVideoRoute() {
 
       notifications.success(
         m.video_edid_set_success({
-          edid: edids.find(x => x.value === newEdid)?.label ?? "the custom EDID",
+          edid: edids.find(x => x.value === newEdid)?.label ?? m.video_custom_edid_fallback(),
         }),
       );
       // Update the EDID value in the UI
@@ -225,10 +223,12 @@ export default function SettingsVideoRoute() {
                 value={videoCodec.toString()}
                 onChange={e => handleVideoCodecChange(Number(e.target.value))}
                 options={[
-                  { value: "0", label: "H.264 (AVC)" },
+                  { value: "0", label: m.video_codec_h264_avc() },
                   {
                     value: "1",
-                    label: h265Supported ? "H.265 (HEVC)" : "H.265 (HEVC, Safari only)",
+                    label: h265Supported
+                      ? m.video_codec_h265_hevc()
+                      : m.video_codec_h265_hevc_safari_only(),
                     disabled: !h265Supported,
                   },
                 ]}
@@ -288,8 +288,8 @@ export default function SettingsVideoRoute() {
               </SettingsItem>
 
               <SettingsItem
-                title="Sharpness"
-                description={`CAS prototype sharpness (${videoSharpness.toFixed(2)})`}
+                title={m.video_sharpness_title()}
+                description={m.video_sharpness_description({ value: videoSharpness.toFixed(2) })}
               >
                 <input
                   type="range"

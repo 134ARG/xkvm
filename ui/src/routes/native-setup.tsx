@@ -7,6 +7,7 @@ import Card from "@/components/Card";
 import GridBackground from "@/components/GridBackground";
 import LogoBlue from "@/assets/logo-blue.svg";
 import LogoWhite from "@/assets/logo-white.svg";
+import { m } from "@localizations/messages.js";
 
 export default function NativeSetup() {
   // const navigate = useNavigate();
@@ -30,13 +31,13 @@ export default function NativeSetup() {
     const newErrors: { name?: string; url?: string } = {};
 
     if (!connection.name.trim()) {
-      newErrors.name = "Name is required";
+      newErrors.name = m.connection_name_required();
     }
 
     if (!connection.url.trim()) {
-      newErrors.url = "URL is required";
+      newErrors.url = m.connection_url_required();
     } else if (!validateUrl(connection.url)) {
-      newErrors.url = "Invalid URL (must start with http:// or https://)";
+      newErrors.url = m.connection_url_invalid();
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -53,7 +54,7 @@ export default function NativeSetup() {
       window.location.href = "/";
     } catch (error) {
       console.error("Failed to add connection:", error);
-      setErrors({ url: "Failed to save connection. Please try again." });
+      setErrors({ url: m.connection_save_error() });
       setIsSubmitting(false);
     }
   };
@@ -63,30 +64,34 @@ export default function NativeSetup() {
       <GridBackground />
       <div className="z-10 w-full max-w-md px-4">
         <div className="mb-8 text-center">
-          <img src={LogoBlue} alt="XKVM Logo" className="mx-auto mb-4 h-16 w-16 dark:hidden" />
+          <img
+            src={LogoBlue}
+            alt={m.xkvm_logo_alt()}
+            className="mx-auto mb-4 h-16 w-16 dark:hidden"
+          />
           <img
             src={LogoWhite}
-            alt="XKVM Logo"
+            alt={m.xkvm_logo_alt()}
             className="mx-auto mb-4 hidden h-16 w-16 dark:block"
           />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome to XKVM</h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Connect to your XKVM backend to get started
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            {m.welcome_to_xkvm()}
+          </h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">{m.native_setup_description()}</p>
         </div>
 
         <Card>
           <form onSubmit={handleSubmit} className="space-y-4 p-6">
             <InputFieldWithLabel
-              label="Connection Name"
-              placeholder="My XKVM Device"
+              label={m.connection_name_label()}
+              placeholder={m.connection_name_placeholder()}
               value={connection.name}
               onChange={e => setConnection({ ...connection, name: e.target.value })}
               error={errors.name}
               autoFocus
             />
             <InputFieldWithLabel
-              label="Backend URL"
+              label={m.connection_backend_url_label()}
               placeholder="https://xkvm.example.com"
               value={connection.url}
               onChange={e => setConnection({ ...connection, url: e.target.value })}
@@ -99,14 +104,14 @@ export default function NativeSetup() {
                 theme="primary"
                 fullWidth
                 disabled={isSubmitting}
-                text={isSubmitting ? "Connecting..." : "Connect"}
+                text={isSubmitting ? m.connecting() : m.connect()}
               />
             </div>
           </form>
         </Card>
 
         <p className="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
-          You can manage multiple connections later in Settings
+          {m.native_setup_footer()}
         </p>
       </div>
     </div>
