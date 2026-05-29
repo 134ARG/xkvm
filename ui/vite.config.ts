@@ -34,7 +34,9 @@ export default defineConfig(({ mode, command }) => {
     outdir: "./localization/paraglide",
     outputStructure: 'message-modules',
     cookieName: 'XKVM_LOCALE',
-    strategy: ['cookie', 'baseLocale'],
+    strategy: isTauri
+      ? ['localStorage', 'preferredLanguage', 'baseLocale']
+      : ['cookie', 'preferredLanguage', 'baseLocale'],
   }))
 
   return {

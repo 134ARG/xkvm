@@ -4,7 +4,14 @@ import { SelectMenuBasic } from "@components/SelectMenuBasic";
 import { SettingsItem } from "@components/SettingsItem";
 import { SettingsPageHeader } from "@components/SettingsPageheader";
 import notifications from "@/notifications";
-import { getLocale, setLocale, locales, baseLocale } from "@localizations/runtime.js";
+import {
+  getLocale,
+  setLocale,
+  locales,
+  baseLocale,
+  cookieName,
+  localStorageKey,
+} from "@localizations/runtime.js";
 import { m } from "@localizations/messages.js";
 import { deleteCookie, map_locale_code_to_name } from "@/utils";
 
@@ -67,7 +74,9 @@ export default function SettingsGeneralRoute() {
 
       setLocale(validLocale); // tell the i18n system to change locale
     } else {
-      deleteCookie("XKVM_LOCALE", "", "/"); // delete the cookie that the i18n system uses to store the locale
+      localStorage.removeItem(localStorageKey);
+      deleteCookie(cookieName, "", "/");
+      window.location.reload();
     }
 
     setCurrentLocale(validLocale);
