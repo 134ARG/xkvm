@@ -12,10 +12,10 @@ import (
 )
 
 type Logger struct {
-	l               *zerolog.Logger
-	scopeLoggers    map[string]*zerolog.Logger
-	scopeLevels     map[string]zerolog.Level
-	scopeLevelMutex sync.Mutex
+	l            *zerolog.Logger
+	scopeLoggers map[string]*zerolog.Logger
+	scopeLevels  map[string]zerolog.Level
+	mu           sync.RWMutex
 
 	defaultLogLevelFromEnv    zerolog.Level
 	defaultLogLevelFromConfig zerolog.Level
@@ -87,17 +87,13 @@ func NewLogger(zerologLogger zerolog.Logger) *Logger {
 		l:                         &zerologLogger,
 		scopeLoggers:              make(map[string]*zerolog.Logger),
 		scopeLevels:               make(map[string]zerolog.Level),
-		scopeLevelMutex:           sync.Mutex{},
 		defaultLogLevelFromEnv:    -2,
 		defaultLogLevelFromConfig: -2,
 		defaultLogLevel:           defaultLogLevel,
 	}
 }
 
-func (l *Logger) updateLogLevel() {
-	l.scopeLevelMutex.Lock()
-	defer l.scopeLevelMutex.Unlock()
-
+func (l *Logger) updateLogLevelLocked() {
 	l.scopeLevels = make(map[string]zerolog.Level)
 
 	finalDefaultLogLevel := l.defaultLogLevel
@@ -136,9 +132,9 @@ func (l *Logger) updateLogLevel() {
 	l.defaultLogLevel = finalDefaultLogLevel
 }
 
-func (l *Logger) getScopeLoggerLevel(scope string) zerolog.Level {
+func (l *Logger) getScopeLoggerLevelLocked(scope string) zerolog.Level {
 	if l.scopeLevels == nil {
-		l.updateLogLevel()
+		l.updateLogLevelLocked()
 	}
 
 	scopeLevel := l.defaultLogLevel
@@ -165,24 +161,38 @@ func (l *Logger) getScopeLoggerLevel(scope string) zerolog.Level {
 	return scopeLevel
 }
 
-func (l *Logger) newScopeLogger(scope string) zerolog.Logger {
-	scopeLevel := l.getScopeLoggerLevel(scope)
+func (l *Logger) newScopeLoggerLocked(scope string) zerolog.Logger {
+	scopeLevel := l.getScopeLoggerLevelLocked(scope)
 	logger := l.l.Level(scopeLevel).With().Str("component", scope).Logger()
 
 	return logger
 }
 
 func (l *Logger) getLogger(scope string) *zerolog.Logger {
+	l.mu.RLock()
 	logger, ok := l.scopeLoggers[scope]
-	if !ok || logger == nil {
-		scopeLogger := l.newScopeLogger(scope)
-		l.scopeLoggers[scope] = &scopeLogger
+	l.mu.RUnlock()
+	if ok && logger != nil {
+		return logger
 	}
 
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	logger, ok = l.scopeLoggers[scope]
+	if ok && logger != nil {
+		return logger
+	}
+
+	scopeLogger := l.newScopeLoggerLocked(scope)
+	l.scopeLoggers[scope] = &scopeLogger
 	return l.scopeLoggers[scope]
 }
 
 func (l *Logger) UpdateLogLevel(configDefaultLogLevel string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	needUpdate := false
 
 	if configDefaultLogLevel != "" {
@@ -197,14 +207,14 @@ func (l *Logger) UpdateLogLevel(configDefaultLogLevel string) {
 		}
 	}
 
-	l.updateLogLevel()
+	l.updateLogLevelLocked()
 
 	if needUpdate {
 		for scope, logger := range l.scopeLoggers {
 			currentLevel := logger.GetLevel()
-			targetLevel := l.getScopeLoggerLevel(scope)
+			targetLevel := l.getScopeLoggerLevelLocked(scope)
 			if currentLevel != targetLevel {
-				*logger = l.newScopeLogger(scope)
+				*logger = l.newScopeLoggerLocked(scope)
 			}
 		}
 	}
