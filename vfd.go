@@ -83,24 +83,30 @@ func initVFD() {
 	}
 
 	go runVFDHostMetricsServer(listenPort)
-	startVFDChild(config.VFDDevicePath)
-	logger.Info().Int("port", listenPort).Msg("VFD initialized")
+	rendererStarted := startVFDChild(config.VFDDevicePath)
+	logger.Info().
+		Int("metrics_port", listenPort).
+		Bool("renderer_started", rendererStarted).
+		Msg("VFD host metrics receiver initialized")
 }
 
-func startVFDChild(devicePath string) {
+func startVFDChild(devicePath string) bool {
 	for attempt := 1; attempt <= vfdChildMaxAttempts; attempt++ {
 		if startVFDChildAttempt(devicePath, attempt) {
-			return
+			return true
 		}
 		time.Sleep(time.Second)
 	}
-	logger.Warn().Int("attempts", vfdChildMaxAttempts).Msg("VFD child failed to start; disabling VFD runtime until next xKVM restart")
+	logger.Warn().
+		Int("attempts", vfdChildMaxAttempts).
+		Msg("VFD renderer failed to start; host metrics receiver remains active")
+	return false
 }
 
 func startVFDChildAttempt(devicePath string, attempt int) bool {
 	binaryPath, err := os.Executable()
 	if err != nil {
-		logger.Warn().Err(err).Msg("failed to resolve executable for VFD child")
+		logger.Warn().Err(err).Msg("failed to resolve executable for VFD renderer process")
 		return false
 	}
 
@@ -113,17 +119,17 @@ func startVFDChildAttempt(devicePath string, attempt int) bool {
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		logger.Warn().Err(err).Int("attempt", attempt).Msg("failed to open VFD child stdout")
+		logger.Warn().Err(err).Int("attempt", attempt).Msg("failed to open VFD renderer stdout")
 		return false
 	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		logger.Warn().Err(err).Int("attempt", attempt).Msg("failed to open VFD child stdin")
+		logger.Warn().Err(err).Int("attempt", attempt).Msg("failed to open VFD renderer stdin")
 		return false
 	}
 	if err := cmd.Start(); err != nil {
 		_ = stdin.Close()
-		logger.Warn().Err(err).Int("attempt", attempt).Msg("failed to start VFD child")
+		logger.Warn().Err(err).Int("attempt", attempt).Msg("failed to start VFD renderer process")
 		return false
 	}
 
@@ -150,14 +156,14 @@ func startVFDChildAttempt(devicePath string, attempt int) bool {
 		if !ok {
 			_ = stdin.Close()
 			_ = cmd.Wait()
-			logger.Warn().Int("attempt", attempt).Msg("VFD child exited before ready")
+			logger.Warn().Int("attempt", attempt).Msg("VFD renderer exited before ready")
 			return false
 		}
 	case <-time.After(vfdChildReadyTimeout):
 		_ = stdin.Close()
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
-		logger.Warn().Int("attempt", attempt).Dur("timeout", vfdChildReadyTimeout).Msg("VFD child ready timeout")
+		logger.Warn().Int("attempt", attempt).Dur("timeout", vfdChildReadyTimeout).Msg("VFD renderer ready timeout")
 		return false
 	}
 
@@ -167,9 +173,9 @@ func startVFDChildAttempt(devicePath string, attempt int) bool {
 
 	go func() {
 		if err := cmd.Wait(); err != nil {
-			logger.Warn().Err(err).Msg("VFD child exited")
+			logger.Warn().Err(err).Msg("VFD renderer exited")
 		} else {
-			logger.Info().Msg("VFD child exited")
+			logger.Info().Msg("VFD renderer exited")
 		}
 		vfdState.Lock()
 		if vfdState.childStdin == stdin {
@@ -177,7 +183,7 @@ func startVFDChildAttempt(devicePath string, attempt int) bool {
 		}
 		vfdState.Unlock()
 	}()
-	logger.Info().Int("pid", cmd.Process.Pid).Int("attempt", attempt).Msg("VFD child started")
+	logger.Info().Int("pid", cmd.Process.Pid).Int("attempt", attempt).Msg("VFD renderer started")
 	return true
 }
 
@@ -257,7 +263,7 @@ func setVFDHostMetrics(metrics VFDHostMetrics) {
 func writeVFDChildMetrics(metrics VFDHostMetrics) {
 	payload, err := json.Marshal(metrics)
 	if err != nil {
-		logger.Warn().Err(err).Msg("failed to marshal VFD child metrics")
+		logger.Warn().Err(err).Msg("failed to marshal VFD renderer metrics")
 		return
 	}
 	payload = append(payload, '\n')
@@ -268,7 +274,7 @@ func writeVFDChildMetrics(metrics VFDHostMetrics) {
 		return
 	}
 	if _, err := vfdState.childStdin.Write(payload); err != nil {
-		logger.Warn().Err(err).Msg("failed to write VFD child metrics")
+		logger.Warn().Err(err).Msg("failed to write VFD renderer metrics")
 		_ = vfdState.childStdin.Close()
 		vfdState.childStdin = nil
 	}
