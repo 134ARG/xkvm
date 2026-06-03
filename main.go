@@ -155,6 +155,11 @@ func Main() {
 	<-sigs
 
 	logger.Log().Msg("XKVM Shutting Down")
+	if gadget != nil {
+		if err := gadget.Close(); err != nil {
+			usbLogger.Warn().Err(err).Msg("failed to close USB gadget")
+		}
+	}
 	//if fuseServer != nil {
 	//	err := setMassStorageImage(" ")
 	//	if err != nil {

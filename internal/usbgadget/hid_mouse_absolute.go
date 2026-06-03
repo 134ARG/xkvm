@@ -1,6 +1,7 @@
 package usbgadget
 
 import (
+	"errors"
 	"fmt"
 	"os"
 )
@@ -80,9 +81,12 @@ func (u *UsbGadget) absMouseWriteHidFile(data []byte) error {
 
 	_, err := u.writeWithTimeout(u.absMouseHidFile, data)
 	if err != nil {
-		u.logWithSuppression("absMouseWriteHidFile", 100, u.log, err, "failed to write to hidg1")
+		if errors.Is(err, os.ErrDeadlineExceeded) {
+			return nil
+		}
 		u.absMouseHidFile.Close()
 		u.absMouseHidFile = nil
+		u.logWithSuppression("absMouseWriteHidFile", 100, u.log, err, "failed to write to hidg1")
 		return err
 	}
 	u.resetLogSuppressionCounter("absMouseWriteHidFile")

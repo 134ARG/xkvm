@@ -168,12 +168,6 @@ func (u *UsbGadget) Init() error {
 	u.configLock.Lock()
 	defer u.configLock.Unlock()
 
-	if u.IsInitialized() {
-		if err := u.cleanupStaleGadget(); err != nil {
-			u.log.Warn().Err(err).Msg("failed to cleanup stale gadget, continuing with init")
-		}
-	}
-
 	u.loadGadgetConfig()
 
 	udcs := getUdcs()
@@ -182,6 +176,10 @@ func (u *UsbGadget) Init() error {
 	}
 
 	u.udc = udcs[0]
+
+	if err := u.cleanupStaleGadget(); err != nil {
+		u.log.Warn().Err(err).Msg("failed to cleanup stale gadget, continuing with init")
+	}
 
 	err := u.configureUsbGadget(false)
 	if err != nil {
@@ -208,6 +206,7 @@ func (u *UsbGadget) UpdateGadgetConfig() error {
 		return u.logError("unable to update gadget config", err)
 	}
 
+	u.StartKeyboardLedListener()
 	return nil
 }
 

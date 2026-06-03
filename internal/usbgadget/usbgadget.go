@@ -3,7 +3,7 @@
 package usbgadget
 
 import (
-	"context"
+	"errors"
 	"os"
 	"path"
 	"sync"
@@ -59,12 +59,13 @@ type UsbGadget struct {
 	configLock    sync.Mutex
 	lifecycleLock sync.Mutex
 
-	keyboardHidFile *os.File
-	keyboardLock    sync.Mutex
-	absMouseHidFile *os.File
-	absMouseLock    sync.Mutex
-	relMouseHidFile *os.File
-	relMouseLock    sync.Mutex
+	keyboardWriteHidFile *os.File
+	keyboardReadHidFile  *os.File
+	keyboardLock         sync.Mutex
+	absMouseHidFile      *os.File
+	absMouseLock         sync.Mutex
+	relMouseHidFile      *os.File
+	relMouseLock         sync.Mutex
 
 	keyboardState byte          // keyboard latched state (NumLock, CapsLock, ScrollLock, Compose, Kana)
 	keysDownState KeysDownState // keyboard dynamic state (modifier keys and pressed keys)
@@ -73,8 +74,7 @@ type UsbGadget struct {
 	kbdAutoReleaseTimers map[byte]*time.Timer
 
 	keyboardStateLock   sync.Mutex
-	keyboardStateCtx    context.Context
-	keyboardStateCancel context.CancelFunc
+	keyboardStateCancel func()
 
 	enabledDevices Devices
 
@@ -123,8 +123,6 @@ func newUsbGadget(name string, configMap map[string]gadgetConfigItem, enabledDev
 		config = &Config{isEmpty: true}
 	}
 
-	keyboardCtx, keyboardCancel := context.WithCancel(context.Background())
-
 	g := &UsbGadget{
 		name:                 name,
 		kvmGadgetPath:        path.Join(gadgetPath, name),
@@ -137,8 +135,6 @@ func newUsbGadget(name string, configMap map[string]gadgetConfigItem, enabledDev
 		absMouseLock:         sync.Mutex{},
 		relMouseLock:         sync.Mutex{},
 		txLock:               sync.Mutex{},
-		keyboardStateCtx:     keyboardCtx,
-		keyboardStateCancel:  keyboardCancel,
 		keyboardState:        0,
 		keysDownState:        KeysDownState{Modifier: 0, Keys: []byte{0, 0, 0, 0, 0, 0}}, // must be initialized to hidKeyBufferSize (6) zero bytes
 		kbdAutoReleaseTimers: make(map[byte]*time.Timer),
@@ -162,38 +158,30 @@ func newUsbGadget(name string, configMap map[string]gadgetConfigItem, enabledDev
 
 // Close cleans up resources used by the USB gadget
 func (u *UsbGadget) Close() error {
-	// Cancel keyboard state context
-	if u.keyboardStateCancel != nil {
-		u.keyboardStateCancel()
-	}
+	u.lifecycleLock.Lock()
+	defer u.lifecycleLock.Unlock()
 
-	// Stop auto-release timer
-	u.kbdAutoReleaseLock.Lock()
-	for _, timer := range u.kbdAutoReleaseTimers {
-		if timer != nil {
-			timer.Stop()
-		}
-	}
-	u.kbdAutoReleaseTimers = make(map[byte]*time.Timer)
-	u.kbdAutoReleaseLock.Unlock()
-
-	// Close HID files
-	u.CloseHidFiles()
-
-	return nil
+	u.prepareHidForReconfigure()
+	return u.cleanupStaleGadget()
 }
 
 // CloseHidFiles closes all open HID device files
 func (u *UsbGadget) CloseHidFiles() {
 	if u.keyboardStateCancel != nil {
 		u.keyboardStateCancel()
+		u.keyboardStateCancel = nil
 	}
 
 	u.keyboardLock.Lock()
-	if u.keyboardHidFile != nil {
-		u.keyboardHidFile.Close()
-		u.keyboardHidFile = nil
-		u.log.Debug().Msg("closed keyboard HID file")
+	if u.keyboardWriteHidFile != nil {
+		u.keyboardWriteHidFile.Close()
+		u.keyboardWriteHidFile = nil
+		u.log.Debug().Msg("closed keyboard HID write file")
+	}
+	if u.keyboardReadHidFile != nil {
+		u.keyboardReadHidFile.Close()
+		u.keyboardReadHidFile = nil
+		u.log.Debug().Msg("closed keyboard HID read file")
 	}
 	u.keyboardLock.Unlock()
 
@@ -249,9 +237,9 @@ func (u *UsbGadget) clearKeysDownState() {
 func (u *UsbGadget) releaseHidStateBeforeClose() {
 	if u.enabledDevices.Keyboard {
 		u.keyboardLock.Lock()
-		if u.keyboardHidFile != nil {
+		if u.keyboardWriteHidFile != nil {
 			clearKeys := make([]byte, hidKeyBufferSize)
-			if _, err := u.writeWithTimeout(u.keyboardHidFile, append([]byte{0, 0}, clearKeys...)); err != nil {
+			if _, err := u.writeWithTimeoutDuration(u.keyboardWriteHidFile, append([]byte{0, 0}, clearKeys...), keyboardHidWriteTimeout); err != nil {
 				u.log.Warn().Err(err).Msg("failed to release keyboard state before HID close")
 			}
 		}
@@ -261,7 +249,7 @@ func (u *UsbGadget) releaseHidStateBeforeClose() {
 	if u.enabledDevices.AbsoluteMouse {
 		u.absMouseLock.Lock()
 		if u.absMouseHidFile != nil {
-			if _, err := u.writeWithTimeout(u.absMouseHidFile, []byte{1, 0, 0, 0, 0, 0}); err != nil {
+			if _, err := u.writeWithTimeout(u.absMouseHidFile, []byte{1, 0, 0, 0, 0, 0}); err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
 				u.log.Warn().Err(err).Msg("failed to release absolute mouse buttons before HID close")
 			}
 		}
@@ -271,7 +259,7 @@ func (u *UsbGadget) releaseHidStateBeforeClose() {
 	if u.enabledDevices.RelativeMouse {
 		u.relMouseLock.Lock()
 		if u.relMouseHidFile != nil {
-			if _, err := u.writeWithTimeout(u.relMouseHidFile, []byte{0, 0, 0, 0}); err != nil {
+			if _, err := u.writeWithTimeout(u.relMouseHidFile, []byte{0, 0, 0, 0}); err != nil && !errors.Is(err, os.ErrDeadlineExceeded) {
 				u.log.Warn().Err(err).Msg("failed to release relative mouse buttons before HID close")
 			}
 		}

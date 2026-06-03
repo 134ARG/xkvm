@@ -53,10 +53,7 @@ func initUsbGadget() {
 		}
 	})
 
-	// open the keyboard hid file to listen for keyboard events
-	if err := gadget.OpenKeyboardHidFile(); err != nil {
-		usbLogger.Error().Err(err).Msg("failed to open keyboard hid file")
-	}
+	gadget.StartKeyboardLedListener()
 }
 
 func rpcKeyboardReport(modifier byte, keys []byte) error {
