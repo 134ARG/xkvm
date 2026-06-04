@@ -806,6 +806,7 @@
     "video_edid_custom": "Anpassad",
     "video_edid_dell_d2721h": "DELL D2721H, 1920x1080",
     "video_edid_dell_idrac": "DELL IDRAC EDID, 1280x1024",
+    "video_edid_hdmi_4k_600mhz": "HDMI 4K 600 MHz, 3840x2160",
     "video_edid_description": "Justera EDID-inställningarna för skärmen",
     "video_edid_file_label": "EDID-fil",
     "video_edid_xkvm_default": "XKVM-standard",

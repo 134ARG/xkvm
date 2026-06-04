@@ -932,6 +932,7 @@
     "video_edid_custom": "自定义",
     "video_edid_dell_d2721h": "DELL D2721H, 1920x1080",
     "video_edid_dell_idrac": "DELL iDRAC EDID, 1280x1024",
+    "video_edid_hdmi_4k_600mhz": "HDMI 4K 600 MHz, 3840x2160",
     "video_edid_description": "调整显示器的 EDID 设置。",
     "video_edid_file_label": "EDID 文件",
     "video_edid_set_success": "EDID 已成功设置为 {edid}",

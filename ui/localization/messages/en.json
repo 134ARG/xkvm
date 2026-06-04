@@ -854,6 +854,7 @@
     "video_edid_custom": "Custom",
     "video_edid_dell_d2721h": "DELL D2721H, 1920x1080",
     "video_edid_dell_idrac": "DELL IDRAC EDID, 1280x1024",
+    "video_edid_hdmi_4k_600mhz": "HDMI 4K 600 MHz, 3840x2160",
     "video_edid_description": "Adjust the EDID settings for the display",
     "video_edid_file_label": "EDID File",
     "video_edid_set_success": "EDID set successfully to {edid}",
