@@ -93,8 +93,7 @@ export default function SettingsVideoRoute() {
       const matchingEdid = edids.find(x => x.value.toLowerCase() === receivedEdid.toLowerCase());
 
       if (matchingEdid) {
-        // EDID is stored in uppercase in the UI
-        setEdid(matchingEdid.value.toUpperCase());
+        setEdid(matchingEdid.value);
         // Reset custom EDID value
         setCustomEdidValue(null);
       } else {
