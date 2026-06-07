@@ -25,6 +25,7 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   // Video and stream related refs and states
   const videoElm = useRef<HTMLVideoElement>(null);
   const fullscreenContainerRef = useRef<HTMLDivElement>(null);
+  const videoFrameRef = useRef<HTMLDivElement>(null);
   const [videoElement, setLocalVideoElement] = useState<HTMLVideoElement | null>(null);
   const [casFrameSize, setCasFrameSize] = useState({ width: 0, height: 0 });
   const [casReadyKey, setCasReadyKey] = useState<string | null>(null);
@@ -212,18 +213,20 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   }, []);
 
   const requestPointerLock = useCallback(async () => {
-    if (!isPointerLockPossible || videoElm.current === null || document.pointerLockElement) return;
+    if (
+      !isPointerLockPossible ||
+      settings.mouseMode !== "relative" ||
+      !videoFrameRef.current ||
+      document.pointerLockElement
+    )
+      return;
 
-    const isPointerLockGranted = await checkNavigatorPermissions("pointer-lock");
-
-    if (isPointerLockGranted && settings.mouseMode === "relative") {
-      try {
-        await videoElm.current.requestPointerLock();
-      } catch {
-        // ignore errors
-      }
+    try {
+      await videoFrameRef.current.requestPointerLock();
+    } catch {
+      // ignore errors
     }
-  }, [checkNavigatorPermissions, isPointerLockPossible, settings.mouseMode]);
+  }, [isPointerLockPossible, settings.mouseMode]);
 
   const requestKeyboardLock = useCallback(async () => {
     if (videoElm.current === null) return;
@@ -260,10 +263,10 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   }, [setIsKeyboardLockActive]);
 
   useEffect(() => {
-    if (!isPointerLockPossible || !videoElm.current) return;
+    if (!isPointerLockPossible) return;
 
     const handlePointerLockChange = () => {
-      if (document.pointerLockElement) {
+      if (document.pointerLockElement === videoFrameRef.current) {
         notifications.success(m.video_pointer_lock_enabled());
         setIsPointerLockActive(true);
       } else {
@@ -321,7 +324,13 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
     [getAbsMouseMoveHandler, videoClientWidth, videoClientHeight, videoWidth, videoHeight],
   );
 
-  const relMouseMoveHandler = useMemo(() => getRelMouseMoveHandler(), [getRelMouseMoveHandler]);
+  const relMouseMoveHandler = useMemo(() => {
+    const handler = getRelMouseMoveHandler();
+    return (e: MouseEvent) => {
+      if (isPointerLockPossible && document.pointerLockElement !== videoFrameRef.current) return;
+      handler(e);
+    };
+  }, [getRelMouseMoveHandler, isPointerLockPossible]);
 
   const mouseWheelHandler = useMemo(() => getMouseWheelHandler(), [getMouseWheelHandler]);
 
@@ -545,8 +554,8 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   // Setup Mouse Events
   useEffect(
     function setMouseModeEventListeners() {
-      const videoElmRefValue = videoElm.current;
-      if (!videoElmRefValue) return;
+      const videoFrameRefValue = videoFrameRef.current;
+      if (!videoFrameRefValue) return;
 
       const isRelativeMouseMode = settings.mouseMode === "relative";
       const mouseHandler = isRelativeMouseMode ? relMouseMoveHandler : absMouseMoveHandler;
@@ -554,19 +563,23 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
       const abortController = new AbortController();
       const signal = abortController.signal;
 
-      videoElmRefValue.addEventListener("mousemove", mouseHandler, { signal });
-      videoElmRefValue.addEventListener("pointerdown", mouseHandler, { signal });
-      videoElmRefValue.addEventListener("pointerup", mouseHandler, { signal });
-      videoElmRefValue.addEventListener("wheel", mouseWheelHandler, {
+      videoFrameRefValue.addEventListener("mousemove", mouseHandler, { signal });
+      videoFrameRefValue.addEventListener("pointerdown", mouseHandler, { signal });
+      videoFrameRefValue.addEventListener("pointerup", mouseHandler, { signal });
+      videoFrameRefValue.addEventListener("wheel", mouseWheelHandler, {
         signal,
         passive: true,
       });
 
       if (isRelativeMouseMode) {
-        videoElmRefValue.addEventListener(
+        videoFrameRefValue.addEventListener(
           "click",
           () => {
-            if (isPointerLockPossible && !isPointerLockActive && !document.pointerLockElement) {
+            if (
+              isPointerLockPossible &&
+              !isPointerLockActive &&
+              document.pointerLockElement !== videoFrameRefValue
+            ) {
               requestPointerLock();
             }
           },
@@ -579,7 +592,7 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
       }
 
       const preventContextMenu = (e: MouseEvent) => e.preventDefault();
-      videoElmRefValue.addEventListener("contextmenu", preventContextMenu, { signal });
+      videoFrameRefValue.addEventListener("contextmenu", preventContextMenu, { signal });
 
       return () => {
         abortController.abort();
@@ -660,7 +673,7 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
           <div className="flex h-full flex-col">
             <div className="relative grow overflow-hidden">
               <div className="flex h-full flex-col">
-                <div className="grid grow grid-rows-(--grid-bodyFooter) overflow-hidden">
+                <div className="relative grid grow grid-rows-(--grid-bodyFooter) overflow-hidden">
                   {/* In relative mouse mode and under https, we enable the pointer lock, and to do so we need a bar to show the user to click on the video to enable mouse control */}
                   <PointerLockBar show={showPointerLockBar} />
                   <div className="relative mx-4 my-2 flex items-center justify-center overflow-hidden">
@@ -669,6 +682,7 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
                       className="relative flex h-full w-full items-center justify-center"
                     >
                       <div
+                        ref={videoFrameRef}
                         className="relative bg-black/50"
                         style={{
                           width: casFrameSize.width,
@@ -696,7 +710,6 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
                                 hdmiError ||
                                 hasConnectionIssues ||
                                 peerConnectionState !== "connected",
-                              "opacity-60!": showPointerLockBar,
                               "animate-slideUpFade border border-slate-800/30 shadow-xs dark:border-slate-300/20":
                                 isPlaying,
                             },
