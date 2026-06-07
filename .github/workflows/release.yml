@@ -1,0 +1,310 @@
+name: release
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version. Defaults to packaging/version.txt."
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-meta:
+    name: Release metadata
+    runs-on: ubuntu-22.04
+    outputs:
+      should_release: ${{ steps.meta.outputs.should_release }}
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Detect release
+        id: meta
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          set -euo pipefail
+
+          file_version="$(tr -d '[:space:]' < packaging/version.txt)"
+          should_release=false
+          version="${INPUT_VERSION:-}"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            should_release=true
+            version="${version:-$file_version}"
+          else
+            first_line="$(printf '%s' "$COMMIT_MESSAGE" | head -n 1)"
+            if [[ "$first_line" =~ ^[Bb]ump[[:space:]]+version[[:space:]]+to[[:space:]]+v?([0-9]+\.[0-9]+\.[0-9]+.*)$ ]]; then
+              should_release=true
+              version="${BASH_REMATCH[1]}"
+            fi
+          fi
+
+          if [ "$should_release" != true ]; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          version="${version#v}"
+          if [ "$version" != "$file_version" ]; then
+            echo "Release version '$version' does not match packaging/version.txt '$file_version'" >&2
+            exit 1
+          fi
+
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+  build-debian-package:
+    name: Build arm64 Debian package
+    needs: release-meta
+    if: needs.release-meta.outputs.should_release == 'true'
+    runs-on: ubuntu-24.04-arm
+    container:
+      image: ubuntu:24.04
+    steps:
+      - name: Install base tools
+        run: |
+          apt-get update
+          apt-get install -y \
+            bash \
+            ca-certificates \
+            curl \
+            findutils \
+            git \
+            gzip \
+            tar \
+            xz-utils
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Trust checkout directory
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "ui/package-lock.json"
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "^1.25.1"
+
+      - name: Install package build dependencies
+        run: |
+          apt-get update
+          apt-get install -y \
+            build-essential \
+            cmake \
+            dpkg-dev \
+            gcc \
+            g++ \
+            libasound2-dev \
+            libdrm-dev \
+            make \
+            ninja-build \
+            pkg-config
+
+      - name: Build Debian package
+        run: |
+          make frontend
+          make build_release \
+            ARM64_SYSROOT=/ \
+            GO_ARGS="GOOS=linux GOARCH=arm64 CGO_ENABLED=1 CC=gcc CXX=g++ CGO_CFLAGS='-I/usr/include/aarch64-linux-gnu' CGO_LDFLAGS='-L/usr/lib/aarch64-linux-gnu -L$GITHUB_WORKSPACE/internal/native/cgo/sdk/vendor/rockit/lib/lib64 -L$GITHUB_WORKSPACE/internal/native/cgo/sdk/mpp/lib'"
+          ./scripts/build_packages.sh
+
+      - name: Upload Debian package artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: debian-package
+          path: |
+            bin/xkvm_*_arm64.deb
+          if-no-files-found: error
+
+  build-vfd-agent-rpm:
+    name: Build VFD agent RPM
+    needs: release-meta
+    if: needs.release-meta.outputs.should_release == 'true'
+    runs-on: ubuntu-22.04
+    container:
+      image: fedora:latest
+    steps:
+      - name: Install base tools
+        run: |
+          dnf install -y \
+            bash \
+            ca-certificates \
+            findutils \
+            git \
+            gzip \
+            tar \
+            xz
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install RPM build dependencies
+        run: |
+          dnf install -y \
+            rpm-build \
+            systemd-rpm-macros
+
+      - name: Build VFD agent RPM
+        run: |
+          ./scripts/build_vfd_agent_rpm.sh
+
+      - name: Upload VFD agent RPM artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: vfd-agent-rpm
+          path: |
+            bin/xkvm-vfd-agent-*.rpm
+          if-no-files-found: error
+
+  build-macos-connector:
+    name: Build macOS connector
+    needs: release-meta
+    if: needs.release-meta.outputs.should_release == 'true'
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: "ui/package-lock.json"
+
+      - name: Set up Rust target
+        run: |
+          rustup default stable
+          rustup target add aarch64-apple-darwin
+
+      - name: Install UI dependencies
+        run: |
+          cd ui
+          npm ci
+
+      - name: Build macOS connector DMG
+        run: |
+          cd ui
+          npm run tauri:build:mac:arm -- --bundles dmg
+
+      - name: Rename macOS connector DMG
+        shell: bash
+        env:
+          VERSION: ${{ needs.release-meta.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          dmg="$(find ui/src-tauri/target -path "*/bundle/dmg/*.dmg" -type f | head -n 1)"
+          if [ -z "$dmg" ]; then
+            echo "No macOS DMG found" >&2
+            exit 1
+          fi
+
+          mv "$dmg" "$(dirname "$dmg")/XKVM-Connector_${VERSION}_aarch64.dmg"
+
+      - name: Upload macOS connector artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: macos-connector
+          path: |
+            ui/src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            ui/src-tauri/target/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub release
+    needs:
+      - release-meta
+      - build-debian-package
+      - build-vfd-agent-rpm
+      - build-macos-connector
+    if: needs.release-meta.outputs.should_release == 'true'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Extract release notes
+        env:
+          VERSION: ${{ needs.release-meta.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          awk -v version="$VERSION" '
+            BEGIN {
+              heading = "## Version " version
+            }
+            $0 == heading || index($0, heading " ") == 1 {
+              found = 1
+              in_section = 1
+              next
+            }
+            in_section && /^## / {
+              exit
+            }
+            in_section {
+              if (!started && $0 == "") next
+              started = 1
+              print
+            }
+            END {
+              if (!found) exit 1
+            }
+          ' CHANGELOG.md > release-notes.md
+
+          if [ ! -s release-notes.md ]; then
+            echo "No changelog notes found for version $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-meta.outputs.tag }}
+          VERSION: ${{ needs.release-meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          find release-assets -type f -print | sort
+          mapfile -t assets < <(find release-assets -type f -print | sort)
+
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "No release assets found" >&2
+            exit 1
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file release-notes.md
+            gh release upload "$TAG" "${assets[@]}" --clobber
+          else
+            gh release create "$TAG" "${assets[@]}" \
+              --target "$GITHUB_SHA" \
+              --title "XKVM $VERSION" \
+              --notes-file release-notes.md
+          fi
