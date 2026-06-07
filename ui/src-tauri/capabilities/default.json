@@ -7,6 +7,8 @@
   ],
   "permissions": [
     "core:default",
+    "core:window:allow-set-cursor-grab",
+    "core:window:allow-set-cursor-visible",
     {
       "identifier": "http:default",
       "allow": [

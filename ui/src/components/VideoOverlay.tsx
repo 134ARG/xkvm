@@ -370,7 +370,7 @@ export function PointerLockBar({ show }: PointerLockBarProps) {
     <AnimatePresence mode="wait">
       {show ? (
         <motion.div
-          className="flex w-full items-center justify-between bg-transparent"
+          className="pointer-events-none absolute inset-x-4 top-2 z-20 flex items-center justify-between bg-transparent"
           initial={{ opacity: 0, zIndex: 0 }}
           animate={{ opacity: 1, zIndex: 20 }}
           exit={{ opacity: 0, zIndex: 0 }}

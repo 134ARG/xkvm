@@ -21,20 +21,22 @@ import { keys } from "@/keyboardMappings";
 import notifications from "@/notifications";
 import { m } from "@localizations/messages.js";
 
+const isNativeMode = import.meta.env.MODE === "tauri";
+const isPointerLockAvailable = isNativeMode || window.isSecureContext;
+
 export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssues: boolean }) {
   // Video and stream related refs and states
   const videoElm = useRef<HTMLVideoElement>(null);
   const fullscreenContainerRef = useRef<HTMLDivElement>(null);
+  const videoFrameRef = useRef<HTMLDivElement>(null);
   const [videoElement, setLocalVideoElement] = useState<HTMLVideoElement | null>(null);
   const [casFrameSize, setCasFrameSize] = useState({ width: 0, height: 0 });
   const [casReadyKey, setCasReadyKey] = useState<string | null>(null);
   const { mediaStream, peerConnectionState } = useRTCStore();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPointerLockActive, setIsPointerLockActive] = useState(false);
+  const nativePointerLockActiveRef = useRef(false);
   const [isKeyboardLockActive, setIsKeyboardLockActive] = useState(false);
-
-  const isPointerLockPossible =
-    window.location.protocol === "https:" || window.location.hostname === "localhost";
 
   // Store hooks
   const settings = useSettingsStore();
@@ -211,19 +213,98 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
     return false; // if query fails, assume NOT granted
   }, []);
 
-  const requestPointerLock = useCallback(async () => {
-    if (!isPointerLockPossible || videoElm.current === null || document.pointerLockElement) return;
+  const setNativeCursorLock = useCallback(async (active: boolean, reason: string) => {
+    if (!isNativeMode) return false;
 
-    const isPointerLockGranted = await checkNavigatorPermissions("pointer-lock");
+    const setNativePointerLockState = (locked: boolean) => {
+      nativePointerLockActiveRef.current = locked;
+      setIsPointerLockActive(locked);
+    };
 
-    if (isPointerLockGranted && settings.mouseMode === "relative") {
-      try {
-        await videoElm.current.requestPointerLock();
-      } catch {
-        // ignore errors
+    try {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      const currentWindow = getCurrentWindow();
+
+      if (active) {
+        await currentWindow.setCursorGrab(true);
+        try {
+          await currentWindow.setCursorVisible(false);
+        } catch (error) {
+          let rolledBack = false;
+          try {
+            await currentWindow.setCursorVisible(true);
+            await currentWindow.setCursorGrab(false);
+            rolledBack = true;
+          } catch {
+            // ignore rollback errors
+          }
+          setNativePointerLockState(!rolledBack);
+          throw error;
+        }
+      } else {
+        let releaseError: unknown;
+        try {
+          await currentWindow.setCursorVisible(true);
+        } catch (error) {
+          releaseError = error;
+        }
+        try {
+          await currentWindow.setCursorGrab(false);
+        } catch (error) {
+          releaseError ??= error;
+        }
+        if (releaseError) throw releaseError;
       }
+
+      setNativePointerLockState(active);
+      return true;
+    } catch (error) {
+      console.warn("Native cursor lock failed", { active, reason, error });
+      return false;
     }
-  }, [checkNavigatorPermissions, isPointerLockPossible, settings.mouseMode]);
+  }, []);
+
+  const isVideoPointerLocked = useCallback(() => {
+    const lockedElement = document.pointerLockElement;
+    return (
+      lockedElement === videoElm.current ||
+      lockedElement === videoFrameRef.current ||
+      nativePointerLockActiveRef.current
+    );
+  }, []);
+
+  const requestPointerLock = useCallback(
+    async (reason = "unknown") => {
+      const pointerLockTarget = videoFrameRef.current ?? videoElm.current;
+
+      if (
+        !isPointerLockAvailable ||
+        settings.mouseMode !== "relative" ||
+        document.pointerLockElement ||
+        nativePointerLockActiveRef.current
+      )
+        return;
+      if (!pointerLockTarget) {
+        console.warn("Pointer lock target unavailable");
+        return;
+      }
+      if (isNativeMode) {
+        await setNativeCursorLock(true, reason);
+        return;
+      }
+      if (typeof pointerLockTarget.requestPointerLock !== "function") {
+        console.warn("Pointer lock is not supported by this browser");
+        return;
+      }
+
+      try {
+        await pointerLockTarget.requestPointerLock();
+      } catch (error) {
+        console.warn("Pointer lock request failed", error);
+      }
+    },
+    [setNativeCursorLock, settings.mouseMode],
+  );
 
   const requestKeyboardLock = useCallback(async () => {
     if (videoElm.current === null) return;
@@ -260,10 +341,8 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   }, [setIsKeyboardLockActive]);
 
   useEffect(() => {
-    if (!isPointerLockPossible || !videoElm.current) return;
-
     const handlePointerLockChange = () => {
-      if (document.pointerLockElement) {
+      if (isVideoPointerLocked()) {
         notifications.success(m.video_pointer_lock_enabled());
         setIsPointerLockActive(true);
       } else {
@@ -271,31 +350,69 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
         setIsPointerLockActive(false);
       }
     };
+    const handlePointerLockError = () => {
+      console.warn("Pointer lock request failed");
+      setIsPointerLockActive(false);
+    };
 
     const abortController = new AbortController();
     const signal = abortController.signal;
 
     document.addEventListener("pointerlockchange", handlePointerLockChange, { signal });
+    document.addEventListener("pointerlockerror", handlePointerLockError, { signal });
 
     return () => {
       abortController.abort();
     };
-  }, [isPointerLockPossible]);
+  }, [isVideoPointerLocked]);
 
   const requestFullscreen = useCallback(async () => {
     if (!isFullscreenEnabled || !fullscreenContainerRef.current) return;
 
-    // per https://wicg.github.io/keyboard-lock/#system-key-press-handler
-    // If keyboard lock is activated after fullscreen is already in effect, then the user my
-    // see multiple messages about how to exit fullscreen. For this reason, we recommend that
-    // developers call lock() before they enter fullscreen:
-    await requestKeyboardLock();
-    await requestPointerLock();
+    void requestPointerLock("fullscreen");
 
     await fullscreenContainerRef.current.requestFullscreen({
       navigationUI: "show",
     });
+
+    void requestKeyboardLock();
   }, [isFullscreenEnabled, requestKeyboardLock, requestPointerLock]);
+
+  useEffect(
+    function setupNativePointerLockRelease() {
+      const releaseNativePointerLock = (reason: string) => {
+        if (nativePointerLockActiveRef.current) void setNativeCursorLock(false, reason);
+      };
+
+      if (settings.mouseMode !== "relative") {
+        releaseNativePointerLock("mouse mode changed");
+        return;
+      }
+
+      const abortController = new AbortController();
+      const signal = abortController.signal;
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key !== "Escape" || !nativePointerLockActiveRef.current) return;
+        e.preventDefault();
+        e.stopPropagation();
+        releaseNativePointerLock("escape");
+      };
+      const handleVisibilityChange = () => {
+        if (document.hidden) releaseNativePointerLock("document hidden");
+      };
+
+      document.addEventListener("keydown", handleKeyDown, { signal, capture: true });
+      window.addEventListener("blur", () => releaseNativePointerLock("window blur"), { signal });
+      document.addEventListener("visibilitychange", handleVisibilityChange, { signal });
+
+      return () => {
+        abortController.abort();
+        releaseNativePointerLock("cleanup");
+      };
+    },
+    [setNativeCursorLock, settings.mouseMode],
+  );
 
   // setup to release the keyboard lock anytime the fullscreen ends
   useEffect(() => {
@@ -321,7 +438,13 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
     [getAbsMouseMoveHandler, videoClientWidth, videoClientHeight, videoWidth, videoHeight],
   );
 
-  const relMouseMoveHandler = useMemo(() => getRelMouseMoveHandler(), [getRelMouseMoveHandler]);
+  const relMouseMoveHandler = useMemo(() => {
+    const handler = getRelMouseMoveHandler();
+    return (e: MouseEvent) => {
+      if (!isVideoPointerLocked()) return;
+      handler(e);
+    };
+  }, [getRelMouseMoveHandler, isVideoPointerLocked]);
 
   const mouseWheelHandler = useMemo(() => getMouseWheelHandler(), [getMouseWheelHandler]);
 
@@ -545,49 +668,45 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
   // Setup Mouse Events
   useEffect(
     function setMouseModeEventListeners() {
-      const videoElmRefValue = videoElm.current;
-      if (!videoElmRefValue) return;
+      const videoFrameRefValue = videoFrameRef.current;
+      if (!videoFrameRefValue) return;
 
       const isRelativeMouseMode = settings.mouseMode === "relative";
       const mouseHandler = isRelativeMouseMode ? relMouseMoveHandler : absMouseMoveHandler;
+      const handlePointerLockRequest = () => {
+        if (!isVideoPointerLocked()) requestPointerLock("video frame click");
+      };
 
       const abortController = new AbortController();
       const signal = abortController.signal;
 
-      videoElmRefValue.addEventListener("mousemove", mouseHandler, { signal });
-      videoElmRefValue.addEventListener("pointerdown", mouseHandler, { signal });
-      videoElmRefValue.addEventListener("pointerup", mouseHandler, { signal });
-      videoElmRefValue.addEventListener("wheel", mouseWheelHandler, {
+      if (isRelativeMouseMode) {
+        videoFrameRefValue.addEventListener("click", handlePointerLockRequest, { signal });
+      }
+
+      videoFrameRefValue.addEventListener("mousemove", mouseHandler, { signal });
+      videoFrameRefValue.addEventListener("pointerdown", mouseHandler, { signal });
+      videoFrameRefValue.addEventListener("pointerup", mouseHandler, { signal });
+      videoFrameRefValue.addEventListener("wheel", mouseWheelHandler, {
         signal,
         passive: true,
       });
 
-      if (isRelativeMouseMode) {
-        videoElmRefValue.addEventListener(
-          "click",
-          () => {
-            if (isPointerLockPossible && !isPointerLockActive && !document.pointerLockElement) {
-              requestPointerLock();
-            }
-          },
-          { signal },
-        );
-      } else {
+      if (!isRelativeMouseMode) {
         // Reset the mouse position when the window is blurred or the document is hidden
         window.addEventListener("blur", resetMousePosition, { signal });
         document.addEventListener("visibilitychange", resetMousePosition, { signal });
       }
 
       const preventContextMenu = (e: MouseEvent) => e.preventDefault();
-      videoElmRefValue.addEventListener("contextmenu", preventContextMenu, { signal });
+      videoFrameRefValue.addEventListener("contextmenu", preventContextMenu, { signal });
 
       return () => {
         abortController.abort();
       };
     },
     [
-      isPointerLockActive,
-      isPointerLockPossible,
+      isVideoPointerLocked,
       requestPointerLock,
       absMouseMoveHandler,
       relMouseMoveHandler,
@@ -609,21 +728,13 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
 
   const showPointerLockBar = useMemo(() => {
     if (settings.mouseMode !== "relative") return false;
-    if (!isPointerLockPossible) return false;
+    if (!isPointerLockAvailable) return false;
     if (isPointerLockActive) return false;
     if (isVideoLoading) return false;
     if (!isPlaying) return false;
     if (videoHeight === 0 || videoWidth === 0) return false;
     return true;
-  }, [
-    isPlaying,
-    isPointerLockActive,
-    isPointerLockPossible,
-    isVideoLoading,
-    settings.mouseMode,
-    videoHeight,
-    videoWidth,
-  ]);
+  }, [isPlaying, isPointerLockActive, isVideoLoading, settings.mouseMode, videoHeight, videoWidth]);
 
   // Conditionally set the filter style so we don't fallback to software rendering if these values are default of 1.0
   const videoStyle = useMemo(() => {
@@ -660,7 +771,7 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
           <div className="flex h-full flex-col">
             <div className="relative grow overflow-hidden">
               <div className="flex h-full flex-col">
-                <div className="grid grow grid-rows-(--grid-bodyFooter) overflow-hidden">
+                <div className="relative grid grow grid-rows-(--grid-bodyFooter) overflow-hidden">
                   {/* In relative mouse mode and under https, we enable the pointer lock, and to do so we need a bar to show the user to click on the video to enable mouse control */}
                   <PointerLockBar show={showPointerLockBar} />
                   <div className="relative mx-4 my-2 flex items-center justify-center overflow-hidden">
@@ -669,6 +780,7 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
                       className="relative flex h-full w-full items-center justify-center"
                     >
                       <div
+                        ref={videoFrameRef}
                         className="relative bg-black/50"
                         style={{
                           width: casFrameSize.width,
@@ -696,7 +808,6 @@ export default function WebRTCVideo({ hasConnectionIssues }: { hasConnectionIssu
                                 hdmiError ||
                                 hasConnectionIssues ||
                                 peerConnectionState !== "connected",
-                              "opacity-60!": showPointerLockBar,
                               "animate-slideUpFade border border-slate-800/30 shadow-xs dark:border-slate-300/20":
                                 isPlaying,
                             },
