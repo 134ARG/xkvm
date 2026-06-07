@@ -2,6 +2,25 @@
 
 This document summarizes the major changes made to XKVM during its evolution from the original JetKVM embedded system to a full Linux-based KVM-over-IP solution.
 
+## Version 0.1.7 (2026-06-07)
+
+### Native Desktop and Video
+- Fixed Tauri relative mouse locking and video-frame alignment with or without CAS
+- Added a 4K HDMI EDID preset and fixed EDID preset matching
+- Fixed Tauri language persistence
+
+### USB and VFD
+- Simplified USB gadget lifecycle handling and improved keyboard HID recovery
+- Improved VFD host metrics networking, refresh behavior, and renderer logging
+
+### Build and Release
+- Added GitHub release automation for the macOS connector DMG, arm64 Debian package, and VFD agent RPM
+- Moved device package builds into a Fedora container and checked in the required native SDK layout
+
+### UI and Reliability
+- Localized remaining hard-coded UI text and refined Chinese translations
+- Fixed concurrent logger creation crashes
+
 ## Version 0.1.6 (2026-05-26)
 
 ### New Features
