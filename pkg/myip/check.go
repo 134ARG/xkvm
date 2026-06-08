@@ -1,5 +1,6 @@
 package myip
 
+/*
 import (
 	"context"
 	"fmt"
@@ -140,3 +141,4 @@ func (ps *PublicIPState) checkIPForFamily(ctx context.Context, family int) (*Pub
 	// This prevents any outbound requests to cloud services
 	return nil, fmt.Errorf("external IP check disabled for family %d", family)
 }
+*/

@@ -84,6 +84,8 @@ func (m *KeyboardMacro) Validate() error {
 
 type Config struct {
 	CloudURL             string               `json:"cloud_url"`
+	PublicIPv4Endpoint   string               `json:"public_ipv4_endpoint"`
+	PublicIPv6Endpoint   string               `json:"public_ipv6_endpoint"`
 	JigglerEnabled       bool                 `json:"jiggler_enabled"`
 	JigglerConfig        *JigglerConfig       `json:"jiggler_config"`
 	AutoUpdateEnabled    bool                 `json:"auto_update_enabled"`
@@ -157,12 +159,14 @@ var (
 
 func getDefaultConfig() Config {
 	return Config{
-		CloudURL:          DefaultAPIURL,
-		AutoUpdateEnabled: true, // Set a default value
-		ActiveExtension:   "",
-		KeyboardMacros:    []KeyboardMacro{},
-		KeyboardLayout:    "en-US",
-		JigglerEnabled:    false,
+		CloudURL:           DefaultAPIURL,
+		PublicIPv4Endpoint: "",
+		PublicIPv6Endpoint: "",
+		AutoUpdateEnabled:  true, // Set a default value
+		ActiveExtension:    "",
+		KeyboardMacros:     []KeyboardMacro{},
+		KeyboardLayout:     "en-US",
+		JigglerEnabled:     false,
 		// This is the "Standard" jiggler option in the UI
 		JigglerConfig: func() *JigglerConfig { c := defaultJigglerConfig; return &c }(),
 		TLSMode:       "",

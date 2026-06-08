@@ -2,29 +2,38 @@ package kvm
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/134ARG/xkvm/internal/mdns"
 	"github.com/134ARG/xkvm/internal/network/types"
-	"github.com/134ARG/xkvm/pkg/myip"
 	"github.com/134ARG/xkvm/pkg/nmlite"
-	"github.com/134ARG/xkvm/pkg/nmlite/link"
 )
 
 const (
-	NetIfName = "wlan0"
+	NetIfName             = "wlan0"
+	publicIPLookupTimeout = 5 * time.Second
 )
 
 var (
 	networkManager *nmlite.NetworkManager
-	publicIPState  *myip.PublicIPState
 )
 
 type RpcNetworkSettings struct {
 	types.NetworkConfig
+}
+
+type RpcPublicIP struct {
+	Family      string     `json:"family"`
+	IPAddress   string     `json:"ip,omitempty"`
+	LastUpdated *time.Time `json:"last_updated,omitempty"`
+	Error       string     `json:"error,omitempty"`
 }
 
 func (s *RpcNetworkSettings) ToNetworkConfig() *types.NetworkConfig {
@@ -80,13 +89,6 @@ func restartMdns() {
 	}
 }
 
-func setPublicIPReadyState(ipv4Ready, ipv6Ready bool) {
-	if publicIPState == nil {
-		return
-	}
-	publicIPState.SetIPv4AndIPv6(ipv4Ready, ipv6Ready)
-}
-
 func networkStateChanged(_ string, state types.InterfaceState) {
 	// do not block the main thread
 
@@ -97,8 +99,6 @@ func networkStateChanged(_ string, state types.InterfaceState) {
 	if state.Online {
 		networkLogger.Info().Msg("network state changed to online")
 	}
-
-	setPublicIPReadyState(state.IPv4Ready, state.IPv6Ready)
 
 	// always restart mDNS when the network state changes
 	if mDNS != nil {
@@ -126,40 +126,6 @@ func initNetwork() error {
 	networkManager = nm
 	networkLogger.Info().Msg("network manager initialized in read-only mode")
 	return nil
-}
-
-func initPublicIPState() {
-	// the feature will be only enabled if the cloud has been adopted
-	// due to privacy reasons
-
-	// but it will be initialized anyway to avoid nil pointer dereferences
-	ps := myip.NewPublicIPState(&myip.PublicIPStateConfig{
-		Logger:             networkLogger,
-		CloudflareEndpoint: config.CloudURL,
-		APIEndpoint:        "",
-		IPv4:               false,
-		IPv6:               false,
-		HttpClientGetter: func(family int) *http.Client {
-			transport := http.DefaultTransport.(*http.Transport).Clone()
-			transport.Proxy = config.NetworkConfig.GetTransportProxyFunc()
-			transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-				netType := network
-				switch family {
-				case link.AfInet:
-					netType = "tcp4"
-				case link.AfInet6:
-					netType = "tcp6"
-				}
-				return (&net.Dialer{}).DialContext(ctx, netType, addr)
-			}
-
-			return &http.Client{
-				Transport: transport,
-				Timeout:   30 * time.Second,
-			}
-		},
-	})
-	publicIPState = ps
 }
 
 // func setHostname(nm *nmlite.NetworkManager, hostname, domain string) error {
@@ -208,47 +174,94 @@ func rpcRenewDHCPLease() error {
 // 	return fmt.Errorf("DHCP client switching is read-only - use OS network management tools")
 // }
 
-func rpcGetPublicIPAddresses(refresh bool) ([]myip.PublicIP, error) {
-	// Return local IP addresses from network interface instead of external services
-	state, err := networkManager.GetInterfaceState(NetIfName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get network state: %w", err)
-	}
-
-	var ips []myip.PublicIP
+func rpcGetPublicIPAddresses(_ bool) ([]RpcPublicIP, error) {
 	now := time.Now()
 
-	// Add IPv4 addresses
-	for _, ipStr := range state.IPv4Addresses {
-		// Parse CIDR to get just the IP
-		ip, _, err := net.ParseCIDR(ipStr)
-		if err != nil {
-			// Try parsing as plain IP
-			ip = net.ParseIP(ipStr)
-		}
-		if ip != nil && !ip.IsLoopback() && !ip.IsLinkLocalUnicast() {
-			ips = append(ips, myip.PublicIP{
-				IPAddress:   ip,
-				LastUpdated: now,
-			})
-		}
-	}
-
-	// Add IPv6 addresses (global unicast only)
-	for _, addr := range state.IPv6Addresses {
-		if addr.Address.IsGlobalUnicast() && !addr.Address.IsLinkLocalUnicast() {
-			ips = append(ips, myip.PublicIP{
-				IPAddress:   addr.Address,
-				LastUpdated: now,
-			})
-		}
-	}
-
-	return ips, nil
+	return []RpcPublicIP{
+		queryPublicIPRow("ipv4", config.PublicIPv4Endpoint, "tcp4", true, now),
+		queryPublicIPRow("ipv6", config.PublicIPv6Endpoint, "tcp6", false, now),
+	}, nil
 }
 
 func rpcCheckPublicIPAddresses() error {
-	// Cloud service calls disabled - return local IPs instead
-	// This is now a no-op since we read from local network state
+	_, _ = rpcGetPublicIPAddresses(true)
 	return nil
+}
+
+func queryPublicIPRow(family, endpoint, network string, ipv4 bool, now time.Time) RpcPublicIP {
+	result := RpcPublicIP{Family: family}
+
+	ip, code, err := queryPublicIP(endpoint, network, ipv4)
+	if err == nil {
+		networkLogger.Debug().Str("family", family).Str("ip", ip.String()).Msg("public IP query succeeded")
+		result.IPAddress = ip.String()
+		result.LastUpdated = &now
+		return result
+	}
+
+	result.Error = code
+	if strings.TrimSpace(endpoint) == "" {
+		networkLogger.Debug().Str("family", family).Str("error", code).Msg("public IP endpoint is not configured")
+	} else {
+		networkLogger.Warn().Err(err).Str("family", family).Str("endpoint", endpoint).Str("error", code).Msg("public IP query failed")
+	}
+	return result
+}
+
+func queryPublicIP(endpoint, network string, ipv4 bool) (net.IP, string, error) {
+	endpoint = strings.TrimSpace(endpoint)
+	if endpoint == "" {
+		return nil, "not configured", fmt.Errorf("public IP endpoint is not configured")
+	}
+	if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
+		endpoint = "http://" + endpoint
+	}
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DialContext = func(ctx context.Context, _, addr string) (net.Conn, error) {
+		return (&net.Dialer{Timeout: publicIPLookupTimeout}).DialContext(ctx, network, addr)
+	}
+
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   publicIPLookupTimeout,
+	}
+
+	resp, err := client.Get(endpoint)
+	if err != nil {
+		return nil, publicIPRequestErrorCode(err), err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, strconv.Itoa(resp.StatusCode), fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 128))
+	if err != nil {
+		return nil, "read failed", err
+	}
+
+	ip := net.ParseIP(strings.TrimSpace(string(body)))
+	if ip == nil {
+		return nil, "parse failed", fmt.Errorf("invalid IP address")
+	}
+	if ipv4 {
+		ip = ip.To4()
+		if ip == nil {
+			return nil, "wrong family", fmt.Errorf("expected IPv4 address")
+		}
+		return ip, "", nil
+	}
+	if ip.To4() != nil {
+		return nil, "wrong family", fmt.Errorf("expected IPv6 address")
+	}
+	return ip, "", nil
+}
+
+func publicIPRequestErrorCode(err error) string {
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return "timeout"
+	}
+	return "request failed"
 }

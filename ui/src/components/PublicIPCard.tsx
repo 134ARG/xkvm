@@ -21,33 +21,30 @@ const TimeAgoLabel = ({ date }: { date: Date }) => {
   return <span className="text-sm text-slate-600 select-none dark:text-slate-400">{timeAgo}</span>;
 };
 
+const publicIPRows: PublicIP["family"][] = ["ipv4", "ipv6"];
+
 export default function PublicIPCard() {
   const { send } = useJsonRpc();
 
+  const [isLoading, setIsLoading] = useState(true);
   const [publicIPs, setPublicIPs] = useState<PublicIP[]>([]);
-  const refreshPublicIPs = useCallback(() => {
-    send("getPublicIPAddresses", { refresh: false }, (resp: JsonRpcResponse) => {
-      setPublicIPs([]);
-      if ("error" in resp) {
-        notifications.error(
-          m.public_ip_card_refresh_error({ error: resp.error.data || m.unknown_error() }),
-        );
-        return;
-      }
-      const publicIPs = resp.result as PublicIP[];
-      // sort the public IPs by IP address
-      // IPv6 addresses are sorted after IPv4 addresses
-      setPublicIPs(
-        publicIPs.sort(({ ip: aIp }, { ip: bIp }) => {
-          const aIsIPv6 = aIp.includes(":");
-          const bIsIPv6 = bIp.includes(":");
-          if (aIsIPv6 && !bIsIPv6) return 1;
-          if (!aIsIPv6 && bIsIPv6) return -1;
-          return aIp.localeCompare(bIp);
-        }),
-      );
-    });
-  }, [send, setPublicIPs]);
+  const refreshPublicIPs = useCallback(
+    (refresh = false) => {
+      send("getPublicIPAddresses", { refresh }, (resp: JsonRpcResponse) => {
+        setIsLoading(false);
+        setPublicIPs([]);
+        if ("error" in resp) {
+          notifications.error(
+            m.public_ip_card_refresh_error({ error: resp.error.data || m.unknown_error() }),
+          );
+          return;
+        }
+        const publicIPs = resp.result as PublicIP[];
+        setPublicIPs(publicIPs);
+      });
+    },
+    [send, setPublicIPs],
+  );
 
   useEffect(() => {
     refreshPublicIPs();
@@ -70,11 +67,14 @@ export default function PublicIPCard() {
                 className="text-red-500"
                 text={m.public_ip_card_refresh()}
                 LeadingIcon={LuRefreshCcw}
-                onClick={refreshPublicIPs}
+                onClick={() => {
+                  setIsLoading(true);
+                  refreshPublicIPs(true);
+                }}
               />
             </div>
           </div>
-          {publicIPs.length === 0 ? (
+          {isLoading ? (
             <div>
               <div className="space-y-4">
                 <div className="animate-pulse space-y-2">
@@ -85,17 +85,30 @@ export default function PublicIPCard() {
               </div>
             </div>
           ) : (
-            <div className="flex gap-x-6 gap-y-2">
+            <div className="flex flex-col gap-y-2">
               <div className="flex-1 space-y-2">
-                {publicIPs?.map(ip => (
-                  <div
-                    key={ip.ip}
-                    className="flex justify-between border-slate-800/10 pt-2 dark:border-slate-300/20"
-                  >
-                    <span className="text-sm font-medium">{ip.ip}</span>
-                    {ip.last_updated && <TimeAgoLabel date={new Date(ip.last_updated)} />}
-                  </div>
-                ))}
+                {publicIPRows.map(family => {
+                  const publicIP = publicIPs.find(ip => ip.family === family);
+                  const label = family === "ipv4" ? "IPv4" : "IPv6";
+                  const value = publicIP?.ip
+                    ? publicIP.ip
+                    : `no public IP${publicIP?.error ? ` (${publicIP.error})` : ""}`;
+
+                  return (
+                    <div
+                      key={family}
+                      className="flex justify-between border-slate-800/10 pt-2 dark:border-slate-300/20"
+                    >
+                      <span className="text-sm font-medium">
+                        <span className="text-slate-600 dark:text-slate-400">{label}: </span>
+                        <span className="font-mono">{value}</span>
+                      </span>
+                      {publicIP?.last_updated && (
+                        <TimeAgoLabel date={new Date(publicIP.last_updated)} />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -1,6 +1,17 @@
 package myip
 
 import (
+	"net"
+	"time"
+)
+
+type PublicIP struct {
+	IPAddress   net.IP    `json:"ip"`
+	LastUpdated time.Time `json:"last_updated"`
+}
+
+/*
+import (
 	"context"
 	"fmt"
 	"net"
@@ -167,3 +178,4 @@ func (ps *PublicIPState) timerLoop(ctx context.Context) {
 	// Just wait for context cancellation
 	<-ctx.Done()
 }
+*/

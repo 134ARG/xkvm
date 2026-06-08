@@ -711,8 +711,10 @@ export interface IPv6Address {
 }
 
 export interface PublicIP {
-  ip: string;
-  last_updated: Date;
+  family: "ipv4" | "ipv6";
+  ip?: string;
+  last_updated?: string;
+  error?: string;
 }
 
 export interface NetworkState {
