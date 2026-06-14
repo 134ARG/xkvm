@@ -14,9 +14,10 @@ import (
 )
 
 type VFDConfig struct {
-	Enabled    bool   `json:"enabled"`
-	DevicePath string `json:"devicePath"`
-	ListenPort int    `json:"listenPort"`
+	Enabled               bool   `json:"enabled"`
+	HostMetricsEnabled    bool   `json:"hostMetricsEnabled"`
+	DevicePath            string `json:"devicePath"`
+	HostMetricsListenPort int    `json:"hostMetricsListenPort"`
 }
 
 type VFDHostMetrics struct {
@@ -72,22 +73,33 @@ const (
 	vfdChildReadyTimeout = 10 * time.Second
 )
 
-func initVFD() {
-	if !config.VFDEnabled {
+func initHostMetricsListener() {
+	if !config.HostMetricsEnabled && !config.VFDEnabled {
 		return
 	}
 
-	listenPort := config.VFDListenPort
+	listenPort := config.HostMetricsListenPort
 	if listenPort <= 0 {
 		listenPort = 9101
 	}
 
 	go runVFDHostMetricsServer(listenPort)
+
+	logger.Info().
+		Int("listen_port", listenPort).
+		Bool("required_by_vfd", config.VFDEnabled).
+		Msg("host metrics listener initialized")
+}
+
+func initVFD() {
+	if !config.VFDEnabled {
+		return
+	}
+
 	rendererStarted := startVFDChild(config.VFDDevicePath)
 	logger.Info().
-		Int("metrics_port", listenPort).
 		Bool("renderer_started", rendererStarted).
-		Msg("VFD host metrics receiver initialized")
+		Msg("VFD renderer initialized")
 }
 
 func startVFDChild(devicePath string) bool {
@@ -190,17 +202,17 @@ func startVFDChildAttempt(devicePath string, attempt int) bool {
 func runVFDHostMetricsServer(port int) {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
-		logger.Warn().Err(err).Int("port", port).Msg("failed to listen for VFD host metrics")
+		logger.Warn().Err(err).Int("port", port).Msg("failed to listen for host metrics")
 		return
 	}
 	defer listener.Close()
 
-	logger.Info().Int("port", port).Msg("VFD host metrics server started")
+	logger.Info().Int("port", port).Msg("host metrics server started")
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			logger.Warn().Err(err).Msg("VFD metrics accept failed")
+			logger.Warn().Err(err).Msg("host metrics accept failed")
 			time.Sleep(time.Second)
 			continue
 		}
@@ -210,14 +222,14 @@ func runVFDHostMetricsServer(port int) {
 
 func handleVFDHostMetricsConn(conn net.Conn) {
 	defer conn.Close()
-	logger.Info().Str("remote", conn.RemoteAddr().String()).Msg("VFD host metrics connected")
+	logger.Info().Str("remote", conn.RemoteAddr().String()).Msg("host metrics connected")
 
 	scanner := bufio.NewScanner(conn)
 	scanner.Buffer(make([]byte, 0, 4096), 1024*1024)
 	for scanner.Scan() {
 		var payload hostMetricsPayload
 		if err := json.Unmarshal(scanner.Bytes(), &payload); err != nil {
-			logger.Debug().Err(err).Msg("invalid VFD host metrics payload")
+			logger.Debug().Err(err).Msg("invalid host metrics payload")
 			continue
 		}
 		hostMetrics := hostMetricsFromPayload(payload, true)
@@ -228,7 +240,7 @@ func handleVFDHostMetricsConn(conn net.Conn) {
 	hostMetrics := VFDHostMetrics{UpdatedAt: time.Now().UnixMilli()}
 	setVFDHostMetrics(hostMetrics)
 	writeVFDChildMetrics(hostMetrics)
-	logger.Info().Str("remote", conn.RemoteAddr().String()).Msg("VFD host metrics disconnected")
+	logger.Info().Str("remote", conn.RemoteAddr().String()).Msg("host metrics disconnected")
 }
 
 func hostMetricsFromPayload(payload hostMetricsPayload, connected bool) VFDHostMetrics {
@@ -286,20 +298,25 @@ func ptr[T any](value T) *T {
 
 func rpcGetVFDConfig() (VFDConfig, error) {
 	return VFDConfig{
-		Enabled:    config.VFDEnabled,
-		DevicePath: config.VFDDevicePath,
-		ListenPort: config.VFDListenPort,
+		Enabled:               config.VFDEnabled,
+		HostMetricsEnabled:    config.HostMetricsEnabled || config.VFDEnabled,
+		DevicePath:            config.VFDDevicePath,
+		HostMetricsListenPort: config.HostMetricsListenPort,
 	}, nil
 }
 
 func rpcSetVFDConfig(vfdConfig VFDConfig) error {
-	if vfdConfig.ListenPort <= 0 || vfdConfig.ListenPort > 65535 {
-		return fmt.Errorf("invalid VFD listen port: %d", vfdConfig.ListenPort)
+	if vfdConfig.HostMetricsListenPort <= 0 || vfdConfig.HostMetricsListenPort > 65535 {
+		return fmt.Errorf("invalid host metrics listen port: %d", vfdConfig.HostMetricsListenPort)
 	}
 
 	config.VFDEnabled = vfdConfig.Enabled
+	config.HostMetricsEnabled = vfdConfig.HostMetricsEnabled
+	if config.VFDEnabled {
+		config.HostMetricsEnabled = true
+	}
 	config.VFDDevicePath = vfdConfig.DevicePath
-	config.VFDListenPort = vfdConfig.ListenPort
+	config.HostMetricsListenPort = vfdConfig.HostMetricsListenPort
 	return SaveConfig()
 }
 

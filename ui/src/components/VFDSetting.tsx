@@ -9,14 +9,16 @@ import { m } from "@localizations/messages.js";
 
 interface VFDConfig {
   enabled: boolean;
+  hostMetricsEnabled: boolean;
   devicePath: string;
-  listenPort: number;
+  hostMetricsListenPort: number;
 }
 
 const defaultConfig: VFDConfig = {
   enabled: false,
+  hostMetricsEnabled: false,
   devicePath: "",
-  listenPort: 9101,
+  hostMetricsListenPort: 9101,
 };
 
 export function VFDSetting() {
@@ -26,7 +28,7 @@ export function VFDSetting() {
   useEffect(() => {
     send("getVFDConfig", {}, (resp: JsonRpcResponse) => {
       if ("error" in resp) return;
-      setVFDConfig((resp.result as VFDConfig) || defaultConfig);
+      setVFDConfig({ ...defaultConfig, ...((resp.result as Partial<VFDConfig>) || {}) });
     });
   }, [send]);
 
@@ -46,6 +48,8 @@ export function VFDSetting() {
     [send],
   );
 
+  const hostMetricsEnabled = vfdConfig.hostMetricsEnabled || vfdConfig.enabled;
+
   return (
     <div className="space-y-4">
       <div className="h-px w-full bg-slate-800/10 dark:bg-slate-300/20" />
@@ -55,16 +59,50 @@ export function VFDSetting() {
       <div className="space-y-4">
         <div>
           <CheckboxWithLabel
+            label={m.vfd_host_metrics_enabled()}
+            description={
+              vfdConfig.enabled
+                ? m.vfd_host_metrics_required_description()
+                : m.vfd_host_metrics_enabled_description()
+            }
+            checked={hostMetricsEnabled}
+            disabled={vfdConfig.enabled}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              saveVFDConfig({ ...vfdConfig, hostMetricsEnabled: e.target.checked });
+            }}
+          />
+        </div>
+
+        <div>
+          <CheckboxWithLabel
             label={m.vfd_enabled()}
             description={m.vfd_enabled_description()}
             checked={vfdConfig.enabled}
             onChange={(e: ChangeEvent<HTMLInputElement>) => {
-              saveVFDConfig({ ...vfdConfig, enabled: e.target.checked });
+              saveVFDConfig({
+                ...vfdConfig,
+                enabled: e.target.checked,
+                hostMetricsEnabled: e.target.checked ? true : vfdConfig.hostMetricsEnabled,
+              });
             }}
           />
         </div>
 
         <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-2">
+          <div className="space-y-1">
+            <InputFieldWithLabel
+              label={m.host_metrics_listen_port()}
+              description={m.host_metrics_listen_port_description()}
+              type="number"
+              min={1}
+              max={65535}
+              value={vfdConfig.hostMetricsListenPort}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                setVFDConfig({ ...vfdConfig, hostMetricsListenPort: Number(e.target.value) });
+              }}
+              onBlur={() => saveVFDConfig(vfdConfig)}
+            />
+          </div>
           <div className="space-y-1">
             <InputFieldWithLabel
               label={m.vfd_device_path()}
@@ -73,20 +111,6 @@ export function VFDSetting() {
               value={vfdConfig.devicePath}
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 setVFDConfig({ ...vfdConfig, devicePath: e.target.value });
-              }}
-              onBlur={() => saveVFDConfig(vfdConfig)}
-            />
-          </div>
-          <div className="space-y-1">
-            <InputFieldWithLabel
-              label={m.vfd_metrics_port()}
-              description={m.vfd_metrics_port_description()}
-              type="number"
-              min={1}
-              max={65535}
-              value={vfdConfig.listenPort}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                setVFDConfig({ ...vfdConfig, listenPort: Number(e.target.value) });
               }}
               onBlur={() => saveVFDConfig(vfdConfig)}
             />

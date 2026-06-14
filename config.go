@@ -125,10 +125,11 @@ type Config struct {
 	SensorHumFeature     string               `json:"sensor_hum_feature"`
 	SensorSocChip        string               `json:"sensor_soc_chip"`
 	SensorSocFeature     string               `json:"sensor_soc_feature"`
-	VFDEnabled           bool                 `json:"vfd_enabled"`
-	VFDDevicePath        string               `json:"vfd_device_path"`
-	VFDListenPort        int                  `json:"vfd_listen_port"`
-	SerialPortPath       string               `json:"serial_port_path"`
+	HostMetricsEnabled    bool                 `json:"host_metrics_enabled"`
+	HostMetricsListenPort int                  `json:"host_metrics_listen_port"`
+	VFDEnabled            bool                 `json:"vfd_enabled"`
+	VFDDevicePath         string               `json:"vfd_device_path"`
+	SerialPortPath        string               `json:"serial_port_path"`
 }
 
 var configPath = ConfigPath("kvm_config.json")
@@ -197,10 +198,11 @@ func getDefaultConfig() Config {
 		SensorHumFeature:     "humidity1.humidity1_input",
 		SensorSocChip:        "soc_thermal-virtual-0",
 		SensorSocFeature:     "temp1.temp1_input",
-		VFDEnabled:           false,
-		VFDDevicePath:        "",
-		VFDListenPort:        9101,
-		SerialPortPath:       "",
+		HostMetricsEnabled:    false,
+		HostMetricsListenPort: 9101,
+		VFDEnabled:            false,
+		VFDDevicePath:         "",
+		SerialPortPath:        "",
 	}
 }
 

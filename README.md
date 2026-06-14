@@ -77,7 +77,7 @@ XKVM 遵循标准 Linux FHS 规范，路径可通过环境变量覆盖。
 | `gpio_pwr_chip/line/active_high`<br>`gpio_rst_chip/line/active_high`<br>`gpio_pwr_led_chip/line/active_high`<br>`gpio_hdd_led_chip/line/active_high` | GPIO ATX/LED 映射 | `chip` 字符串、`line` 整数（`-1` 禁用）、<br>`active_high` 布尔值 |
 | `sensor_env_chip`<br>`sensor_soc_chip` | hwmon 芯片选择 | hwmon 芯片名 |
 | `sensor_temp_feature`<br>`sensor_hum_feature`<br>`sensor_soc_feature` | hwmon feature 选择 | hwmon feature 名 |
-| `vfd_enabled`<br>`vfd_device_path`<br>`vfd_listen_port` | VFD 显示支持 | 布尔值、设备路径字符串、TCP 端口 |
+| `host_metrics_enabled`<br>`host_metrics_listen_port`<br>`vfd_enabled`<br>`vfd_device_path` | 主机指标接收器与 VFD 显示支持 | 布尔值、TCP 端口、设备路径字符串 |
 | `serial_port_path` | 串口控制台设备 | 串口设备路径；`""` 禁用串口控制台 |
 | `wake_on_lan_devices` | 已废弃的 Wake-on-LAN 列表 | 已废弃的 `{name,macAddress}` 数组 |
 
@@ -89,7 +89,7 @@ XKVM 遵循标准 Linux FHS 规范，路径可通过环境变量覆盖。
 
 <img src="images/video-demo.png" />
 
-硬件设置：USB 设备类型、GPIO ATX 控制、机箱传感器与 VFD 显示配置。
+硬件设置：USB 设备类型、GPIO ATX 控制、机箱传感器、主机指标与 VFD 显示配置。
 
 <img src="images/gpio-sensor-vfd-settings.png" />
 

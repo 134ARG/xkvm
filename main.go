@@ -145,6 +145,7 @@ func Main() {
 	// go RunWebsocketClient()
 
 	initSerialPort()
+	initHostMetricsListener()
 	initVFD()
 
 	setProcTitle("ready")

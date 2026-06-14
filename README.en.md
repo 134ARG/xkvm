@@ -77,7 +77,7 @@ Missing keys use built-in defaults. Deprecated rows are kept for old config comp
 | `gpio_pwr_chip/line/active_high`<br>`gpio_rst_chip/line/active_high`<br>`gpio_pwr_led_chip/line/active_high`<br>`gpio_hdd_led_chip/line/active_high` | GPIO ATX/LED mappings | `chip` string, `line` integer (`-1` disables),<br>`active_high` boolean |
 | `sensor_env_chip`<br>`sensor_soc_chip` | hwmon chip selectors | hwmon chip names |
 | `sensor_temp_feature`<br>`sensor_hum_feature`<br>`sensor_soc_feature` | hwmon feature selectors | hwmon feature names |
-| `vfd_enabled`<br>`vfd_device_path`<br>`vfd_listen_port` | VFD display support | boolean, device path string, TCP port |
+| `host_metrics_enabled`<br>`host_metrics_listen_port`<br>`vfd_enabled`<br>`vfd_device_path` | Host metrics receiver and VFD display support | booleans, TCP port, device path string |
 | `serial_port_path` | Serial console device | serial device path; `""` disables serial console |
 | `wake_on_lan_devices` | Deprecated Wake-on-LAN list | deprecated array of `{name,macAddress}` |
 
@@ -89,7 +89,7 @@ Video settings: 2M-20M bitrate control and H.264/H.265 codec switching (H.265 is
 
 <img src="images/video-demo.png" />
 
-Hardware settings: USB device types, GPIO ATX control, case sensors, and VFD display configuration.
+Hardware settings: USB device types, GPIO ATX control, case sensors, host metrics, and VFD display configuration.
 
 <img src="images/gpio-sensor-vfd-settings.png" />
 
