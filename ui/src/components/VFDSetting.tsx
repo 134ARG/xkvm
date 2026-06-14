@@ -1,10 +1,12 @@
-import { ChangeEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, type ReactNode, useCallback, useEffect, useState } from "react";
 
 import { JsonRpcResponse, useJsonRpc } from "@hooks/useJsonRpc";
-import { CheckboxWithLabel } from "@components/Checkbox";
+import { Checkbox } from "@components/Checkbox";
+import FieldLabel from "@components/FieldLabel";
 import { InputFieldWithLabel } from "@components/InputField";
 import { SettingsSectionHeader } from "@components/SettingsSectionHeader";
 import notifications from "@/notifications";
+import { cx } from "@/cva.config";
 import { m } from "@localizations/messages.js";
 
 interface VFDConfig {
@@ -20,6 +22,37 @@ const defaultConfig: VFDConfig = {
   devicePath: "",
   hostMetricsListenPort: 9101,
 };
+
+function FeatureToggle({
+  label,
+  description,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: ReactNode;
+  description: ReactNode;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (e: ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <label
+      className={cx(
+        "flex items-start gap-x-3",
+        disabled ? "cursor-default opacity-50" : "cursor-pointer",
+      )}
+    >
+      <Checkbox
+        checked={checked}
+        disabled={disabled}
+        onChange={onChange}
+        className="mt-0.5 shrink-0"
+      />
+      <FieldLabel label={label} description={description} as="span" />
+    </label>
+  );
+}
 
 export function VFDSetting() {
   const { send } = useJsonRpc();
@@ -57,8 +90,8 @@ export function VFDSetting() {
       <SettingsSectionHeader title={m.vfd_display_title()} description={m.vfd_description()} />
 
       <div className="space-y-4">
-        <div>
-          <CheckboxWithLabel
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-start">
+          <FeatureToggle
             label={m.vfd_host_metrics_enabled()}
             description={
               vfdConfig.enabled
@@ -71,10 +104,23 @@ export function VFDSetting() {
               saveVFDConfig({ ...vfdConfig, hostMetricsEnabled: e.target.checked });
             }}
           />
+          <InputFieldWithLabel
+            label={m.host_metrics_listen_port()}
+            description={m.host_metrics_listen_port_description()}
+            type="number"
+            min={1}
+            max={65535}
+            value={vfdConfig.hostMetricsListenPort}
+            disabled={!hostMetricsEnabled}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              setVFDConfig({ ...vfdConfig, hostMetricsListenPort: Number(e.target.value) });
+            }}
+            onBlur={() => saveVFDConfig(vfdConfig)}
+          />
         </div>
 
-        <div>
-          <CheckboxWithLabel
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:items-start">
+          <FeatureToggle
             label={m.vfd_enabled()}
             description={m.vfd_enabled_description()}
             checked={vfdConfig.enabled}
@@ -86,35 +132,17 @@ export function VFDSetting() {
               });
             }}
           />
-        </div>
-
-        <div className="grid grid-cols-1 items-end gap-4 md:grid-cols-2">
-          <div className="space-y-1">
-            <InputFieldWithLabel
-              label={m.host_metrics_listen_port()}
-              description={m.host_metrics_listen_port_description()}
-              type="number"
-              min={1}
-              max={65535}
-              value={vfdConfig.hostMetricsListenPort}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                setVFDConfig({ ...vfdConfig, hostMetricsListenPort: Number(e.target.value) });
-              }}
-              onBlur={() => saveVFDConfig(vfdConfig)}
-            />
-          </div>
-          <div className="space-y-1">
-            <InputFieldWithLabel
-              label={m.vfd_device_path()}
-              description={m.vfd_device_path_description()}
-              placeholder="/dev/hidrawN"
-              value={vfdConfig.devicePath}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                setVFDConfig({ ...vfdConfig, devicePath: e.target.value });
-              }}
-              onBlur={() => saveVFDConfig(vfdConfig)}
-            />
-          </div>
+          <InputFieldWithLabel
+            label={m.vfd_device_path()}
+            description={m.vfd_device_path_description()}
+            placeholder="/dev/hidrawN"
+            value={vfdConfig.devicePath}
+            disabled={!vfdConfig.enabled}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              setVFDConfig({ ...vfdConfig, devicePath: e.target.value });
+            }}
+            onBlur={() => saveVFDConfig(vfdConfig)}
+          />
         </div>
       </div>
     </div>
