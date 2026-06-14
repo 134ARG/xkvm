@@ -2,6 +2,27 @@
 
 This document summarizes the major changes made to XKVM during its evolution from the original JetKVM embedded system to a full Linux-based KVM-over-IP solution.
 
+## Version 0.1.8 (2026-06-15)
+
+### Host Monitoring and VFD
+- Made the host metrics receiver an independent device-side feature, so the WebUI host monitor can be used without enabling a VFD screen
+- Kept VFD display enablement tied to host metrics internally, with clearer startup paths and logging for the listener and renderer
+- Renamed the device config for the metrics listener from VFD-specific wording to host metrics wording
+
+### Network Status
+- Restored public IP lookup as explicit IPv4 and IPv6 endpoint queries instead of showing local interface addresses as public IPs
+- Added per-family public IP status, timeout/error reporting, and address-family validation in the WebUI card
+
+### UI
+- Reworked the host metrics and VFD settings layout so each enable control is paired with its related input
+- Fixed disabled-state behavior and alignment for the metrics port and VFD device path controls
+- Clarified the host metrics and VFD labels in English and Chinese
+
+### Packaging and Release
+- Renamed the host-side metric collector package from `xkvm-vfd-agent` to `xkvm-host-agent`
+- Updated the host agent RPM, systemd service, config file, build script, release workflow, and documentation around the new package name
+- Renamed host agent CLI and environment settings to use `xkvm` address, port, and update interval terminology
+
 ## Version 0.1.7 (2026-06-07)
 
 ### Native Desktop and Video
