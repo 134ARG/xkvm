@@ -9,7 +9,7 @@ import time
 
 import psutil
 
-BOOT_TIME = psutil.boot_time()
+BOOT_TIME = None
 AMD_GPU_BUSY_PATH = None
 AMD_GPU_TEMP_PATH = None
 CPU_TEMP_PATH = None
@@ -157,32 +157,35 @@ def collect_metrics():
             "temp": {"cpu": cpu_temp, "gpu": gpu_temp},
             "net": {"rx_bytes": net_rx_bytes, "tx_bytes": net_tx_bytes},
             "sys": {
-                "uptime": int(now - BOOT_TIME),
+                "uptime": int(now - BOOT_TIME) if BOOT_TIME else 0,
                 "failed_units": collect_failed_units(now),
             },
         },
     }
 
 
-def push_loop(host, port, interval):
+def push_loop(xkvm_addr, xkvm_port, update_interval):
+    global BOOT_TIME
+
+    BOOT_TIME = psutil.boot_time()
     psutil.cpu_percent(interval=None)
     init_hardware_paths()
 
     while True:
         sock = None
         try:
-            print(f"connecting to {host}:{port}")
+            print(f"connecting to {xkvm_addr}:{xkvm_port}")
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(CONNECT_TIMEOUT_SECONDS)
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            sock.connect((host, port))
+            sock.connect((xkvm_addr, xkvm_port))
             sock.settimeout(None)
-            print(f"connected to {host}:{port}")
+            print(f"connected to {xkvm_addr}:{xkvm_port}")
 
             while True:
                 line = json.dumps(collect_metrics(), separators=(",", ":")) + "\n"
                 sock.sendall(line.encode())
-                time.sleep(interval)
+                time.sleep(update_interval)
         except (ConnectionRefusedError, ConnectionResetError, BrokenPipeError, OSError) as e:
             print(f"connection lost ({e}), retrying in 2s")
             if sock:
@@ -194,12 +197,12 @@ def push_loop(host, port, interval):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Metric agent for xkVM VFD display")
-    parser.add_argument("--host", required=True, help="xkVM VFD listener host")
-    parser.add_argument("--port", type=int, default=9101, help="xkVM VFD listener port")
-    parser.add_argument("--interval", type=float, default=0.25, help="push interval")
+    parser = argparse.ArgumentParser(description="Host metric agent for xKVM")
+    parser.add_argument("--xkvm-addr", required=True, help="xKVM device hostname or IP address")
+    parser.add_argument("--xkvm-port", type=int, default=9101, help="xKVM host metrics listener port")
+    parser.add_argument("--update-interval", type=float, default=0.25, help="metric update interval")
     args = parser.parse_args()
-    push_loop(args.host, args.port, args.interval)
+    push_loop(args.xkvm_addr, args.xkvm_port, args.update_interval)
 
 
 if __name__ == "__main__":

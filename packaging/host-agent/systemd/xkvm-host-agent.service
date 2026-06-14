@@ -1,0 +1,14 @@
+[Unit]
+Description=xKVM Host Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/xkvm-host-agent/agent.conf
+ExecStart=/usr/bin/xkvm-host-agent --xkvm-addr ${XKVM_ADDR} --xkvm-port ${XKVM_PORT} --update-interval ${UPDATE_INTERVAL}
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

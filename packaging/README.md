@@ -8,16 +8,16 @@ This directory contains package assets for xkVM and related components.
 - `bin/xkvm-wrapper.sh` - Wrapper script installed to `/usr/bin/xkvm`
 - `systemd/xkvm.service` - Systemd service unit file
 - `deb/copyright` - Debian copyright file
-- `vfd-agent/` - RPM packaging for the host-side VFD metric agent
+- `host-agent/` - RPM packaging for the host-side metric agent
 
 ## Building Packages
 
 ```bash
-# Build the main xkVM package and the host-side VFD agent RPM
+# Build the main xKVM package and the host-side agent RPM
 make build_packages
 
-# Optional: build only the host-side VFD agent RPM
-make build_vfd_agent_rpm
+# Optional: build only the host-side agent RPM
+make build_host_agent_rpm
 ```
 
 ## Dependencies
@@ -43,10 +43,10 @@ The `xkvm` package installs:
 - `/usr/share/doc/xkvm/LICENSE` - License file
 - `/usr/share/doc/xkvm/copyright` - Copyright file
 
-The `xkvm-vfd-agent` RPM installs:
-- `/usr/bin/xkvm-vfd-agent` - Host-side metric collector
-- `/etc/xkvm-vfd-agent/agent.conf` - Agent connection config
-- `/usr/lib/systemd/system/xkvm-vfd-agent.service` - Agent systemd service
+The `xkvm-host-agent` RPM installs:
+- `/usr/bin/xkvm-host-agent` - Host-side metric collector
+- `/etc/xkvm-host-agent/agent.conf` - Agent connection config
+- `/usr/lib/systemd/system/xkvm-host-agent.service` - Agent systemd service
 
 ## Post-Install
 

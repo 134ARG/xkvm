@@ -19,10 +19,10 @@ XKVM 当前发布包分为三类：
 | 包 | 安装位置 | 作用 |
 |---|---|---|
 | `xkvm_<version>_arm64.deb` | XKVM 设备 | 主 XKVM 服务包。包含 KVM 服务、WebUI、视频采集/编码、USB HID 控制、虚拟媒体、GPIO 电源控制等设备端功能。 |
-| `xkvm-vfd-agent-<version>-*.rpm` | 被控主机，仅在使用 VFD 显示功能时需要 | 可选的主机端指标上报工具。它会把 CPU、内存、GPU、温度、网络、运行时间、失败的 systemd 单元状态等信息发送给 XKVM 的 VFD 监听端。 |
+| `xkvm-host-agent-<version>-*.rpm` | 被控主机，需要主机指标监控或 VFD 显示指标时安装 | 可选的主机端指标上报工具。它会把 CPU、内存、GPU、温度、网络、运行时间、失败的 systemd 单元状态等信息发送给 XKVM 的主机指标监听端。 |
 | `XKVM-Connector_<version>_aarch64.dmg` | Apple Silicon macOS 客户端 | 可选的 macOS 原生前端。适合想用桌面应用，或需要绕开 VPN/跨 LAN 场景下浏览器 WebRTC 限制时使用。 |
 
-大多数用户只需要在 XKVM 设备上安装 Debian 包。VFD agent 和 macOS connector 都是针对特定场景的可选配套包。
+大多数用户只需要在 XKVM 设备上安装 Debian 包。Host agent 和 macOS connector 都是针对特定场景的可选配套包。
 
 ## 配置文件路径
 

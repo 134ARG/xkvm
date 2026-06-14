@@ -7,8 +7,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 VERSION="$(tr -d '[:space:]' < packaging/version.txt)"
-PKG_NAME="xkvm-vfd-agent"
-TOPDIR="$PROJECT_ROOT/build/vfd-agent-rpmbuild"
+PKG_NAME="xkvm-host-agent"
+TOPDIR="$PROJECT_ROOT/build/host-agent-rpmbuild"
 SOURCE="$TOPDIR/SOURCES/$PKG_NAME-$VERSION.tar.gz"
 TMPDIR="$TOPDIR/tmp"
 
@@ -24,9 +24,9 @@ tar -czf "$SOURCE" \
     --exclude='__pycache__' \
     --exclude='*.pyc' \
     --transform "s,^,$PKG_NAME-$VERSION/," \
-    agents/vfd packaging/vfd-agent
+    agents/host packaging/host-agent
 
-rpmbuild -bb packaging/vfd-agent/rpm/xkvm-vfd-agent.spec \
+rpmbuild -bb packaging/host-agent/rpm/xkvm-host-agent.spec \
     --define "_topdir $TOPDIR" \
     --define "_tmppath $TMPDIR" \
     --define "source_date_epoch_from_changelog 0" \

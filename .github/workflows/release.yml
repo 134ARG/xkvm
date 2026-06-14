@@ -136,8 +136,8 @@ jobs:
             bin/xkvm_*_arm64.deb
           if-no-files-found: error
 
-  build-vfd-agent-rpm:
-    name: Build VFD agent RPM
+  build-host-agent-rpm:
+    name: Build host agent RPM
     needs: release-meta
     if: needs.release-meta.outputs.should_release == 'true'
     runs-on: ubuntu-22.04
@@ -164,16 +164,16 @@ jobs:
             rpm-build \
             systemd-rpm-macros
 
-      - name: Build VFD agent RPM
+      - name: Build host agent RPM
         run: |
-          ./scripts/build_vfd_agent_rpm.sh
+          ./scripts/build_host_agent_rpm.sh
 
-      - name: Upload VFD agent RPM artifact
+      - name: Upload host agent RPM artifact
         uses: actions/upload-artifact@v5
         with:
-          name: vfd-agent-rpm
+          name: host-agent-rpm
           path: |
-            bin/xkvm-vfd-agent-*.rpm
+            bin/xkvm-host-agent-*.rpm
           if-no-files-found: error
 
   build-macos-connector:
@@ -236,7 +236,7 @@ jobs:
     needs:
       - release-meta
       - build-debian-package
-      - build-vfd-agent-rpm
+      - build-host-agent-rpm
       - build-macos-connector
     if: needs.release-meta.outputs.should_release == 'true'
     runs-on: ubuntu-22.04

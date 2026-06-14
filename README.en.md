@@ -19,10 +19,10 @@ XKVM releases are currently split into three packages:
 | Package | Install on | Role |
 |---|---|---|
 | `xkvm_<version>_arm64.deb` | The XKVM device | Main XKVM service package. It runs the KVM server, WebUI, video capture/encoding, USB HID control, virtual media, GPIO power control, and other device-side features. |
-| `xkvm-vfd-agent-<version>-*.rpm` | The controlled host, only if you use the VFD display feature | Optional host-side metric sender. It reports CPU, memory, GPU, temperature, network, uptime, and failed systemd unit status to the XKVM VFD listener. |
+| `xkvm-host-agent-<version>-*.rpm` | The controlled host, when using host metrics monitoring or VFD display metrics | Optional host-side metric sender. It reports CPU, memory, GPU, temperature, network, uptime, and failed systemd unit status to the XKVM host metrics listener. |
 | `XKVM-Connector_<version>_aarch64.dmg` | Apple Silicon macOS clients | Optional native macOS frontend. Use it when you prefer a desktop app or need to avoid browser WebRTC restrictions across VPN/cross-LAN connections. |
 
-Most users only need the Debian package on the XKVM device. The VFD agent and macOS connector are optional companion packages for their specific use cases.
+Most users only need the Debian package on the XKVM device. The host agent and macOS connector are optional companion packages for their specific use cases.
 
 ## File Paths
 
