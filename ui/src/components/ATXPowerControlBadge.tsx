@@ -17,6 +17,7 @@ const LONG_PRESS_DURATION = 3000;
 interface ATXState {
   power: boolean;
   hdd: boolean;
+  atxStateAvailable: boolean;
 }
 
 function ATXStatusItem({
@@ -128,8 +129,9 @@ export function ATXPowerControlBadge({
 
   useEffect(() => clearPowerTimer, [clearPowerTimer]);
 
-  const powerActive = atxState?.power ?? false;
-  const hddActive = atxState?.hdd ?? false;
+  const atxStateAvailable = atxState?.atxStateAvailable ?? false;
+  const powerActive = atxStateAvailable && (atxState?.power ?? false);
+  const hddActive = atxStateAvailable && (atxState?.hdd ?? false);
 
   return (
     <Popover>
@@ -170,6 +172,11 @@ export function ATXPowerControlBadge({
                 <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
                   {m.extensions_atx_power_control()}
                 </h3>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {atxStateAvailable
+                    ? m.environment_metrics_live()
+                    : m.environment_metrics_unsupported()}
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <ATXStatusItem
@@ -193,9 +200,11 @@ export function ATXPowerControlBadge({
                   theme="light"
                   LeadingIcon={LuPower}
                   text={
-                    powerActive
-                      ? m.dc_power_control_power_off_button()
-                      : m.dc_power_control_power_on_button()
+                    atxStateAvailable
+                      ? powerActive
+                        ? m.dc_power_control_power_off_button()
+                        : m.dc_power_control_power_on_button()
+                      : m.atx_power_control_power_button()
                   }
                   onMouseDown={() => handlePowerPress(true)}
                   onMouseUp={() => handlePowerPress(false)}

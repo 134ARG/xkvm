@@ -697,16 +697,13 @@ func rpcSetATXPowerAction(action string) error {
 }
 
 type ATXState struct {
-	Power bool `json:"power"`
-	HDD   bool `json:"hdd"`
+	Power             bool `json:"power"`
+	HDD               bool `json:"hdd"`
+	ATXStateAvailable bool `json:"atxStateAvailable"`
 }
 
 func rpcGetATXState() (ATXState, error) {
-	state := ATXState{
-		Power: ledPWRState,
-		HDD:   ledHDDState,
-	}
-	return state, nil
+	return currentATXState(), nil
 }
 
 type GPIOConfig struct {

@@ -16,8 +16,9 @@ import (
 var port serial.Port
 
 var (
-	ledHDDState bool
-	ledPWRState bool
+	ledHDDState       bool
+	ledPWRState       bool
+	atxStateAvailable bool
 	// btnRSTState bool
 	// btnPWRState bool
 	atxStopChan chan struct{}
@@ -49,11 +50,13 @@ func runATXControl() {
 	// Initialize default states
 	ledHDDState = false
 	ledPWRState = false
+	atxStateAvailable = false
 	// btnRSTState = false
 	// btnPWRState = false
 
 	prevPWR := ledPWRState
 	prevHDD := ledHDDState
+	prevAvailable := atxStateAvailable
 
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
@@ -64,14 +67,18 @@ func runATXControl() {
 			scopedLogger.Info().Msg("ATX control polling stopped")
 			return
 		case <-ticker.C:
-			ledPWRState = readGPIOInput(config.GPIOPwrLedChip, config.GPIOPwrLedLine) == config.GPIOPwrLedActiveHigh
-			ledHDDState = readGPIOInput(config.GPIOHddLedChip, config.GPIOHddLedLine) == config.GPIOHddLedActiveHigh
+			pwrValue, pwrAvailable := readGPIOInput(config.GPIOPwrLedChip, config.GPIOPwrLedLine)
+			hddValue, hddAvailable := readGPIOInput(config.GPIOHddLedChip, config.GPIOHddLedLine)
 
+			atxStateAvailable = pwrAvailable
+			ledPWRState = pwrAvailable && pwrValue == config.GPIOPwrLedActiveHigh
+			ledHDDState = hddAvailable && hddValue == config.GPIOHddLedActiveHigh
 			ledHDDState = ledPWRState && ledHDDState
 
-			if ledPWRState != prevPWR || ledHDDState != prevHDD {
+			if ledPWRState != prevPWR || ledHDDState != prevHDD || atxStateAvailable != prevAvailable {
 				prevPWR = ledPWRState
 				prevHDD = ledHDDState
+				prevAvailable = atxStateAvailable
 				triggerATXStateUpdate()
 			}
 		}
@@ -83,10 +90,7 @@ func triggerATXStateUpdate() {
 		if currentSession == nil {
 			return
 		}
-		writeJSONRPCEvent("atxState", ATXState{
-			Power: ledPWRState,
-			HDD:   ledHDDState,
-		}, currentSession)
+		writeJSONRPCEvent("atxState", currentATXState(), currentSession)
 	}()
 }
 
@@ -98,35 +102,41 @@ func pressATXResetButton(duration time.Duration) error {
 	return pulseGPIO(config.GPIORstChip, config.GPIORstLine, duration, config.GPIORstActiveHigh)
 }
 
-// readGPIOInput reads a single GPIO line as input and returns its boolean value.
-// Returns false if chip/line is unconfigured (not configured → LED off).
-func readGPIOInput(chip string, line int) bool {
+func currentATXState() ATXState {
+	return ATXState{
+		Power:             ledPWRState,
+		HDD:               ledHDDState,
+		ATXStateAvailable: atxStateAvailable,
+	}
+}
+
+// readGPIOInput reads a single GPIO line as input.
+// The second return value is false when the line is unconfigured or unreadable.
+func readGPIOInput(chip string, line int) (bool, bool) {
 	if chip == "" || line < 0 {
-		return false
+		return false, false
 	}
 
 	l, err := gpiocdev.RequestLine(chip, line, gpiocdev.AsInput)
 	if err != nil {
 		serialLogger.Trace().Err(err).Str("chip", chip).Int("line", line).Msg("failed to request GPIO input line")
-		return false
+		return false, false
 	}
 	defer l.Close()
 
 	val, err := l.Value()
 	if err != nil {
 		serialLogger.Trace().Err(err).Str("chip", chip).Int("line", line).Msg("failed to read GPIO input value")
-		return false
+		return false, false
 	}
-	return val != 0
+	return val != 0, true
 }
 
 // pulseGPIO opens a GPIO line, drives it to idle state, then pulses to active
 // state for the given duration. Polarity is determined by activeHigh.
-// No-op if chip/line is unconfigured.
 func pulseGPIO(chip string, line int, duration time.Duration, activeHigh bool) error {
 	if chip == "" || line < 0 {
-		serialLogger.Debug().Msg("GPIO not configured, skipping pulse")
-		return nil
+		return fmt.Errorf("ATX GPIO is not configured")
 	}
 
 	activeVal := 1
