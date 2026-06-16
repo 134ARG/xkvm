@@ -170,12 +170,6 @@ export function ATXPowerControlBadge({
                 <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
                   {m.extensions_atx_power_control()}
                 </h3>
-                <span
-                  className={cx(
-                    "h-1.5 w-1.5 rounded-full",
-                    powerActive ? "bg-green-500" : "bg-slate-400",
-                  )}
-                />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <ATXStatusItem
