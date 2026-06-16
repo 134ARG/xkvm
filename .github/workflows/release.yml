@@ -129,7 +129,7 @@ jobs:
           ./scripts/build_packages.sh
 
       - name: Upload Debian package artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: debian-package
           path: |
@@ -169,7 +169,7 @@ jobs:
           ./scripts/build_host_agent_rpm.sh
 
       - name: Upload host agent RPM artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: host-agent-rpm
           path: |
@@ -223,7 +223,7 @@ jobs:
           mv "$dmg" "$(dirname "$dmg")/XKVM-Connector_${VERSION}_aarch64.dmg"
 
       - name: Upload macOS connector artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: macos-connector
           path: |
@@ -278,7 +278,7 @@ jobs:
           fi
 
       - name: Download release artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           path: release-assets
           merge-multiple: true
