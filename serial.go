@@ -24,6 +24,9 @@ var (
 )
 
 func mountATXControl() error {
+	if atxStopChan != nil {
+		return nil
+	}
 	serialLogger.Info().Msg("ATX control mounting")
 	atxStopChan = make(chan struct{})
 	go runATXControl()
@@ -322,9 +325,9 @@ func initSerialPort() {
 	// Custom control logic can be added here in the future
 	serialLogger.Info().Msg("Serial port control disabled - using stub implementation")
 
+	_ = mountATXControl()
+
 	switch config.ActiveExtension {
-	case "atx-power":
-		_ = mountATXControl()
 	case "dc-power":
 		_ = mountDCControl()
 	}

@@ -14,6 +14,12 @@ import { useEnvironmentMetrics } from "@hooks/useEnvironmentMetrics";
 import { useVFDHostMetrics } from "@hooks/useVFDHostMetrics";
 import { m } from "@localizations/messages.js";
 
+export const statusBadgeButtonClassName =
+  "hidden h-[24.5px] items-center gap-x-2 rounded-sm border border-slate-800/20 px-2 text-xs font-medium text-slate-700 transition hover:bg-blue-50/80 md:flex dark:border-slate-300/20 dark:text-slate-200 dark:hover:bg-slate-800";
+
+export const statusPopoverPanelClassName =
+  "z-10 rounded-sm border border-slate-800/20 bg-white shadow-lg dark:border-slate-300/20 dark:bg-slate-900";
+
 function formatMetric(value: number | null | undefined, suffix: string) {
   return value == null ? "-" : `${value.toFixed(1)}${suffix}`;
 }
@@ -131,10 +137,7 @@ export function EnvironmentMetricsBadge() {
     <Popover>
       <PopoverButton
         title={m.environment_metrics_title()}
-        className={cx(
-          "hidden h-[24.5px] items-center gap-x-2 rounded-sm border border-slate-800/20 px-2 text-xs font-medium text-slate-700 transition hover:bg-blue-50/80 md:flex dark:border-slate-300/20 dark:text-slate-200 dark:hover:bg-slate-800",
-          stale && "opacity-60",
-        )}
+        className={cx(statusBadgeButtonClassName, stale && "opacity-60")}
       >
         <span className="flex items-center gap-x-1">
           <LuThermometer className="h-3.5 w-3.5 text-red-500" />
@@ -153,7 +156,8 @@ export function EnvironmentMetricsBadge() {
         anchor="bottom end"
         transition
         className={cx(
-          "z-10 w-[390px] rounded-sm border border-slate-800/20 bg-white p-4 shadow-lg dark:border-slate-300/20 dark:bg-slate-900",
+          statusPopoverPanelClassName,
+          "w-[390px] p-4",
           "origin-top transition duration-200 ease-out data-closed:translate-y-2 data-closed:opacity-0",
         )}
       >

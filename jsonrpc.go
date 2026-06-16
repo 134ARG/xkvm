@@ -651,16 +651,20 @@ func rpcSetDCRestoreState(state int) error {
 }
 
 func rpcGetActiveExtension() (string, error) {
+	if config.ActiveExtension == "atx-power" {
+		return "", nil
+	}
 	return config.ActiveExtension, nil
 }
 
 func rpcSetActiveExtension(extensionId string) error {
+	if extensionId == "atx-power" {
+		extensionId = ""
+	}
 	if config.ActiveExtension == extensionId {
 		return nil
 	}
 	switch config.ActiveExtension {
-	case "atx-power":
-		_ = unmountATXControl()
 	case "dc-power":
 		_ = unmountDCControl()
 	}
@@ -669,8 +673,6 @@ func rpcSetActiveExtension(extensionId string) error {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
 	switch extensionId {
-	case "atx-power":
-		_ = mountATXControl()
 	case "dc-power":
 		_ = mountDCControl()
 	}

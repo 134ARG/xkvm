@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { LuPower, LuTerminal, LuPlugZap } from "react-icons/lu";
+import { LuTerminal, LuPlugZap } from "react-icons/lu";
 
 import { m } from "@localizations/messages.js";
 import { JsonRpcResponse, useJsonRpc } from "@hooks/useJsonRpc";
 import Card, { GridCard } from "@components/Card";
 import { SettingsPageHeader } from "@components/SettingsPageheader";
-import { ATXPowerControl } from "@components/extensions/ATXPowerControl";
 import { DCPowerControl } from "@components/extensions/DCPowerControl";
 import { SerialConsole } from "@components/extensions/SerialConsole";
 import { Button } from "@components/Button";
@@ -19,12 +18,6 @@ interface Extension {
 }
 
 const AVAILABLE_EXTENSIONS: Extension[] = [
-  {
-    id: "atx-power",
-    name: m.extensions_atx_power_control(),
-    description: m.extensions_atx_power_control_description(),
-    icon: LuPower,
-  },
   {
     id: "dc-power",
     name: m.extensions_dc_power_control(),
@@ -73,8 +66,6 @@ export default function ExtensionPopover() {
 
   const renderActiveExtension = () => {
     switch (activeExtension?.id) {
-      case "atx-power":
-        return <ATXPowerControl />;
       case "dc-power":
         return <DCPowerControl />;
       case "serial-console":

@@ -15,6 +15,7 @@ import PasteModal from "@components/popovers/PasteModal";
 // import WakeOnLanModal from "@components/popovers/WakeOnLan/Index";
 import MountPopopover from "@components/popovers/MountPopover";
 import ExtensionPopover from "@components/popovers/ExtensionPopover";
+import { ATXPowerControlBadge } from "@components/ATXPowerControlBadge";
 import { EnvironmentMetricsBadge } from "@components/EnvironmentMetricsBadge";
 import { m } from "@localizations/messages.js";
 
@@ -202,6 +203,10 @@ export default function Actionbar({
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
           <EnvironmentMetricsBadge />
+          <ATXPowerControlBadge
+            onOpen={() => setDisableVideoFocusTrap(true)}
+            onOpenChange={checkIfStateChanged}
+          />
 
           <Popover>
             <PopoverButton as={Fragment}>

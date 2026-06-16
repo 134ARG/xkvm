@@ -68,7 +68,7 @@ Missing keys use built-in defaults. Deprecated rows are kept for old config comp
 | `keyboard_layout` | Keyboard mapping | `cs-CZ`, `da-DK`, `de-CH`, `de-DE`, `en-UK`,<br>`en-US`, `es-ES`, `nl-BE`, `fr-CH`, `fr-FR`,<br>`it-IT`, `ja-JP`, `nb-NO`, `sv-SE` |
 | `keyboard_macros` | Saved keyboard macros | array of `{id,name,sortOrder,steps}`;<br>max 25 macros, 10 steps, 10 keys per step |
 | `hdmi_edid_string` | Saved HDMI EDID | EDID hex/base64 string as stored by the UI |
-| `active_extension` | Loaded UI/control extension | `""`, `"atx-power"`, `"dc-power"`,<br>`"serial-console"` |
+| `active_extension` | Loaded UI/control extension | `""`, `"dc-power"`, `"serial-console"` |
 | `jiggler_enabled` | Mouse jiggler enable | boolean |
 | `jiggler_config` | Mouse jiggler schedule/limits | `{inactivity_limit_seconds,jitter_percentage,`<br>`schedule_cron_tab,timezone}`;<br>timezone is IANA/`UTC` |
 | `usb_config` | USB gadget identity | `{vendor_id,product_id,serial_number,`<br>`manufacturer,product}`;<br>IDs are hex strings like `0x1d6b` |

@@ -68,7 +68,7 @@ XKVM 遵循标准 Linux FHS 规范，路径可通过环境变量覆盖。
 | `keyboard_layout` | 键盘映射 | `cs-CZ`, `da-DK`, `de-CH`, `de-DE`, `en-UK`,<br>`en-US`, `es-ES`, `nl-BE`, `fr-CH`, `fr-FR`,<br>`it-IT`, `ja-JP`, `nb-NO`, `sv-SE` |
 | `keyboard_macros` | 保存的键盘宏 | `{id,name,sortOrder,steps}` 数组；<br>最多 25 个宏、每个宏 10 步、每步 10 个按键 |
 | `hdmi_edid_string` | 保存的 HDMI EDID | UI 保存的 EDID hex/base64 字符串 |
-| `active_extension` | 当前加载的控制扩展 | `""`, `"atx-power"`, `"dc-power"`,<br>`"serial-console"` |
+| `active_extension` | 当前加载的控制扩展 | `""`, `"dc-power"`, `"serial-console"` |
 | `jiggler_enabled` | 启用鼠标 jiggler | 布尔值 |
 | `jiggler_config` | 鼠标 jiggler 调度/限制 | `{inactivity_limit_seconds,jitter_percentage,`<br>`schedule_cron_tab,timezone}`；<br>时区为 IANA/`UTC` |
 | `usb_config` | USB gadget 身份信息 | `{vendor_id,product_id,serial_number,`<br>`manufacturer,product}`；<br>ID 为 `0x1d6b` 这类十六进制字符串 |
