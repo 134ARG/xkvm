@@ -34,14 +34,14 @@ func mountATXControl() error {
 	return nil
 }
 
-func unmountATXControl() error {
-	serialLogger.Info().Msg("ATX control unmounting")
-	if atxStopChan != nil {
-		close(atxStopChan)
-		atxStopChan = nil
-	}
-	return nil
-}
+// func unmountATXControl() error {
+// 	serialLogger.Info().Msg("ATX control unmounting")
+// 	if atxStopChan != nil {
+// 		close(atxStopChan)
+// 		atxStopChan = nil
+// 	}
+// 	return nil
+// }
 
 func runATXControl() {
 	scopedLogger := serialLogger.With().Str("service", "atx_control").Logger()
