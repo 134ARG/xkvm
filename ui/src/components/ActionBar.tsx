@@ -202,7 +202,10 @@ export default function Actionbar({
         </div>
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-          <EnvironmentMetricsBadge />
+          <EnvironmentMetricsBadge
+            onOpen={() => setDisableVideoFocusTrap(true)}
+            onOpenChange={checkIfStateChanged}
+          />
           <ATXPowerControlBadge
             onOpen={() => setDisableVideoFocusTrap(true)}
             onOpenChange={checkIfStateChanged}

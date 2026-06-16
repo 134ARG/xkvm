@@ -125,7 +125,13 @@ function MetricTile({
   );
 }
 
-export function EnvironmentMetricsBadge() {
+export function EnvironmentMetricsBadge({
+  onOpen,
+  onOpenChange,
+}: {
+  onOpen?: () => void;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const { metrics, supported, stale } = useEnvironmentMetrics();
   const { metrics: hostMetrics } = useVFDHostMetrics();
 
@@ -138,6 +144,7 @@ export function EnvironmentMetricsBadge() {
       <PopoverButton
         title={m.environment_metrics_title()}
         className={cx(statusBadgeButtonClassName, stale && "opacity-60")}
+        onClick={onOpen}
       >
         <span className="flex items-center gap-x-1">
           <LuThermometer className="h-3.5 w-3.5 text-red-500" />
@@ -161,114 +168,119 @@ export function EnvironmentMetricsBadge() {
           "origin-top transition duration-200 ease-out data-closed:translate-y-2 data-closed:opacity-0",
         )}
       >
-        <div className="space-y-4">
-          <section className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
-                {m.environment_metrics_device()}
-              </h3>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                {!supported
-                  ? m.environment_metrics_unsupported()
-                  : stale
-                    ? m.environment_metrics_stale()
-                    : m.environment_metrics_live()}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <MetricTile
-                icon={<LuThermometer className="h-3.5 w-3.5 text-red-500" />}
-                label={m.environment_metrics_case()}
-                value={caseTemp}
-              />
-              <MetricTile
-                icon={<LuDroplets className="h-3.5 w-3.5 text-blue-500" />}
-                label={m.environment_metrics_humidity()}
-                value={humidity}
-              />
-              <MetricTile
-                icon={<LuCpu className="h-3.5 w-3.5 text-slate-500" />}
-                label="SoC"
-                value={socTemp}
-              />
-            </div>
-          </section>
-
-          <div className="h-px bg-slate-800/10 dark:bg-slate-300/20" />
-
-          <section className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
-                {m.environment_metrics_host()}
-              </h3>
-              <span
-                className={cx(
-                  "inline-flex items-center gap-x-1.5 text-xs",
-                  hostMetrics.connected
-                    ? "text-green-600 dark:text-green-400"
-                    : "text-slate-500 dark:text-slate-400",
-                )}
-              >
-                <span
-                  className={cx(
-                    "h-1.5 w-1.5 rounded-full",
-                    hostMetrics.connected ? "bg-green-500" : "bg-slate-400",
-                  )}
-                />
-                {hostMetrics.connected
-                  ? m.environment_metrics_connected()
-                  : m.environment_metrics_disconnected()}
-              </span>
-            </div>
-
-            <div className="space-y-3">
-              <UsageBar label="CPU" value={hostMetrics.cpuUtil} tone="blue" />
-              <UsageBar label="RAM" value={hostMetrics.ramUtil} tone="green" />
-              <UsageBar label="GPU" value={hostMetrics.gpuUtil} tone="violet" />
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 pt-1">
-              <HostDetail
-                icon={<LuThermometer className="h-3.5 w-3.5 text-red-500" />}
-                label="CPU"
-                value={formatMetric(hostMetrics.cpuTemp, "°C")}
-              />
-              <HostDetail
-                icon={<LuThermometer className="h-3.5 w-3.5 text-red-500" />}
-                label="GPU"
-                value={formatMetric(hostMetrics.gpuTemp, "°C")}
-              />
-              <HostDetail
-                icon={<LuClock3 className="h-3.5 w-3.5 text-slate-500" />}
-                label={m.environment_metrics_uptime()}
-                value={formatUptime(hostMetrics.uptimeSec)}
-              />
-              <HostDetail
-                icon={<LuArrowDown className="h-3.5 w-3.5 text-blue-500" />}
-                label={m.environment_metrics_received()}
-                value={formatBytes(hostMetrics.netRxBytes)}
-              />
-              <HostDetail
-                icon={<LuArrowUp className="h-3.5 w-3.5 text-green-500" />}
-                label={m.environment_metrics_sent()}
-                value={formatBytes(hostMetrics.netTxBytes)}
-              />
-              <HostDetail
-                icon={
-                  <LuTriangleAlert
-                    className={cx(
-                      "h-3.5 w-3.5",
-                      (hostMetrics.failedUnits ?? 0) > 0 ? "text-red-500" : "text-slate-500",
-                    )}
+        {({ open }) => {
+          onOpenChange?.(open);
+          return (
+            <div className="space-y-4">
+              <section className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                    {m.environment_metrics_device()}
+                  </h3>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {!supported
+                      ? m.environment_metrics_unsupported()
+                      : stale
+                        ? m.environment_metrics_stale()
+                        : m.environment_metrics_live()}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <MetricTile
+                    icon={<LuThermometer className="h-3.5 w-3.5 text-red-500" />}
+                    label={m.environment_metrics_case()}
+                    value={caseTemp}
                   />
-                }
-                label={m.environment_metrics_failed_units()}
-                value={formatPlain(hostMetrics.failedUnits)}
-                alert={(hostMetrics.failedUnits ?? 0) > 0}
-              />
+                  <MetricTile
+                    icon={<LuDroplets className="h-3.5 w-3.5 text-blue-500" />}
+                    label={m.environment_metrics_humidity()}
+                    value={humidity}
+                  />
+                  <MetricTile
+                    icon={<LuCpu className="h-3.5 w-3.5 text-slate-500" />}
+                    label="SoC"
+                    value={socTemp}
+                  />
+                </div>
+              </section>
+
+              <div className="h-px bg-slate-800/10 dark:bg-slate-300/20" />
+
+              <section className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-950 dark:text-white">
+                    {m.environment_metrics_host()}
+                  </h3>
+                  <span
+                    className={cx(
+                      "inline-flex items-center gap-x-1.5 text-xs",
+                      hostMetrics.connected
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-slate-500 dark:text-slate-400",
+                    )}
+                  >
+                    <span
+                      className={cx(
+                        "h-1.5 w-1.5 rounded-full",
+                        hostMetrics.connected ? "bg-green-500" : "bg-slate-400",
+                      )}
+                    />
+                    {hostMetrics.connected
+                      ? m.environment_metrics_connected()
+                      : m.environment_metrics_disconnected()}
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  <UsageBar label="CPU" value={hostMetrics.cpuUtil} tone="blue" />
+                  <UsageBar label="RAM" value={hostMetrics.ramUtil} tone="green" />
+                  <UsageBar label="GPU" value={hostMetrics.gpuUtil} tone="violet" />
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  <HostDetail
+                    icon={<LuThermometer className="h-3.5 w-3.5 text-red-500" />}
+                    label="CPU"
+                    value={formatMetric(hostMetrics.cpuTemp, "°C")}
+                  />
+                  <HostDetail
+                    icon={<LuThermometer className="h-3.5 w-3.5 text-red-500" />}
+                    label="GPU"
+                    value={formatMetric(hostMetrics.gpuTemp, "°C")}
+                  />
+                  <HostDetail
+                    icon={<LuClock3 className="h-3.5 w-3.5 text-slate-500" />}
+                    label={m.environment_metrics_uptime()}
+                    value={formatUptime(hostMetrics.uptimeSec)}
+                  />
+                  <HostDetail
+                    icon={<LuArrowDown className="h-3.5 w-3.5 text-blue-500" />}
+                    label={m.environment_metrics_received()}
+                    value={formatBytes(hostMetrics.netRxBytes)}
+                  />
+                  <HostDetail
+                    icon={<LuArrowUp className="h-3.5 w-3.5 text-green-500" />}
+                    label={m.environment_metrics_sent()}
+                    value={formatBytes(hostMetrics.netTxBytes)}
+                  />
+                  <HostDetail
+                    icon={
+                      <LuTriangleAlert
+                        className={cx(
+                          "h-3.5 w-3.5",
+                          (hostMetrics.failedUnits ?? 0) > 0 ? "text-red-500" : "text-slate-500",
+                        )}
+                      />
+                    }
+                    label={m.environment_metrics_failed_units()}
+                    value={formatPlain(hostMetrics.failedUnits)}
+                    alert={(hostMetrics.failedUnits ?? 0) > 0}
+                  />
+                </div>
+              </section>
             </div>
-          </section>
-        </div>
+          );
+        }}
       </PopoverPanel>
     </Popover>
   );
