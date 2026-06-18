@@ -33,7 +33,7 @@ func GetQueueIndex(messageType MessageType) int {
 	switch messageType {
 	case TypeHandshake:
 		return 0
-	case TypeKeyboardReport, TypeKeypressReport, TypeKeyboardMacroReport, TypeKeyboardLedState, TypeKeydownState, TypeKeyboardMacroState:
+	case TypeKeyboardReport, TypeKeypressReport, TypeKeypressKeepAliveReport, TypeKeyboardMacroReport, TypeKeyboardLedState, TypeKeydownState, TypeKeyboardMacroState:
 		return 1
 	case TypePointerReport, TypeMouseReport, TypeWheelReport:
 		return 2
