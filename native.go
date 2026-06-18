@@ -60,20 +60,21 @@ func initNative(systemVersion *semver.Version, appVersion *semver.Version) {
 			}
 		},
 		OnVideoFrameReceived: func(frame []byte, duration time.Duration) {
-			if currentSession != nil {
-				err := currentSession.VideoTrack.WriteSample(media.Sample{Data: frame, Duration: duration})
+			if cs := getCurrentSession(); cs != nil {
+				err := cs.VideoTrack.WriteSample(media.Sample{Data: frame, Duration: duration})
 				if err != nil {
 					nativeLogger.Warn().Err(err).Msg("error writing sample")
 				}
 			}
 		},
 		GetSessionInfo: func() diagnostics.SessionInfo {
+			cs := getCurrentSession()
 			info := diagnostics.SessionInfo{
 				ActiveSessions:    getActiveSessions(),
-				HasCurrentSession: currentSession != nil,
+				HasCurrentSession: cs != nil,
 			}
-			if currentSession != nil {
-				sessionInfo := currentSession.GetDiagnosticsInfo()
+			if cs != nil {
+				sessionInfo := cs.GetDiagnosticsInfo()
 				info.ICEConnectionState = sessionInfo.ICEConnectionState
 				info.SignalingState = sessionInfo.SignalingState
 				info.ConnectionState = sessionInfo.ConnectionState

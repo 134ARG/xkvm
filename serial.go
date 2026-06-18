@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pion/webrtc/v4"
@@ -13,12 +15,33 @@ import (
 
 // const serialPortPath = "/dev/ttyS3"
 
-var port serial.Port
+// port is the active serial port (or nil). It is opened/closed from WebRTC
+// datachannel callbacks that run on different goroutines, so all access goes
+// through getPort/setPort. Blocking reads/writes use a locally captured
+// reference rather than holding portLock.
+var (
+	port     serial.Port
+	portLock sync.Mutex
+)
+
+func getPort() serial.Port {
+	portLock.Lock()
+	defer portLock.Unlock()
+	return port
+}
+
+func setPort(p serial.Port) {
+	portLock.Lock()
+	defer portLock.Unlock()
+	port = p
+}
 
 var (
-	ledHDDState       bool
-	ledPWRState       bool
-	atxStateAvailable bool
+	// ATX LED state is written by the single runATXControl poller and read from
+	// RPC/event goroutines; atomics keep those reads/writes race-free.
+	ledHDDState       atomic.Bool
+	ledPWRState       atomic.Bool
+	atxStateAvailable atomic.Bool
 	// btnRSTState bool
 	// btnPWRState bool
 	atxStopChan chan struct{}
@@ -48,15 +71,15 @@ func runATXControl() {
 	scopedLogger.Info().Msg("ATX control polling started")
 
 	// Initialize default states
-	ledHDDState = false
-	ledPWRState = false
-	atxStateAvailable = false
+	ledHDDState.Store(false)
+	ledPWRState.Store(false)
+	atxStateAvailable.Store(false)
 	// btnRSTState = false
 	// btnPWRState = false
 
-	prevPWR := ledPWRState
-	prevHDD := ledHDDState
-	prevAvailable := atxStateAvailable
+	prevPWR := false
+	prevHDD := false
+	prevAvailable := false
 
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
@@ -70,15 +93,18 @@ func runATXControl() {
 			pwrValue, pwrAvailable := readGPIOInput(config.GPIOPwrLedChip, config.GPIOPwrLedLine)
 			hddValue, hddAvailable := readGPIOInput(config.GPIOHddLedChip, config.GPIOHddLedLine)
 
-			atxStateAvailable = pwrAvailable
-			ledPWRState = pwrAvailable && pwrValue == config.GPIOPwrLedActiveHigh
-			ledHDDState = hddAvailable && hddValue == config.GPIOHddLedActiveHigh
-			ledHDDState = ledPWRState && ledHDDState
+			pwr := pwrAvailable && pwrValue == config.GPIOPwrLedActiveHigh
+			hdd := hddAvailable && hddValue == config.GPIOHddLedActiveHigh
+			hdd = pwr && hdd
 
-			if ledPWRState != prevPWR || ledHDDState != prevHDD || atxStateAvailable != prevAvailable {
-				prevPWR = ledPWRState
-				prevHDD = ledHDDState
-				prevAvailable = atxStateAvailable
+			atxStateAvailable.Store(pwrAvailable)
+			ledPWRState.Store(pwr)
+			ledHDDState.Store(hdd)
+
+			if pwr != prevPWR || hdd != prevHDD || pwrAvailable != prevAvailable {
+				prevPWR = pwr
+				prevHDD = hdd
+				prevAvailable = pwrAvailable
 				triggerATXStateUpdate()
 			}
 		}
@@ -87,10 +113,11 @@ func runATXControl() {
 
 func triggerATXStateUpdate() {
 	go func() {
-		if currentSession == nil {
+		cs := getCurrentSession()
+		if cs == nil {
 			return
 		}
-		writeJSONRPCEvent("atxState", currentATXState(), currentSession)
+		writeJSONRPCEvent("atxState", currentATXState(), cs)
 	}()
 }
 
@@ -104,9 +131,9 @@ func pressATXResetButton(duration time.Duration) error {
 
 func currentATXState() ATXState {
 	return ATXState{
-		Power:             ledPWRState,
-		HDD:               ledHDDState,
-		ATXStateAvailable: atxStateAvailable,
+		Power:             ledPWRState.Load(),
+		HDD:               ledHDDState.Load(),
+		ATXStateAvailable: atxStateAvailable.Load(),
 	}
 }
 
@@ -361,18 +388,19 @@ func handleSerialChannel(d *webrtc.DataChannel) {
 		}
 
 		scopedLogger.Info().Str("port", portPath).Msg("Opening serial port")
-		var err error
-		port, err = serial.Open(portPath, serialPortMode)
+		p, err := serial.Open(portPath, serialPortMode)
 		if err != nil {
 			scopedLogger.Error().Err(err).Str("port", portPath).Msg("Failed to open serial port")
 			return
 		}
+		setPort(p)
 
-		// Read from serial → send to WebRTC
+		// Read from serial → send to WebRTC. Use the locally captured port
+		// reference so the blocking Read doesn't hold portLock.
 		go func() {
 			buf := make([]byte, 1024)
 			for {
-				n, err := port.Read(buf)
+				n, err := p.Read(buf)
 				if err != nil {
 					scopedLogger.Debug().Err(err).Msg("Serial read ended")
 					return
@@ -388,10 +416,11 @@ func handleSerialChannel(d *webrtc.DataChannel) {
 	})
 
 	d.OnMessage(func(msg webrtc.DataChannelMessage) {
-		if port == nil {
+		p := getPort()
+		if p == nil {
 			return
 		}
-		if _, err := port.Write(msg.Data); err != nil {
+		if _, err := p.Write(msg.Data); err != nil {
 			scopedLogger.Warn().Err(err).Msg("Serial write failed")
 		}
 	})
@@ -402,9 +431,9 @@ func handleSerialChannel(d *webrtc.DataChannel) {
 
 	d.OnClose(func() {
 		scopedLogger.Info().Msg("Serial channel closed")
-		if port != nil {
-			port.Close()
-			port = nil
+		if p := getPort(); p != nil {
+			p.Close()
+			setPort(nil)
 		}
 	})
 }

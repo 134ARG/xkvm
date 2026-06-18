@@ -519,12 +519,13 @@ func rpcGetDiagnostics() (string, error) {
 	diag := diagnostics.New(diagnostics.Options{
 		Writer: &diagBuf,
 		GetSessionInfo: func() diagnostics.SessionInfo {
+			cs := getCurrentSession()
 			info := diagnostics.SessionInfo{
 				ActiveSessions:    getActiveSessions(),
-				HasCurrentSession: currentSession != nil,
+				HasCurrentSession: cs != nil,
 			}
-			if currentSession != nil {
-				sessionInfo := currentSession.GetDiagnosticsInfo()
+			if cs != nil {
+				sessionInfo := cs.GetDiagnosticsInfo()
 				info.ICEConnectionState = sessionInfo.ICEConnectionState
 				info.SignalingState = sessionInfo.SignalingState
 				info.ConnectionState = sessionInfo.ConnectionState
@@ -772,9 +773,9 @@ func rpcGetSerialPortPath() (string, error) {
 
 func rpcSetSerialPortPath(path string) error {
 	// Close existing port if open
-	if port != nil {
-		port.Close()
-		port = nil
+	if p := getPort(); p != nil {
+		p.Close()
+		setPort(nil)
 	}
 	config.SerialPortPath = path
 	return SaveConfig()
@@ -866,7 +867,9 @@ func rpcSetSerialSettings(settings SerialSettings) error {
 		Parity:   parity,
 	}
 
-	_ = port.SetMode(serialPortMode)
+	if p := getPort(); p != nil {
+		_ = p.SetMode(serialPortMode)
+	}
 
 	return nil
 }
@@ -1067,8 +1070,8 @@ func rpcExecuteKeyboardMacro(macro []hidrpc.KeyboardMacroStep) error {
 		IsPaste: true,
 	}
 
-	if currentSession != nil {
-		currentSession.reportHidRPCKeyboardMacroState(s)
+	if cs := getCurrentSession(); cs != nil {
+		cs.reportHidRPCKeyboardMacroState(s)
 	}
 
 	err := rpcDoExecuteKeyboardMacro(ctx, macro)
@@ -1076,8 +1079,8 @@ func rpcExecuteKeyboardMacro(macro []hidrpc.KeyboardMacroStep) error {
 	setKeyboardMacroCancel(nil)
 
 	s.State = false
-	if currentSession != nil {
-		currentSession.reportHidRPCKeyboardMacroState(s)
+	if cs := getCurrentSession(); cs != nil {
+		cs.reportHidRPCKeyboardMacroState(s)
 	}
 
 	return err

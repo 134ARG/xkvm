@@ -131,9 +131,9 @@ func handleSessionRequest(
 		_ = wsjson.Write(context.Background(), c, gin.H{"error": err})
 		return err
 	}
-	if currentSession != nil {
-		writeJSONRPCEvent("otherSessionConnected", nil, currentSession)
-		peerConn := currentSession.peerConnection
+	if cs := getCurrentSession(); cs != nil {
+		writeJSONRPCEvent("otherSessionConnected", nil, cs)
+		peerConn := cs.peerConnection
 		go func() {
 			time.Sleep(1 * time.Second)
 			_ = peerConn.Close()
@@ -146,7 +146,7 @@ func handleSessionRequest(
 	// Cancel any ongoing keyboard macro when session changes
 	cancelKeyboardMacro()
 
-	currentSession = session
+	setCurrentSession(session)
 	_ = wsjson.Write(context.Background(), c, gin.H{"type": "answer", "data": sd})
 	return nil
 }

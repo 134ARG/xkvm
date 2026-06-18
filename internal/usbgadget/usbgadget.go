@@ -82,7 +82,8 @@ type UsbGadget struct {
 
 	absMouseAccumulatedWheelY float64
 
-	lastUserInput time.Time
+	lastUserInput     time.Time
+	lastUserInputLock sync.Mutex
 
 	tx     *UsbGadgetTransaction
 	txLock sync.Mutex
@@ -167,12 +168,14 @@ func (u *UsbGadget) Close() error {
 
 // CloseHidFiles closes all open HID device files
 func (u *UsbGadget) CloseHidFiles() {
+	u.keyboardLock.Lock()
+	// keyboardStateCancel is also mutated under keyboardLock in
+	// StartKeyboardLedListener; access it here under the same lock to avoid a
+	// data race. cancel() is non-blocking so it's safe to call while holding it.
 	if u.keyboardStateCancel != nil {
 		u.keyboardStateCancel()
 		u.keyboardStateCancel = nil
 	}
-
-	u.keyboardLock.Lock()
 	if u.keyboardWriteHidFile != nil {
 		u.keyboardWriteHidFile.Close()
 		u.keyboardWriteHidFile = nil

@@ -36,20 +36,20 @@ func initUsbGadget() {
 	}()
 
 	gadget.SetOnKeyboardStateChange(func(state usbgadget.KeyboardState) {
-		if currentSession != nil {
-			currentSession.reportHidRPCKeyboardLedState(state)
+		if cs := getCurrentSession(); cs != nil {
+			cs.reportHidRPCKeyboardLedState(state)
 		}
 	})
 
 	gadget.SetOnKeysDownChange(func(state usbgadget.KeysDownState) {
-		if currentSession != nil {
-			currentSession.enqueueKeysDownState(state)
+		if cs := getCurrentSession(); cs != nil {
+			cs.enqueueKeysDownState(state)
 		}
 	})
 
 	gadget.SetOnKeepAliveReset(func() {
-		if currentSession != nil {
-			currentSession.resetKeepAliveTime()
+		if cs := getCurrentSession(); cs != nil {
+			cs.resetKeepAliveTime()
 		}
 	})
 
@@ -119,11 +119,12 @@ func rpcGetUSBState() (state string) {
 
 func triggerUSBStateUpdate() {
 	go func() {
-		if currentSession == nil {
+		cs := getCurrentSession()
+		if cs == nil {
 			usbLogger.Info().Msg("No active RPC session, skipping USB state update")
 			return
 		}
-		writeJSONRPCEvent("usbState", usbState, currentSession)
+		writeJSONRPCEvent("usbState", usbState, cs)
 	}()
 }
 

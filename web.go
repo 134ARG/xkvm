@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/134ARG/xkvm/internal/logging"
@@ -219,7 +220,15 @@ func setupRouter() *gin.Engine {
 }
 
 // TODO: support multiple sessions?
-var currentSession *Session
+var currentSessionPtr atomic.Pointer[Session]
+
+// getCurrentSession returns the active session pointer (or nil) atomically.
+// Callers must capture the result into a local before use to avoid TOCTOU races
+// with session replacement/teardown.
+func getCurrentSession() *Session { return currentSessionPtr.Load() }
+
+// setCurrentSession atomically sets the active session pointer.
+func setCurrentSession(s *Session) { currentSessionPtr.Store(s) }
 
 func handleWebRTCSession(c *gin.Context) {
 	var req WebRTCSessionRequest
@@ -242,9 +251,9 @@ func handleWebRTCSession(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
 		return
 	}
-	if currentSession != nil {
-		writeJSONRPCEvent("otherSessionConnected", nil, currentSession)
-		peerConn := currentSession.peerConnection
+	if cs := getCurrentSession(); cs != nil {
+		writeJSONRPCEvent("otherSessionConnected", nil, cs)
+		peerConn := cs.peerConnection
 		go func() {
 			time.Sleep(1 * time.Second)
 			_ = peerConn.Close()
@@ -254,7 +263,7 @@ func handleWebRTCSession(c *gin.Context) {
 	// Cancel any ongoing keyboard macro when session changes
 	cancelKeyboardMacro()
 
-	currentSession = session
+	setCurrentSession(session)
 	c.JSON(http.StatusOK, gin.H{"sd": sd})
 }
 
@@ -449,13 +458,14 @@ func handleWebRTCSignalWsMessages(
 
 			l.Info().Str("data", fmt.Sprintf("%v", candidate)).Msg("unmarshalled incoming ICE candidate")
 
-			if currentSession == nil {
+			cs := getCurrentSession()
+			if cs == nil {
 				l.Warn().Msg("no current session, skipping incoming ICE candidate")
 				continue
 			}
 
 			l.Info().Str("data", fmt.Sprintf("%v", candidate)).Msg("adding incoming ICE candidate to current session")
-			if err = currentSession.peerConnection.AddICECandidate(candidate); err != nil {
+			if err = cs.peerConnection.AddICECandidate(candidate); err != nil {
 				l.Warn().Str("error", err.Error()).Msg("failed to add incoming ICE candidate to our peer connection")
 			}
 		}

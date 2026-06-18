@@ -92,8 +92,8 @@ func restartMdns() {
 func networkStateChanged(_ string, state types.InterfaceState) {
 	// do not block the main thread
 
-	if currentSession != nil {
-		writeJSONRPCEvent("networkState", state.ToRpcInterfaceState(), currentSession)
+	if cs := getCurrentSession(); cs != nil {
+		writeJSONRPCEvent("networkState", state.ToRpcInterfaceState(), cs)
 	}
 
 	if state.Online {

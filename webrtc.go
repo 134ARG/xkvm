@@ -39,6 +39,21 @@ type Session struct {
 	hidQueue                 []chan hidQueueMessage
 
 	keysDownStateQueue chan usbgadget.KeysDownState
+
+	// done is closed exactly once (guarded by closeOnce) when the session is
+	// torn down. Queue consumers and senders select on it so we never close the
+	// queue channels themselves — this eliminates send-on-closed and
+	// double-close panics during session replacement/teardown.
+	done      chan struct{}
+	closeOnce sync.Once
+}
+
+// teardown signals all queue consumers/senders to stop. It is idempotent and
+// safe to call from multiple goroutines (e.g. repeated ICE state callbacks).
+func (s *Session) teardown() {
+	s.closeOnce.Do(func() {
+		close(s.done)
+	})
 }
 
 var (
@@ -176,8 +191,13 @@ func (s *Session) initQueues() {
 }
 
 func (s *Session) handleQueues(index int) {
-	for msg := range s.hidQueue[index] {
-		onHidMessage(msg, s)
+	for {
+		select {
+		case <-s.done:
+			return
+		case msg := <-s.hidQueue[index]:
+			onHidMessage(msg, s)
+		}
 	}
 }
 
@@ -190,8 +210,13 @@ func (s *Session) initKeysDownStateQueue() {
 }
 
 func (s *Session) handleKeysDownStateQueue() {
-	for state := range s.keysDownStateQueue {
-		s.reportHidRPCKeysDownState(state)
+	for {
+		select {
+		case <-s.done:
+			return
+		case state := <-s.keysDownStateQueue:
+			s.reportHidRPCKeysDownState(state)
+		}
 	}
 }
 
@@ -202,6 +227,7 @@ func (s *Session) enqueueKeysDownState(state usbgadget.KeysDownState) {
 
 	select {
 	case s.keysDownStateQueue <- state:
+	case <-s.done:
 	default:
 		hidRPCLogger.Warn().Msg("dropping keys down state update; queue full")
 	}
@@ -239,9 +265,14 @@ func getOnHidMessageHandler(session *Session, scopedLogger *zerolog.Logger, chan
 
 		queue := session.hidQueue[queueIndex]
 		if queue != nil {
-			queue <- hidQueueMessage{
+			// Select on done so a late message during teardown can't block or
+			// panic (the queue channels are never closed).
+			select {
+			case queue <- hidQueueMessage{
 				DataChannelMessage: msg,
 				channel:            channel,
+			}:
+			case <-session.done:
 			}
 		} else {
 			l.Warn().Int("queueIndex", queueIndex).Msg("received data in HID RPC message handler, but queue is nil")
@@ -321,14 +352,20 @@ func newSession(config SessionConfig) (*Session, error) {
 	}
 
 	session := &Session{peerConnection: peerConnection}
+	session.done = make(chan struct{})
 	session.rpcQueue = make(chan webrtc.DataChannelMessage, 256)
 	session.initQueues()
 	session.initKeysDownStateQueue()
 
 	go func() {
-		for msg := range session.rpcQueue {
-			// TODO: only use goroutine if the task is asynchronous
-			go onRPCMessage(msg, session)
+		for {
+			select {
+			case <-session.done:
+				return
+			case msg := <-session.rpcQueue:
+				// TODO: only use goroutine if the task is asynchronous
+				go onRPCMessage(msg, session)
+			}
 		}
 	}()
 
@@ -357,8 +394,12 @@ func newSession(config SessionConfig) (*Session, error) {
 		case "rpc":
 			session.RPCChannel = d
 			d.OnMessage(func(msg webrtc.DataChannelMessage) {
-				// Enqueue to ensure ordered processing
-				session.rpcQueue <- msg
+				// Enqueue to ensure ordered processing. Select on done so a
+				// late message during teardown can't block or panic.
+				select {
+				case session.rpcQueue <- msg:
+				case <-session.done:
+				}
 			})
 			// Wait for channel to be open before sending initial state
 			d.OnOpen(func() {
@@ -441,25 +482,18 @@ func newSession(config SessionConfig) (*Session, error) {
 		}
 		if connectionState == webrtc.ICEConnectionStateClosed {
 			scopedLogger.Debug().Msg("ICE Connection State is closed, unmounting virtual media")
-			if session == currentSession {
+			// Only clear the global pointer if we're still the active session.
+			// CompareAndSwap avoids clobbering a newer session that already
+			// replaced us.
+			if currentSessionPtr.CompareAndSwap(session, nil) {
 				// Cancel any ongoing keyboard report multi when session closes
 				cancelKeyboardMacro()
-				currentSession = nil
-			}
-			// Stop RPC processor
-			if session.rpcQueue != nil {
-				close(session.rpcQueue)
-				session.rpcQueue = nil
 			}
 
-			// Stop HID RPC processor
-			for i := 0; i < len(session.hidQueue); i++ {
-				close(session.hidQueue[i])
-				session.hidQueue[i] = nil
-			}
-
-			close(session.keysDownStateQueue)
-			session.keysDownStateQueue = nil
+			// Stop all queue consumers/senders exactly once. We deliberately do
+			// not close the queue channels (senders select on done instead),
+			// so this is panic-free even if pion fires Closed more than once.
+			session.teardown()
 
 			if session.shouldUmountVirtualMedia {
 				if err := rpcUnmountImage(); err != nil {
@@ -480,11 +514,11 @@ func newSession(config SessionConfig) (*Session, error) {
 }
 
 func onActiveSessionsChanged() {
-	notifyFailsafeMode(currentSession)
+	notifyFailsafeMode(getCurrentSession())
 }
 
 func onFirstSessionConnected() {
-	notifyFailsafeMode(currentSession)
+	notifyFailsafeMode(getCurrentSession())
 	_ = nativeInstance.VideoStart()
 	stopVideoSleepModeTicker()
 }

@@ -112,7 +112,7 @@ func Main() {
 					continue
 				}
 
-				if currentSession != nil {
+				if getCurrentSession() != nil {
 					logger.Debug().Msg("skipping update since a session is active")
 					time.Sleep(1 * time.Minute)
 					continue
