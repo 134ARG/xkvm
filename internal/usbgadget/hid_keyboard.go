@@ -115,19 +115,23 @@ func getKeyboardState(b byte) KeyboardState {
 
 func (u *UsbGadget) updateKeyboardState(state byte) {
 	u.keyboardStateLock.Lock()
-	defer u.keyboardStateLock.Unlock()
 
 	if state&^ValidKeyboardLedMasks != 0 {
+		u.keyboardStateLock.Unlock()
 		u.log.Warn().Uint8("state", state).Msg("ignoring invalid bits")
 		return
 	}
 
 	if u.keyboardState == state {
+		u.keyboardStateLock.Unlock()
 		return
 	}
 	u.log.Trace().Uint8("old", u.keyboardState).Uint8("new", state).Msg("keyboardState updated")
 	u.keyboardState = state
+	u.keyboardStateLock.Unlock()
 
+	// Invoke the callback without holding the lock, matching how onKeysDownChange
+	// is dispatched, so a slow/re-entrant consumer can't stall state updates.
 	if u.onKeyboardStateChange != nil {
 		(*u.onKeyboardStateChange)(getKeyboardState(state))
 	}
@@ -460,10 +464,6 @@ func (u *UsbGadget) UpdateKeysDown(modifier byte, keys []byte) KeysDownState {
 func (u *UsbGadget) KeyboardReport(modifier byte, keys []byte) error {
 	defer u.resetUserInputTime()
 
-	if u.IsHidSuspended() {
-		return nil
-	}
-
 	if len(keys) > hidKeyBufferSize {
 		keys = keys[:hidKeyBufferSize]
 	}
@@ -473,6 +473,12 @@ func (u *UsbGadget) KeyboardReport(modifier byte, keys []byte) error {
 
 	u.keyboardLock.Lock()
 	defer u.keyboardLock.Unlock()
+
+	// Check suspension under the lock the reconfigure path also takes, so a
+	// report can't reopen a HID file that CloseHidFiles just closed.
+	if u.IsHidSuspended() {
+		return nil
+	}
 
 	if err := u.writeKeyboardHidReportLocked(modifier, keys); err != nil {
 		u.log.Warn().Uint8("modifier", modifier).Uints8("keys", keys).Msg("could not write keyboard report to hidg0")
@@ -607,11 +613,11 @@ func (u *UsbGadget) keypressReportLocked(key byte, press bool) (KeysDownState, e
 }
 
 func (u *UsbGadget) KeypressReport(key byte, press bool) error {
+	u.keyboardLock.Lock()
 	if u.IsHidSuspended() {
+		u.keyboardLock.Unlock()
 		return nil
 	}
-
-	u.keyboardLock.Lock()
 	state, err := u.keypressReportLocked(key, press)
 	u.keyboardLock.Unlock()
 

@@ -43,6 +43,10 @@ func getMassStorageImage() (string, error) {
 	return strings.TrimSpace(string(imagePath)), nil
 }
 
+// setMassStorageImage attaches (or, with an empty path, detaches) the backing
+// image by writing the LUN's "file" attribute. The host can briefly hold the
+// LUN busy after a medium change, so an EBUSY write is retried with exponential
+// backoff.
 func setMassStorageImage(imagePath string) error {
 	if gadget == nil || !gadget.IsInitialized() {
 		return fmt.Errorf("USB gadget not initialized")
@@ -52,47 +56,55 @@ func setMassStorageImage(imagePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get mass storage path: %w", err)
 	}
+	filePath := path.Join(massStorageFunctionPath, "file")
 
-	if err := writeFile(path.Join(massStorageFunctionPath, "file"), imagePath); err != nil {
-		return fmt.Errorf("failed to set image path: %w", err)
+	const maxAttempts = 5
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		err = writeFile(filePath, imagePath)
+		if err == nil {
+			return nil
+		}
+		if !errors.Is(err, syscall.EBUSY) || attempt == maxAttempts-1 {
+			break
+		}
+		backoff := 50 * time.Millisecond * time.Duration(int64(1)<<attempt)
+		logger.Warn().Err(err).Dur("backoff", backoff).Int("attempt", attempt+1).
+			Msg("mass storage LUN busy, retrying")
+		time.Sleep(backoff)
 	}
-	return nil
+	return fmt.Errorf("failed to set image path: %w", err)
 }
 
-func setMassStorageMode(cdrom bool) error {
+// ejectMassStorage detaches the current medium, preferring forced_eject (a clean
+// SCSI medium-change notification) and falling back to clearing the LUN file.
+func ejectMassStorage() error {
 	if gadget == nil || !gadget.IsInitialized() {
 		return fmt.Errorf("USB gadget not initialized")
 	}
 
-	mode := "0"
-	if cdrom {
-		mode = "1"
-	}
-
-	err, changed := gadget.OverrideGadgetConfig("mass_storage_lun0", "cdrom", mode)
+	massStorageFunctionPath, err := gadget.GetPath("mass_storage_lun0")
 	if err != nil {
-		return fmt.Errorf("failed to set cdrom mode: %w", err)
+		return fmt.Errorf("failed to get mass storage path: %w", err)
 	}
 
-	if !changed {
-		return nil
+	forcedEjectPath := path.Join(massStorageFunctionPath, "forced_eject")
+	if _, statErr := os.Stat(forcedEjectPath); statErr == nil {
+		if err := writeFile(forcedEjectPath, "1"); err == nil {
+			return nil
+		}
+		// fall through to clearing the file if forced_eject fails
 	}
-
-	return gadget.UpdateGadgetConfig()
+	return setMassStorageImage("")
 }
 
 func mountImage(imagePath string) error {
-	err := setMassStorageImage("")
-	if err != nil {
-		return fmt.Errorf("remove mass storage image error: %w", err)
+	if err := ejectMassStorage(); err != nil {
+		return fmt.Errorf("eject before mount error: %w", err)
 	}
-	err = setMassStorageImage(imagePath)
-	if err != nil {
+	// Give the host a moment to register the medium removal before re-attaching.
+	time.Sleep(50 * time.Millisecond)
+	if err := setMassStorageImage(imagePath); err != nil {
 		return fmt.Errorf("set mass storage image error: %w", err)
-	}
-	err = setMassStorageImage(imagePath)
-	if err != nil {
-		return fmt.Errorf("set Mass Storage Image Error: %w", err)
 	}
 	return nil
 }
@@ -146,24 +158,6 @@ func rpcMountBuiltInImage(filename string) error {
 	return mountImage(imagePath)
 }
 
-func getMassStorageCDROMEnabled() (bool, error) {
-	if gadget == nil || !gadget.IsInitialized() {
-		return false, fmt.Errorf("USB gadget not initialized")
-	}
-
-	massStorageFunctionPath, err := gadget.GetPath("mass_storage_lun0")
-	if err != nil {
-		return false, fmt.Errorf("failed to get mass storage path: %w", err)
-	}
-	data, err := os.ReadFile(path.Join(massStorageFunctionPath, "cdrom"))
-	if err != nil {
-		return false, fmt.Errorf("failed to read cdrom mode: %w", err)
-	}
-	// Trim any whitespace characters. It has a newline at the end
-	trimmedData := strings.TrimSpace(string(data))
-	return trimmedData == "1", nil
-}
-
 type VirtualMediaUrlInfo struct {
 	Usable bool
 	Reason string //only populated if Usable is false
@@ -208,8 +202,7 @@ func rpcGetVirtualMediaState() (*VirtualMediaState, error) {
 func rpcUnmountImage() error {
 	virtualMediaStateMutex.Lock()
 	defer virtualMediaStateMutex.Unlock()
-	err := setMassStorageImage("\n")
-	if err != nil {
+	if err := ejectMassStorage(); err != nil {
 		logger.Warn().Err(err).Msg("Remove Mass Storage Image Error")
 	}
 	//TODO: check if we still need it
@@ -225,11 +218,6 @@ func rpcUnmountImage() error {
 var httpRangeReader *httpreadat.RangeReader
 
 func getInitialVirtualMediaState() (*VirtualMediaState, error) {
-	cdromEnabled, err := getMassStorageCDROMEnabled()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get mass storage cdrom enabled: %w", err)
-	}
-
 	diskPath, err := getMassStorageImage()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get mass storage image: %w", err)
@@ -238,10 +226,6 @@ func getInitialVirtualMediaState() (*VirtualMediaState, error) {
 	initialState := &VirtualMediaState{
 		Source: Storage,
 		Mode:   Disk,
-	}
-
-	if cdromEnabled {
-		initialState.Mode = CDROM
 	}
 
 	switch diskPath {
@@ -302,13 +286,9 @@ func rpcMountWithHTTP(url string, mode VirtualMediaMode) error {
 	}
 	logger.Info().Str("url", url).Int64("size", n).Msg("using remote url")
 
-	if err := setMassStorageMode(mode == CDROM); err != nil {
-		return fmt.Errorf("failed to set mass storage mode: %w", err)
-	}
-
 	currentVirtualMediaState = &VirtualMediaState{
 		Source: HTTP,
-		Mode:   mode,
+		Mode:   Disk,
 		URL:    url,
 		Size:   n,
 	}
@@ -350,17 +330,13 @@ func rpcMountWithStorage(filename string, mode VirtualMediaMode) error {
 		return fmt.Errorf("failed to get file info: %w", err)
 	}
 
-	if err := setMassStorageMode(mode == CDROM); err != nil {
-		return fmt.Errorf("failed to set mass storage mode: %w", err)
-	}
-
 	err = setMassStorageImage(fullPath)
 	if err != nil {
 		return fmt.Errorf("failed to set mass storage image: %w", err)
 	}
 	currentVirtualMediaState = &VirtualMediaState{
 		Source:   Storage,
-		Mode:     mode,
+		Mode:     Disk,
 		Filename: filename,
 		Size:     fileInfo.Size(),
 	}

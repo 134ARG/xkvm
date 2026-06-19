@@ -405,7 +405,7 @@ func newSession(config SessionConfig) (*Session, error) {
 			d.OnOpen(func() {
 				// triggerOTAStateUpdate(otaState.ToRPCState())
 				triggerVideoStateUpdate()
-				triggerUSBStateUpdate()
+				triggerUSBStateUpdate(currentUSBState())
 				notifyFailsafeMode(session)
 			})
 		case "terminal":

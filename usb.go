@@ -117,14 +117,21 @@ func rpcGetUSBState() (state string) {
 	return gadget.GetUsbState()
 }
 
-func triggerUSBStateUpdate() {
+// currentUSBState returns the last observed USB state under the lock.
+func currentUSBState() string {
+	usbStateLock.Lock()
+	defer usbStateLock.Unlock()
+	return usbState
+}
+
+func triggerUSBStateUpdate(state string) {
 	go func() {
 		cs := getCurrentSession()
 		if cs == nil {
 			usbLogger.Info().Msg("No active RPC session, skipping USB state update")
 			return
 		}
-		writeJSONRPCEvent("usbState", usbState, cs)
+		writeJSONRPCEvent("usbState", state, cs)
 	}()
 }
 
@@ -144,8 +151,8 @@ func checkUSBState() {
 		return
 	}
 
-	usbState = newState
 	usbLogger.Info().Str("from", usbState).Str("to", newState).Msg("USB state changed")
+	usbState = newState
 
-	triggerUSBStateUpdate()
+	triggerUSBStateUpdate(newState)
 }

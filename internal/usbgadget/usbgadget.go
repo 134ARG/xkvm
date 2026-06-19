@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/134ARG/xkvm/internal/logging"
@@ -80,13 +81,8 @@ type UsbGadget struct {
 
 	strictMode bool // only intended for testing for now
 
-	absMouseAccumulatedWheelY float64
-
 	lastUserInput     time.Time
 	lastUserInputLock sync.Mutex
-
-	tx     *UsbGadgetTransaction
-	txLock sync.Mutex
 
 	onKeyboardStateChange *func(state KeyboardState)
 	onKeysDownChange      *func(state KeysDownState)
@@ -99,6 +95,11 @@ type UsbGadget struct {
 
 	hidSuspended     bool
 	hidSuspendedLock sync.RWMutex
+
+	// initialized is set once Init() successfully builds and binds the gadget.
+	// It is read on every HID report, so it avoids the per-call filesystem stat
+	// that IsInitialized used to perform.
+	initialized atomic.Bool
 }
 
 const configFSPath = "/sys/kernel/config"
@@ -135,7 +136,6 @@ func newUsbGadget(name string, configMap map[string]gadgetConfigItem, enabledDev
 		keyboardLock:         sync.Mutex{},
 		absMouseLock:         sync.Mutex{},
 		relMouseLock:         sync.Mutex{},
-		txLock:               sync.Mutex{},
 		keyboardState:        0,
 		keysDownState:        KeysDownState{Modifier: 0, Keys: []byte{0, 0, 0, 0, 0, 0}}, // must be initialized to hidKeyBufferSize (6) zero bytes
 		kbdAutoReleaseTimers: make(map[byte]*time.Timer),
@@ -146,8 +146,6 @@ func newUsbGadget(name string, configMap map[string]gadgetConfigItem, enabledDev
 		strictMode: config.strictMode,
 
 		logSuppressionCounter: make(map[string]int),
-
-		absMouseAccumulatedWheelY: 0,
 	}
 	if err := g.Init(); err != nil {
 		logger.Error().Err(err).Msg("failed to init USB gadget")

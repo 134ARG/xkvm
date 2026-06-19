@@ -1,9 +1,7 @@
 package usbgadget
 
 import (
-	"errors"
 	"fmt"
-	"os"
 )
 
 var absoluteMouseConfig = gadgetConfigItem{
@@ -70,27 +68,7 @@ func (u *UsbGadget) absMouseWriteHidFile(data []byte) error {
 	if !u.enabledDevices.AbsoluteMouse {
 		return fmt.Errorf("absolute mouse HID device is disabled")
 	}
-
-	if u.absMouseHidFile == nil {
-		var err error
-		u.absMouseHidFile, err = os.OpenFile("/dev/hidg1", os.O_RDWR, 0666)
-		if err != nil {
-			return fmt.Errorf("failed to open hidg1: %w", err)
-		}
-	}
-
-	_, err := u.writeWithTimeout(u.absMouseHidFile, data)
-	if err != nil {
-		if errors.Is(err, os.ErrDeadlineExceeded) {
-			return nil
-		}
-		u.absMouseHidFile.Close()
-		u.absMouseHidFile = nil
-		u.logWithSuppression("absMouseWriteHidFile", 100, u.log, err, "failed to write to hidg1")
-		return err
-	}
-	u.resetLogSuppressionCounter("absMouseWriteHidFile")
-	return nil
+	return u.hidWriteLocked(&u.absMouseHidFile, absMouseHidPath, data, hidWriteTimeout, "absMouseWriteHidFile")
 }
 
 func (u *UsbGadget) AbsMouseReport(x int, y int, buttons uint8) error {
