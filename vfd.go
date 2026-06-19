@@ -69,8 +69,9 @@ var vfdState = struct {
 
 const (
 	vfdChildReadyMessage = "READY"
-	vfdChildMaxAttempts  = 3
 	vfdChildReadyTimeout = 10 * time.Second
+	vfdChildRestartDelay = 2 * time.Second
+	vfdChildMaxBackoff   = 30 * time.Second
 )
 
 func initHostMetricsListener() {
@@ -96,30 +97,45 @@ func initVFD() {
 		return
 	}
 
-	rendererStarted := startVFDChild(config.VFDDevicePath)
-	logger.Info().
-		Bool("renderer_started", rendererStarted).
-		Msg("VFD renderer initialized")
+	go superviseVFDChild(config.VFDDevicePath)
+	logger.Info().Msg("VFD renderer supervisor started")
 }
 
-func startVFDChild(devicePath string) bool {
-	for attempt := 1; attempt <= vfdChildMaxAttempts; attempt++ {
-		if startVFDChildAttempt(devicePath, attempt) {
-			return true
+// superviseVFDChild keeps the VFD renderer subprocess alive: it (re)starts the
+// child whenever it exits or fails to start, so a transient renderer crash or a
+// broken stdin pipe no longer leaves the display permanently dark. Start
+// failures back off exponentially; a child that ran successfully resets the
+// backoff before being restarted.
+func superviseVFDChild(devicePath string) {
+	backoff := vfdChildRestartDelay
+	for {
+		waitExit, ok := startVFDChildAttempt(devicePath)
+		if ok {
+			backoff = vfdChildRestartDelay
+			waitExit() // blocks until the child exits
+			logger.Warn().Dur("restart_delay", vfdChildRestartDelay).Msg("VFD renderer exited; restarting")
+			time.Sleep(vfdChildRestartDelay)
+			continue
 		}
-		time.Sleep(time.Second)
+
+		logger.Warn().Dur("backoff", backoff).Msg("VFD renderer failed to start; retrying")
+		time.Sleep(backoff)
+		backoff *= 2
+		if backoff > vfdChildMaxBackoff {
+			backoff = vfdChildMaxBackoff
+		}
 	}
-	logger.Warn().
-		Int("attempts", vfdChildMaxAttempts).
-		Msg("VFD renderer failed to start; host metrics receiver remains active")
-	return false
 }
 
-func startVFDChildAttempt(devicePath string, attempt int) bool {
+// startVFDChildAttempt starts the renderer subprocess and waits for its READY
+// handshake. On success it returns a waitExit function that blocks until the
+// child exits (cleaning up the stdin handle) and ok=true; on any failure it
+// returns nil, false.
+func startVFDChildAttempt(devicePath string) (func(), bool) {
 	binaryPath, err := os.Executable()
 	if err != nil {
 		logger.Warn().Err(err).Msg("failed to resolve executable for VFD renderer process")
-		return false
+		return nil, false
 	}
 
 	cmd := exec.Command(binaryPath, "-subcomponent=vfd", "-vfd-device", devicePath)
@@ -131,18 +147,18 @@ func startVFDChildAttempt(devicePath string, attempt int) bool {
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		logger.Warn().Err(err).Int("attempt", attempt).Msg("failed to open VFD renderer stdout")
-		return false
+		logger.Warn().Err(err).Msg("failed to open VFD renderer stdout")
+		return nil, false
 	}
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		logger.Warn().Err(err).Int("attempt", attempt).Msg("failed to open VFD renderer stdin")
-		return false
+		logger.Warn().Err(err).Msg("failed to open VFD renderer stdin")
+		return nil, false
 	}
 	if err := cmd.Start(); err != nil {
 		_ = stdin.Close()
-		logger.Warn().Err(err).Int("attempt", attempt).Msg("failed to start VFD renderer process")
-		return false
+		logger.Warn().Err(err).Msg("failed to start VFD renderer process")
+		return nil, false
 	}
 
 	ready := make(chan bool, 1)
@@ -168,35 +184,38 @@ func startVFDChildAttempt(devicePath string, attempt int) bool {
 		if !ok {
 			_ = stdin.Close()
 			_ = cmd.Wait()
-			logger.Warn().Int("attempt", attempt).Msg("VFD renderer exited before ready")
-			return false
+			logger.Warn().Msg("VFD renderer exited before ready")
+			return nil, false
 		}
 	case <-time.After(vfdChildReadyTimeout):
 		_ = stdin.Close()
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
-		logger.Warn().Int("attempt", attempt).Dur("timeout", vfdChildReadyTimeout).Msg("VFD renderer ready timeout")
-		return false
+		logger.Warn().Dur("timeout", vfdChildReadyTimeout).Msg("VFD renderer ready timeout")
+		return nil, false
 	}
 
 	vfdState.Lock()
 	vfdState.childStdin = stdin
 	vfdState.Unlock()
 
-	go func() {
-		if err := cmd.Wait(); err != nil {
-			logger.Warn().Err(err).Msg("VFD renderer exited")
-		} else {
-			logger.Info().Msg("VFD renderer exited")
-		}
+	logger.Info().Int("pid", cmd.Process.Pid).Msg("VFD renderer started")
+
+	waitExit := func() {
+		waitErr := cmd.Wait()
 		vfdState.Lock()
 		if vfdState.childStdin == stdin {
 			vfdState.childStdin = nil
 		}
 		vfdState.Unlock()
-	}()
-	logger.Info().Int("pid", cmd.Process.Pid).Int("attempt", attempt).Msg("VFD renderer started")
-	return true
+		_ = stdin.Close()
+		if waitErr != nil {
+			logger.Warn().Err(waitErr).Msg("VFD renderer exited")
+		} else {
+			logger.Info().Msg("VFD renderer exited")
+		}
+	}
+	return waitExit, true
 }
 
 func runVFDHostMetricsServer(port int) {
@@ -285,10 +304,12 @@ func writeVFDChildMetrics(metrics VFDHostMetrics) {
 	if vfdState.childStdin == nil {
 		return
 	}
+	// On error, just log: the supervisor owns the child lifecycle and will
+	// observe the exit and restart it. Tearing the pipe down here would turn a
+	// transient write hiccup into a forced restart (or, before supervision, a
+	// permanently dark display).
 	if _, err := vfdState.childStdin.Write(payload); err != nil {
-		logger.Warn().Err(err).Msg("failed to write VFD renderer metrics")
-		_ = vfdState.childStdin.Close()
-		vfdState.childStdin = nil
+		logger.Debug().Err(err).Msg("failed to write VFD renderer metrics")
 	}
 }
 
