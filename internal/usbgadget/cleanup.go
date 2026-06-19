@@ -135,21 +135,12 @@ func (u *UsbGadget) removeFunctionDirs() error {
 	return nil
 }
 
-// IsInitialized checks if the USB gadget is properly initialized
+// IsInitialized reports whether Init() has successfully built and bound the
+// gadget. It is called on every HID report, so it must stay allocation- and
+// syscall-free.
 func (u *UsbGadget) IsInitialized() bool {
 	if u == nil {
 		return false
 	}
-
-	// Check if gadget directory exists
-	if _, err := os.Stat(u.kvmGadgetPath); os.IsNotExist(err) {
-		return false
-	}
-
-	// Check if UDC is set
-	if u.udc == "" {
-		return false
-	}
-
-	return true
+	return u.initialized.Load()
 }

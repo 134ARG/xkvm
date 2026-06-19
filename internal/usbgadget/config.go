@@ -133,29 +133,6 @@ func (u *UsbGadget) GetPath(itemKey string) (string, error) {
 	return joinPath(u.kvmGadgetPath, item.path), nil
 }
 
-// OverrideGadgetConfig overrides the gadget config for the given item and attribute.
-// It returns an error if the item is not found or the attribute is not found.
-// It returns true if the attribute is overridden, false otherwise.
-func (u *UsbGadget) OverrideGadgetConfig(itemKey string, itemAttr string, value string) (error, bool) {
-	u.configLock.Lock()
-	defer u.configLock.Unlock()
-
-	// get it as a pointer
-	_, ok := u.configMap[itemKey]
-	if !ok {
-		return fmt.Errorf("config item %s not found", itemKey), false
-	}
-
-	if u.configMap[itemKey].attrs[itemAttr] == value {
-		return nil, false
-	}
-
-	u.configMap[itemKey].attrs[itemAttr] = value
-	u.log.Info().Str("itemKey", itemKey).Str("itemAttr", itemAttr).Str("value", value).Msg("overriding gadget config")
-
-	return nil, true
-}
-
 func mountConfigFS(path string) error {
 	err := exec.Command("mount", "-t", "configfs", "none", path).Run()
 	if err != nil {
@@ -181,11 +158,11 @@ func (u *UsbGadget) Init() error {
 		u.log.Warn().Err(err).Msg("failed to cleanup stale gadget, continuing with init")
 	}
 
-	err := u.configureUsbGadget(false)
-	if err != nil {
+	if err := u.writeGadget(); err != nil {
 		return u.logError("unable to initialize USB stack", err)
 	}
 
+	u.initialized.Store(true)
 	return nil
 }
 
@@ -201,23 +178,18 @@ func (u *UsbGadget) UpdateGadgetConfig() error {
 
 	u.loadGadgetConfig()
 
-	err := u.configureUsbGadget(true)
-	if err != nil {
+	// Tear the gadget down completely (unbinds the UDC and removes the tree),
+	// then rebuild and re-bind from scratch. Reconfiguring the function set
+	// requires re-enumeration anyway, so a full teardown+rebuild is both simpler
+	// and matches the observable behavior of the old rebind path.
+	if err := u.cleanupStaleGadget(); err != nil {
+		u.log.Warn().Err(err).Msg("failed to tear down gadget before rebuild, continuing")
+	}
+
+	if err := u.writeGadget(); err != nil {
 		return u.logError("unable to update gadget config", err)
 	}
 
 	u.StartKeyboardLedListener()
 	return nil
-}
-
-func (u *UsbGadget) configureUsbGadget(resetUsb bool) error {
-	return u.WithTransaction(func() error {
-		u.tx.MountConfigFS()
-		u.tx.CreateConfigPath()
-		u.tx.WriteGadgetConfig()
-		if resetUsb {
-			u.tx.RebindUsb(true)
-		}
-		return nil
-	})
 }

@@ -1,9 +1,7 @@
 package usbgadget
 
 import (
-	"errors"
 	"fmt"
-	"os"
 )
 
 var relativeMouseConfig = gadgetConfigItem{
@@ -60,27 +58,7 @@ func (u *UsbGadget) relMouseWriteHidFile(data []byte) error {
 	if !u.enabledDevices.RelativeMouse {
 		return fmt.Errorf("relative mouse HID device is disabled")
 	}
-
-	if u.relMouseHidFile == nil {
-		var err error
-		u.relMouseHidFile, err = os.OpenFile("/dev/hidg2", os.O_RDWR, 0666)
-		if err != nil {
-			return fmt.Errorf("failed to open hidg2: %w", err)
-		}
-	}
-
-	_, err := u.writeWithTimeout(u.relMouseHidFile, data)
-	if err != nil {
-		if errors.Is(err, os.ErrDeadlineExceeded) {
-			return nil
-		}
-		u.relMouseHidFile.Close()
-		u.relMouseHidFile = nil
-		u.logWithSuppression("relMouseWriteHidFile", 100, u.log, err, "failed to write to hidg2")
-		return err
-	}
-	u.resetLogSuppressionCounter("relMouseWriteHidFile")
-	return nil
+	return u.hidWriteLocked(&u.relMouseHidFile, relMouseHidPath, data, hidWriteTimeout, "relMouseWriteHidFile")
 }
 
 func (u *UsbGadget) RelMouseReport(mx int8, my int8, buttons uint8) error {

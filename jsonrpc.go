@@ -419,45 +419,6 @@ func asError(value reflect.Value) (bool, error) {
 	return false, nil
 }
 
-func rpcSetMassStorageMode(mode string) (string, error) {
-	logger.Info().Str("mode", mode).Msg("Setting mass storage mode")
-	var cdrom bool
-	switch mode {
-	case "cdrom":
-		cdrom = true
-	case "file":
-		cdrom = false
-	default:
-		logger.Info().Str("mode", mode).Msg("Invalid mode provided")
-		return "", fmt.Errorf("invalid mode: %s", mode)
-	}
-
-	logger.Info().Str("mode", mode).Msg("Setting mass storage mode")
-
-	err := setMassStorageMode(cdrom)
-	if err != nil {
-		return "", fmt.Errorf("failed to set mass storage mode: %w", err)
-	}
-
-	logger.Info().Str("mode", mode).Msg("Mass storage mode set")
-
-	// Get the updated mode after setting
-	return rpcGetMassStorageMode()
-}
-
-func rpcGetMassStorageMode() (string, error) {
-	cdrom, err := getMassStorageCDROMEnabled()
-	if err != nil {
-		return "", fmt.Errorf("failed to get mass storage mode: %w", err)
-	}
-
-	mode := "file"
-	if cdrom {
-		mode = "cdrom"
-	}
-	return mode, nil
-}
-
 // func rpcIsUpdatePending() (bool, error) {
 // 	return otaState.IsUpdatePending(), nil
 // }
@@ -1180,10 +1141,8 @@ var rpcHandlers = map[string]RPCHandler{
 	// "tryUpdate":              {Func: rpcTryUpdate},
 	// "tryUpdateComponents":    {Func: rpcTryUpdateComponents, Params: []string{"params", "includePreRelease", "resetConfig"}},
 	// Developer mode and SSH key management RPC handlers removed - not needed on full Linux systems
-	"getTLSState":        {Func: rpcGetTLSState},
-	"setTLSState":        {Func: rpcSetTLSState, Params: []string{"state"}},
-	"setMassStorageMode": {Func: rpcSetMassStorageMode, Params: []string{"mode"}},
-	"getMassStorageMode": {Func: rpcGetMassStorageMode},
+	"getTLSState": {Func: rpcGetTLSState},
+	"setTLSState": {Func: rpcSetTLSState, Params: []string{"state"}},
 	// "getUsbGadgetHealth": {Func: rpcGetUsbGadgetHealth},
 	// OTA RPC handler disabled
 	// "isUpdatePending":        {Func: rpcIsUpdatePending},
