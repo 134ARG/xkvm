@@ -5,7 +5,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
+
+// gadgetUnbindSettleDelay gives the kernel a moment to finish tearing down a
+// just-unbound gadget before its function directories and symlinks are removed.
+// Without it, configfs rmdir can fail with EBUSY and leave stale symlinks
+// behind, which would keep a now-disabled function enabled after a rebuild.
+const gadgetUnbindSettleDelay = 100 * time.Millisecond
 
 // cleanupStaleGadget removes any leftover USB gadget configuration from previous runs
 func (u *UsbGadget) cleanupStaleGadget() error {
@@ -67,7 +74,12 @@ func (u *UsbGadget) unbindStaleGadgetUDC() error {
 	if strings.TrimSpace(string(content)) == "" {
 		return nil
 	}
-	return os.WriteFile(udcPath, []byte("\n"), 0644)
+	if err := os.WriteFile(udcPath, []byte("\n"), 0644); err != nil {
+		return err
+	}
+	// Let the kernel settle before the caller removes function dirs/symlinks.
+	time.Sleep(gadgetUnbindSettleDelay)
+	return nil
 }
 
 // removeConfigSymlinks removes all symlinks in the config directory

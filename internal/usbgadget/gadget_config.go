@@ -35,17 +35,22 @@ func (u *UsbGadget) getOrderedConfigItems() orderedGadgetConfigItems {
 // configfs orders functions in a configuration by the order in which their
 // symlinks are created, so iterating getOrderedConfigItems() (sorted by .order)
 // gives a stable, correct enumeration order.
+//
+// It returns raw errors so callers (Init/UpdateGadgetConfig) decide how to
+// surface them via logError/logWarn. Routing failures through logError here
+// would, in non-strict mode, turn them into nil and let a half-built gadget be
+// reported as initialized.
 func (u *UsbGadget) writeGadget() error {
 	if u.udc == "" {
-		return u.logError("no udc available, cannot write gadget", nil)
+		return fmt.Errorf("no udc available, cannot write gadget")
 	}
 
 	if err := u.ensureConfigFSMounted(); err != nil {
-		return u.logError("failed to mount configfs", err)
+		return fmt.Errorf("failed to mount configfs: %w", err)
 	}
 
 	if err := os.MkdirAll(u.kvmGadgetPath, 0755); err != nil {
-		return u.logError("failed to create gadget path", err)
+		return fmt.Errorf("failed to create gadget path: %w", err)
 	}
 
 	for _, val := range u.getOrderedConfigItems() {
@@ -53,7 +58,7 @@ func (u *UsbGadget) writeGadget() error {
 			continue
 		}
 		if err := u.writeGadgetItem(val.item); err != nil {
-			return u.logError(fmt.Sprintf("failed to write gadget item %s", val.key), err)
+			return fmt.Errorf("failed to write gadget item %s: %w", val.key, err)
 		}
 	}
 
@@ -61,7 +66,7 @@ func (u *UsbGadget) writeGadget() error {
 	// place, including the function symlinks.
 	udcPath := path.Join(u.kvmGadgetPath, "UDC")
 	if err := os.WriteFile(udcPath, []byte(u.udc), 0644); err != nil {
-		return u.logError("failed to bind UDC", err)
+		return fmt.Errorf("failed to bind UDC: %w", err)
 	}
 
 	u.log.Info().Str("udc", u.udc).Msg("USB gadget written and bound")
