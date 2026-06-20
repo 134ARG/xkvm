@@ -131,6 +131,50 @@ pub fn add_connection(app_handle: tauri::AppHandle, name: String, url: String) -
 }
 
 #[tauri::command]
+pub fn update_connection(
+    app_handle: tauri::AppHandle,
+    id: String,
+    name: String,
+    url: String,
+) -> Result<Connection, String> {
+    let mut config = load_config_from_file(app_handle.clone())?;
+
+    let connection = config
+        .connections
+        .iter_mut()
+        .find(|c| c.id == id)
+        .ok_or("Connection not found")?;
+
+    connection.name = name;
+    connection.url = url;
+
+    let updated = connection.clone();
+    save_config_to_file(app_handle, &config)?;
+
+    Ok(updated)
+}
+
+#[tauri::command]
+pub async fn test_connection(url: String) -> Result<(), String> {
+    let base = url.trim_end_matches('/');
+    let target = format!("{}/device/status", base);
+
+    let client = tauri_plugin_http::reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| format!("Failed to build HTTP client: {}", e))?;
+
+    client
+        .get(&target)
+        .send()
+        .await
+        .map_err(|e| format!("Could not reach backend: {}", e))?;
+
+    // Any HTTP response means the backend is reachable.
+    Ok(())
+}
+
+#[tauri::command]
 pub fn remove_connection(app_handle: tauri::AppHandle, id: String) -> Result<(), String> {
     let mut config = load_config_from_file(app_handle.clone())?;
     

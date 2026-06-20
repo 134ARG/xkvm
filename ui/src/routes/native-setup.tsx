@@ -1,5 +1,4 @@
 import { useState } from "react";
-// import { useNavigate } from "react-router";
 import { useNativeConfig } from "@/stores/nativeConfigStore";
 import { Button } from "@/components/Button";
 import { InputFieldWithLabel } from "@/components/InputField";
@@ -10,8 +9,7 @@ import LogoWhite from "@/assets/logo-white.svg";
 import { m } from "@localizations/messages.js";
 
 export default function NativeSetup() {
-  // const navigate = useNavigate();
-  const { addConnection } = useNativeConfig();
+  const { addConnection, testConnection, switchConnection } = useNativeConfig();
   const [connection, setConnection] = useState({ name: "", url: "" });
   const [errors, setErrors] = useState<{ name?: string; url?: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,11 +45,18 @@ export default function NativeSetup() {
 
     setIsSubmitting(true);
     try {
-      // Add connection and wait for it to be set as current
-      await addConnection(connection.name, connection.url);
+      // Verify the backend is reachable before saving.
+      const test = await testConnection(connection.url);
+      if (!test.ok) {
+        setErrors({ url: m.connection_test_failed({ error: test.error ?? "" }) });
+        setIsSubmitting(false);
+        return;
+      }
 
-      // Navigate to home page (forces full reload and config re-check)
-      window.location.href = "/";
+      const added = await addConnection(connection.name, connection.url);
+
+      // Activate it; switchConnection forces a full reload and config re-check.
+      await switchConnection(added.id);
     } catch (error) {
       console.error("Failed to add connection:", error);
       setErrors({ url: m.connection_save_error() });

@@ -9,6 +9,8 @@ pub fn run() {
       config::get_config,
       config::save_config,
       config::add_connection,
+      config::update_connection,
+      config::test_connection,
       config::remove_connection,
       config::set_default_connection,
       config::update_last_connected,
