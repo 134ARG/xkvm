@@ -2,6 +2,36 @@
 
 This document summarizes the major changes made to XKVM during its evolution from the original JetKVM embedded system to a full Linux-based KVM-over-IP solution.
 
+## Version 0.1.9 (2026-06-21)
+
+### ATX Power Control
+- Moved ATX power control out of the extensions panel into a dedicated action bar badge
+- Added ATX support-status feedback so the control reflects whether the device reports ATX capability
+- Removed the redundant separate power-on indicator now covered by the badge
+
+### Native Desktop Connection Profiles
+- Reworked connection profile management in the native app with editable profiles and a preferences dialog
+- Added startup behavior options to connect to a default or last-used profile on launch
+- Added a backend reachability test with success and error reporting, backed by new Tauri config and store handling
+
+### USB Reliability
+- Fixed a USB gadget race condition and hardened concurrent HID handling
+- Replaced the changeset-based gadget configuration with a simpler direct gadget config and HID device model
+- Fixed swallowed errors in gadget cleanup and configuration paths
+
+### Video
+- Added a 2K 120Hz EDID preset
+
+### VFD
+- Fixed a silent VFD failure path so renderer errors surface instead of leaving the display dead
+
+### UI
+- Fixed click pass-through behavior on the environment metrics badge
+
+### Build and Release
+- Reworked the version bump script for consistent version handling across all packages, including correct deb/rpm prerelease versions
+- Updated CI workflow action versions
+
 ## Version 0.1.8 (2026-06-15)
 
 ### Host Monitoring and VFD
