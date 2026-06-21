@@ -7,6 +7,11 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 VERSION="$(tr -d '[:space:]' < packaging/version.txt)"
+# RPM rejects '-' in Version (it's the Version-Release separator) and sorts
+# '+dev' as newer than the release. Map +dev/-dev to '~dev', which rpm sorts
+# *before* the release — correct prerelease ordering.
+VERSION="${VERSION/+dev/~dev}"
+VERSION="${VERSION/-dev/~dev}"
 PKG_NAME="xkvm-host-agent"
 TOPDIR="$PROJECT_ROOT/build/host-agent-rpmbuild"
 SOURCE="$TOPDIR/SOURCES/$PKG_NAME-$VERSION.tar.gz"

@@ -33,7 +33,12 @@ if [ ! -f "packaging/version.txt" ]; then
 fi
 
 VERSION=$(cat packaging/version.txt | tr -d '[:space:]')
-print_info "Building packages for version: $VERSION"
+# Native packages reject '-'/'+' as prerelease markers and sort them as newer
+# than the release. Map +dev/-dev to '~dev', which dpkg/rpm sort *before* the
+# release — correct prerelease ordering.
+PKG_VERSION="${VERSION/+dev/~dev}"
+PKG_VERSION="${PKG_VERSION/-dev/~dev}"
+print_info "Building packages for version: $VERSION (package version: $PKG_VERSION)"
 
 # Check if xkvm_app exists
 if [ ! -f "bin/xkvm_app" ]; then
@@ -86,7 +91,7 @@ print_info "Building DEB package..."
     # Create control file
     cat > "$DEB_DIR/DEBIAN/control" << EOF
 Package: xkvm
-Version: $VERSION
+Version: $PKG_VERSION
 Section: utils
 Priority: optional
 Architecture: arm64
@@ -134,7 +139,7 @@ EOF
     chmod 755 "$DEB_DIR/DEBIAN/postrm"
     
     # Build package
-    DEB_FILE="bin/xkvm_${VERSION}_arm64.deb"
+    DEB_FILE="bin/xkvm_${PKG_VERSION}_arm64.deb"
     dpkg-deb --root-owner-group --build "$DEB_DIR" "$DEB_FILE"
     
     print_success "DEB package created: $DEB_FILE"
@@ -144,6 +149,6 @@ echo ""
 print_success "Package build completed!"
 echo ""
 print_info "Testing commands:"
-echo "  dpkg -c bin/xkvm_${VERSION}_arm64.deb"
-echo "  dpkg -I bin/xkvm_${VERSION}_arm64.deb"
+echo "  dpkg -c bin/xkvm_${PKG_VERSION}_arm64.deb"
+echo "  dpkg -I bin/xkvm_${PKG_VERSION}_arm64.deb"
 echo ""

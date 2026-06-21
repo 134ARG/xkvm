@@ -1,37 +1,26 @@
 #!/usr/bin/env node
 
+// Writes the given version into package.json and tauri.conf.json.
+// The version is passed as argv[2] by bump_version.sh (the single source of
+// truth). When run standalone, it falls back to packaging/version.txt.
+
 const fs = require('fs');
 const path = require('path');
 
-// Read version from ota.go
-const otaPath = path.join(__dirname, '../../ota.go');
-const otaContent = fs.readFileSync(otaPath, 'utf8');
-const versionMatch = otaContent.match(/var builtAppVersion = "(.+)"/);
-
-if (!versionMatch) {
-  console.error('Failed to extract version from ota.go');
-  process.exit(1);
+function npmVersion() {
+  if (process.argv[2]) return process.argv[2];
+  // Fallback: derive from canonical packaging/version.txt (+dev -> -dev).
+  const txt = path.join(__dirname, '../../packaging/version.txt');
+  return fs.readFileSync(txt, 'utf8').trim().replace('+dev', '-dev');
 }
 
-let version = versionMatch[1];
+const version = npmVersion();
+console.log(`Syncing JSON files to version: ${version}`);
 
-// Remove +dev suffix for Tauri (Tauri doesn't support + in versions)
-version = version.replace('+dev', '-dev');
-
-console.log(`Extracted version: ${version}`);
-
-// Update tauri.conf.json
-const tauriConfPath = path.join(__dirname, '../src-tauri/tauri.conf.json');
-const tauriConf = JSON.parse(fs.readFileSync(tauriConfPath, 'utf8'));
-tauriConf.version = version;
-fs.writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, 2) + '\n');
-
-console.log(`✓ Updated tauri.conf.json to version ${version}`);
-
-// Update package.json
-const packagePath = path.join(__dirname, '../package.json');
-const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
-packageJson.version = version;
-fs.writeFileSync(packagePath, JSON.stringify(packageJson, null, 2) + '\n');
-
-console.log(`✓ Updated package.json to version ${version}`);
+for (const rel of ['../src-tauri/tauri.conf.json', '../package.json']) {
+  const file = path.join(__dirname, rel);
+  const json = JSON.parse(fs.readFileSync(file, 'utf8'));
+  json.version = version;
+  fs.writeFileSync(file, JSON.stringify(json, null, 2) + '\n');
+  console.log(`✓ Updated ${path.basename(file)} to ${version}`);
+}
