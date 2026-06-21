@@ -269,12 +269,7 @@ export default function ConnectionSettings() {
         </Card>
       ) : (
         editingId === null && (
-          <Button
-            text={m.connection_add()}
-            theme="primary"
-            size="SM"
-            onClick={openAdd}
-          />
+          <Button text={m.connection_add()} theme="primary" size="SM" onClick={openAdd} />
         )
       )}
 

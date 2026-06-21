@@ -97,8 +97,7 @@ export const useNativeConfig = create<ConfigStore>((set, get) => ({
       // removed, fall back to a fresh resolution.
       const existing = get().currentConnection;
       const currentConn = existing
-        ? (config.connections.find(c => c.id === existing.id) ??
-          resolveActiveConnection(config))
+        ? (config.connections.find(c => c.id === existing.id) ?? resolveActiveConnection(config))
         : resolveActiveConnection(config);
 
       set({
