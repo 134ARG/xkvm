@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import "react-simple-keyboard/build/css/index.css";
 import { ChevronDownIcon } from "@heroicons/react/16/solid";
 import { useXTerm } from "react-xtermjs";
@@ -68,6 +68,7 @@ function Terminal({
 }) {
   const { terminalType, setTerminalType, setDisableVideoFocusTrap } = useUiStore();
   const { instance, ref } = useXTerm({ options: TERMINAL_CONFIG });
+  const fitAddonRef = useRef<FitAddon | null>(null);
 
   const isTerminalTypeEnabled = useMemo(() => {
     return terminalType == type;
@@ -123,6 +124,13 @@ function Terminal({
       }
     });
 
+    // Keep the pty's window size in sync whenever the terminal is re-fitted.
+    const onResizeHandler = instance.onResize(({ rows, cols }) => {
+      if (dataChannel.readyState === "open") {
+        dataChannel.send(JSON.stringify({ rows, cols }));
+      }
+    });
+
     // Send initial terminal size
     if (dataChannel.readyState === "open") {
       dataChannel.send(JSON.stringify({ rows: instance.rows, cols: instance.cols }));
@@ -132,6 +140,7 @@ function Terminal({
       abortController.abort();
       onDataHandler.dispose();
       onKeyHandler.dispose();
+      onResizeHandler.dispose();
     };
   }, [dataChannel, instance, readyState, setDisableVideoFocusTrap, setTerminalType]);
 
@@ -140,6 +149,7 @@ function Terminal({
 
     // Load the fit addon
     const fitAddon = new FitAddon();
+    fitAddonRef.current = fitAddon;
     instance.loadAddon(fitAddon);
 
     instance.loadAddon(new ClipboardAddon());
@@ -152,14 +162,45 @@ function Terminal({
       instance.loadAddon(webGl2Addon);
     }
 
-    const handleResize = () => fitAddon.fit();
-
-    // Handle resize event
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
+    const fit = () => {
+      try {
+        fitAddon.fit();
+      } catch {
+        // Container not laid out / zero-sized yet; a later fit will correct it.
+      }
     };
-  }, [instance]);
+
+    // Initial fit after layout, and again once the web font finishes loading.
+    // xterm derives cell size from the font; fitting before the font loads
+    // yields the wrong row count (the bottom margin until the first resize).
+    const raf = requestAnimationFrame(fit);
+    document.fonts?.ready.then(fit);
+
+    // Re-fit on any container size change (Tauri window resize, panel show).
+    // ResizeObserver is more reliable here than the window 'resize' event.
+    const resizeObserver = new ResizeObserver(() => fit());
+    if (ref.current) resizeObserver.observe(ref.current);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      resizeObserver.disconnect();
+      fitAddonRef.current = null;
+    };
+  }, [instance, ref]);
+
+  // Re-fit when the panel becomes visible; its show transition can change the
+  // usable height after the initial fit ran.
+  useEffect(() => {
+    if (!instance || !isTerminalTypeEnabled) return;
+    const raf = requestAnimationFrame(() => {
+      try {
+        fitAddonRef.current?.fit();
+      } catch {
+        // ignore
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [instance, isTerminalTypeEnabled]);
 
   return (
     <div onKeyDown={e => e.stopPropagation()} onKeyUp={e => e.stopPropagation()}>
