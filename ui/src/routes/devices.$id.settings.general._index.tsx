@@ -1,8 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 
 import { SelectMenuBasic } from "@components/SelectMenuBasic";
 import { SettingsItem } from "@components/SettingsItem";
 import { SettingsPageHeader } from "@components/SettingsPageheader";
+import { Button } from "@components/Button";
+import ExtLink from "@components/ExtLink";
+import { useRTCStore } from "@/hooks/stores";
+import { isNative } from "@/main";
+import { BackendUpdateInfo, checkBackendUpdate, tryUpdateBackend } from "@/utils/jsonrpc";
 import notifications from "@/notifications";
 import {
   getLocale,
@@ -16,38 +21,6 @@ import { m } from "@localizations/messages.js";
 import { deleteCookie, map_locale_code_to_name } from "@/utils";
 
 export default function SettingsGeneralRoute() {
-  // const { send } = useJsonRpc();
-  // const { navigateTo } = useDeviceUiNavigation();
-  // OTA auto-update functionality disabled
-  // const [autoUpdate, setAutoUpdate] = useState(true);
-  // const currentVersions = useDeviceStore(state => {
-  //   const { appVersion, systemVersion } = state;
-  //   if (!appVersion || !systemVersion) return null;
-  //   return { appVersion, systemVersion };
-  // });
-
-  // OTA auto-update functionality disabled
-  /*
-  useEffect(() => {
-    send("getAutoUpdateState", {}, (resp: JsonRpcResponse) => {
-      if ("error" in resp) return;
-      setAutoUpdate(resp.result as boolean);
-    });
-  }, [send]);
-
-  const handleAutoUpdateChange = (enabled: boolean) => {
-    send("setAutoUpdateState", { enabled }, (resp: JsonRpcResponse) => {
-      if ("error" in resp) {
-        notifications.error(
-          m.general_auto_update_error({ error: resp.error.data || m.unknown_error() }),
-        );
-        return;
-      }
-      setAutoUpdate(enabled);
-    });
-  };
-  */
-
   const [currentLocale, setCurrentLocale] = useState(getLocale());
 
   const localeOptions = useMemo(() => {
@@ -107,47 +80,119 @@ export default function SettingsGeneralRoute() {
               />
             </SettingsItem>
           </div>
-          {/* OTA update functionality disabled
-          <div className="mt-2 flex items-center justify-between gap-x-2">
-            <SettingsItem
-              title={m.general_check_for_updates()}
-              description={
-                <>
-                  {m.general_app_version({
-                    version: currentVersions ? currentVersions.appVersion : m.loading(),
-                  })}
-                  <br />
-                  {m.general_system_version({
-                    version: currentVersions ? currentVersions.systemVersion : m.loading(),
-                  })}
-                </>
-              }
-            />
-            <div className="flex items-center justify-start gap-x-2">
-              <Button
-                size="SM"
-                theme="light"
-                text={m.general_check_for_updates()}
-                onClick={() => navigateTo("./update")}
-              />
-            </div>
-          </div>
-          <div className="space-y-4">
-            <SettingsItem
-              title={m.general_auto_update_title()}
-              description={m.general_auto_update_description()}
-            >
-              <Checkbox
-                checked={autoUpdate}
-                onChange={e => {
-                  handleAutoUpdateChange(e.target.checked);
-                }}
-              />
-            </SettingsItem>
-          </div>
-          */}
+
+          <UpdateSection />
         </div>
       </div>
+    </div>
+  );
+}
+
+function UpdateSection() {
+  const [info, setInfo] = useState<BackendUpdateInfo | null>(null);
+  const [checking, setChecking] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [connectorVersion, setConnectorVersion] = useState<string | null>(null);
+
+  const peerConnectionState = useRTCStore(s => s.peerConnectionState);
+  const sawDisconnectRef = useRef(false);
+
+  const check = useCallback(async () => {
+    setChecking(true);
+    try {
+      const result = await checkBackendUpdate();
+      setInfo(result);
+    } catch (error) {
+      const message = (error as { message?: string })?.message || m.unknown_error();
+      notifications.error(m.updates_failed_check({ error: message }));
+    } finally {
+      setChecking(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    check();
+  }, [check]);
+
+  // Read the Tauri Connector version when running as the native app.
+  useEffect(() => {
+    if (!isNative) return;
+    import("@tauri-apps/api/app")
+      .then(({ getVersion }) => getVersion())
+      .then(setConnectorVersion)
+      .catch(() => setConnectorVersion(null));
+  }, []);
+
+  // While a backend update is in progress, the service restarts and the
+  // connection drops; once it reconnects, force a full reload.
+  useEffect(() => {
+    if (!updating) return;
+    if (peerConnectionState && peerConnectionState !== "connected") {
+      sawDisconnectRef.current = true;
+    } else if (sawDisconnectRef.current && peerConnectionState === "connected") {
+      window.location.reload();
+    }
+  }, [updating, peerConnectionState]);
+
+  const onUpdateNow = useCallback(async () => {
+    setUpdating(true);
+    try {
+      await tryUpdateBackend();
+    } catch (error) {
+      const message = (error as { message?: string })?.message || m.unknown_error();
+      notifications.error(m.updates_failed_check({ error: message }));
+      setUpdating(false);
+    }
+  }, []);
+
+  const connectorUpdateAvailable =
+    isNative &&
+    !!connectorVersion &&
+    !!info?.latestVersion &&
+    connectorVersion !== info.latestVersion;
+
+  return (
+    <div className="space-y-4">
+      <SettingsItem
+        title={m.general_backend_version({ version: info?.currentVersion || m.loading() })}
+        description={
+          updating
+            ? m.general_backend_updating()
+            : info?.updateAvailable
+              ? m.general_update_available({ version: info.latestVersion })
+              : m.general_up_to_date()
+        }
+        loading={checking || updating}
+      >
+        {!updating && info?.updateAvailable ? (
+          info.canAutoUpdate ? (
+            <Button size="SM" theme="primary" text={m.general_update_now()} onClick={onUpdateNow} />
+          ) : (
+            <ExtLink href={info.releaseUrl}>
+              <Button size="SM" theme="light" text={m.general_download_update()} />
+            </ExtLink>
+          )
+        ) : !updating ? (
+          <Button size="SM" theme="light" text={m.general_check_for_updates()} onClick={check} />
+        ) : null}
+      </SettingsItem>
+
+      {isNative && (
+        <SettingsItem
+          title={m.general_connector_version({ version: connectorVersion || m.loading() })}
+          description={
+            connectorUpdateAvailable
+              ? m.general_update_available({ version: info!.latestVersion })
+              : m.general_up_to_date()
+          }
+        >
+          {connectorUpdateAvailable && info ? (
+            <ExtLink href={info.releaseUrl}>
+              <Button size="SM" theme="light" text={m.general_download_update()} />
+            </ExtLink>
+          ) : null}
+        </SettingsItem>
+      )}
     </div>
   );
 }

@@ -233,6 +233,36 @@ export async function getLocalVersion(options?: Partial<JsonRpcCallOptions>): Pr
   return response.result;
 }
 
+export interface BackendUpdateInfo {
+  currentVersion: string;
+  latestVersion: string;
+  updateAvailable: boolean;
+  releaseNotes: string;
+  releaseUrl: string;
+  debUrl: string;
+  canAutoUpdate: boolean;
+}
+
+export async function checkBackendUpdate() {
+  const response = await callJsonRpc<BackendUpdateInfo>({
+    method: "checkBackendUpdate",
+    maxAttempts: 1,
+    attemptTimeoutMs: UPDATE_STATUS_RPC_TIMEOUT_MS,
+  });
+  if (response.error) throw response.error;
+  return response.result;
+}
+
+export async function tryUpdateBackend() {
+  const response = await callJsonRpc<void>({
+    method: "tryUpdateBackend",
+    maxAttempts: 1,
+    attemptTimeoutMs: UPDATE_STATUS_RPC_TIMEOUT_MS,
+  });
+  if (response.error) throw response.error;
+  return response.result;
+}
+
 export type UpdateComponent = "app" | "system";
 export type UpdateComponents = Partial<Record<UpdateComponent, string>>;
 

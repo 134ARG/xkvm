@@ -80,6 +80,10 @@ print_info "Building DEB package..."
     # Copy wrapper script
     cp packaging/bin/xkvm-wrapper.sh "$DEB_DIR/usr/bin/xkvm"
     chmod 755 "$DEB_DIR/usr/bin/xkvm"
+
+    # Copy self-update helper
+    cp packaging/bin/xkvm-self-update.sh "$DEB_DIR/usr/lib/xkvm/xkvm-self-update.sh"
+    chmod 755 "$DEB_DIR/usr/lib/xkvm/xkvm-self-update.sh"
     
     # Copy systemd service
     cp packaging/systemd/xkvm.service "$DEB_DIR/etc/systemd/system/"
