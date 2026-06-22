@@ -289,6 +289,7 @@
     "fail_safe_video_message": "检测到视频采集进程存在问题。您的设备仍在运行并可访问，但视频流暂时不可用。",
     "gathering_ice_candidates": "正在收集 ICE 候选地址...",
     "general_app_version": "应用版本：{version}",
+    "general_backend_update_timeout": "更新超时。后端可能未重新启动，请检查服务后重试。",
     "general_backend_updating": "正在更新……连接将自动重启。",
     "general_backend_version": "后端：{version}",
     "general_connector_version": "连接器：{version}",

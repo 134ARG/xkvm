@@ -251,6 +251,7 @@
     "fail_safe_video_message": "We've detected an issue with the video capture process. Your device is still running and accessible, but video streaming is temporarily unavailable.",
     "gathering_ice_candidates": "Gathering ICE candidates…",
     "general_app_version": "App: {version}",
+    "general_backend_update_timeout": "Update timed out. The backend may not have restarted; check the service and try again.",
     "general_backend_updating": "Updating… the connection will restart automatically.",
     "general_backend_version": "Backend: {version}",
     "general_connector_version": "Connector: {version}",

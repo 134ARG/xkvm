@@ -20,6 +20,18 @@ import {
 import { m } from "@localizations/messages.js";
 import { deleteCookie, map_locale_code_to_name } from "@/utils";
 
+// JSON-RPC internal errors put the useful text in `data`; `message` is a
+// generic "Internal error".
+function rpcErrorMessage(error: unknown): string {
+  const e = error as { data?: unknown; message?: string };
+  if (typeof e?.data === "string" && e.data) return e.data;
+  return e?.message || m.unknown_error();
+}
+
+// Backend restart + reconnect should complete well within this window; if not,
+// surface an error rather than spinning forever.
+const UPDATE_TIMEOUT_MS = 120000;
+
 export default function SettingsGeneralRoute() {
   const [currentLocale, setCurrentLocale] = useState(getLocale());
 
@@ -103,8 +115,7 @@ function UpdateSection() {
       const result = await checkBackendUpdate();
       setInfo(result);
     } catch (error) {
-      const message = (error as { message?: string })?.message || m.unknown_error();
-      notifications.error(m.updates_failed_check({ error: message }));
+      notifications.error(m.updates_failed_check({ error: rpcErrorMessage(error) }));
     } finally {
       setChecking(false);
     }
@@ -134,13 +145,25 @@ function UpdateSection() {
     }
   }, [updating, peerConnectionState]);
 
+  // If the install fails server-side or the new backend never comes back, the
+  // connection won't cycle — bail out with an error instead of hanging.
+  useEffect(() => {
+    if (!updating) return;
+    const timer = setTimeout(() => {
+      setUpdating(false);
+      sawDisconnectRef.current = false;
+      notifications.error(m.general_backend_update_timeout());
+    }, UPDATE_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [updating]);
+
   const onUpdateNow = useCallback(async () => {
+    sawDisconnectRef.current = false;
     setUpdating(true);
     try {
       await tryUpdateBackend();
     } catch (error) {
-      const message = (error as { message?: string })?.message || m.unknown_error();
-      notifications.error(m.updates_failed_check({ error: message }));
+      notifications.error(m.updates_failed_check({ error: rpcErrorMessage(error) }));
       setUpdating(false);
     }
   }, []);
