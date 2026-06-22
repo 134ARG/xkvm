@@ -3,9 +3,13 @@ package kvm
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"os/user"
+	"strconv"
+	"syscall"
 
 	"github.com/creack/pty"
 	"github.com/pion/webrtc/v4"
@@ -16,6 +20,41 @@ type TerminalSize struct {
 	Cols int `json:"cols"`
 }
 
+// resolveShell returns the path to the preferred available shell, trying
+// zsh, then bash, then sh.
+func resolveShell() (string, error) {
+	for _, name := range []string{"zsh", "bash", "sh"} {
+		if path, err := exec.LookPath(name); err == nil {
+			return path, nil
+		}
+	}
+	return "", fmt.Errorf("no shell found (tried zsh, bash, sh)")
+}
+
+// unprivilegedCredential resolves the "nobody" account and returns a
+// syscall.Credential that drops the spawned shell to its uid/gid and clears
+// root's supplementary groups. The daemon itself stays root for hardware
+// access; only the interactive shell is de-privileged.
+func unprivilegedCredential() (*syscall.Credential, error) {
+	u, err := user.Lookup("nobody")
+	if err != nil {
+		return nil, fmt.Errorf("lookup nobody: %w", err)
+	}
+	uid, err := strconv.ParseUint(u.Uid, 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("parse nobody uid %q: %w", u.Uid, err)
+	}
+	gid, err := strconv.ParseUint(u.Gid, 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("parse nobody gid %q: %w", u.Gid, err)
+	}
+	return &syscall.Credential{
+		Uid:    uint32(uid),
+		Gid:    uint32(gid),
+		Groups: []uint32{}, // drop root's supplementary groups
+	}, nil
+}
+
 func handleTerminalChannel(d *webrtc.DataChannel) {
 	scopedLogger := terminalLogger.With().
 		Uint16("data_channel_id", *d.ID()).Logger()
@@ -23,8 +62,40 @@ func handleTerminalChannel(d *webrtc.DataChannel) {
 	var ptmx *os.File
 	var cmd *exec.Cmd
 	d.OnOpen(func() {
-		cmd = exec.Command("/bin/sh")
-		var err error
+		// Prefer zsh, then bash, then sh.
+		shellPath, err := resolveShell()
+		if err != nil {
+			scopedLogger.Error().Err(err).Msg("Refusing to start terminal: no shell available")
+			d.Close()
+			return
+		}
+		cmd = exec.Command(shellPath)
+
+		// The KVM daemon runs as root for hardware access, but the interactive
+		// shell does not need privileges. Drop to the unprivileged "nobody"
+		// user before exec so a compromised terminal can't own the device. Fail
+		// closed rather than hand out a root shell if "nobody" can't be resolved.
+		cred, err := unprivilegedCredential()
+		if err != nil {
+			scopedLogger.Error().Err(err).Msg("Refusing to start terminal: cannot drop privileges")
+			d.Close()
+			return
+		}
+		cmd.SysProcAttr = &syscall.SysProcAttr{Credential: cred}
+
+		// Don't leak the daemon's environment into the shell. nobody has no home,
+		// so point HOME at world-writable /tmp. xterm.js identifies as an xterm
+		// terminal; without TERM, shells that rely on terminfo for key bindings
+		// (e.g. zsh's ZLE) mis-handle keys like Backspace.
+		cmd.Env = []string{
+			"TERM=xterm-256color",
+			"HOME=/tmp",
+			"PATH=/usr/bin:/bin",
+			"USER=nobody",
+			"SHELL=" + shellPath,
+		}
+		cmd.Dir = "/tmp"
+
 		ptmx, err = pty.Start(cmd)
 		if err != nil {
 			scopedLogger.Warn().Err(err).Msg("Failed to start pty")
