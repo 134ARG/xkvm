@@ -2,6 +2,22 @@
 
 This document summarizes the major changes made to XKVM during its evolution from the original JetKVM embedded system to a full Linux-based KVM-over-IP solution.
 
+## Version 0.2.0 (2026-06-22)
+
+### Version Display and Auto-Update
+- Added a Versions section in General settings showing backend and Connector versions with update checking against GitHub releases
+- Added one-click backend self-update for Debian installs, with a download link fallback for other setups
+
+### Web Terminal
+- Dropped the interactive shell to an unprivileged user while the daemon keeps root for hardware access
+- Fixed the terminal not fitting its container on open
+
+### Video
+- Added the "XKVM Ultimate" EDID preset (1080p60 default, 4K60, 1440p/1600p 120 Hz)
+
+### Build and Release
+- Updated UI dependencies
+
 ## Version 0.1.9 (2026-06-21)
 
 ### ATX Power Control

@@ -7,7 +7,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 )
 
-var builtAppVersion = "0.1.9"
+var builtAppVersion = "0.2.0"
 
 // GetBuiltAppVersion returns the built-in app version
 func GetBuiltAppVersion() string {
