@@ -879,6 +879,7 @@
     "video_edid_set_success": "EDID set successfully to {edid}",
     "video_edid_title": "EDID",
     "video_edid_xkvm_default": "XKVM Default",
+    "video_edid_xkvm_ultimate": "XKVM Ultimate (1080p60 default, 4K60, 1440p/1600p 120 Hz)",
     "video_enhancement_description": "Adjust color settings to make the video output more vibrant and colorful",
     "video_enhancement_title": "Video Enhancement",
     "video_failed_get_debug_info": "Failed to get debug info: {error}",
