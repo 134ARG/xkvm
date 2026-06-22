@@ -6,6 +6,7 @@ import { Button } from "@/components/Button";
 import { InputFieldWithLabel } from "@/components/InputField";
 import { SelectMenuBasic } from "@/components/SelectMenuBasic";
 import { SettingsItem } from "@/components/SettingsItem";
+import Pill from "@/components/Pill";
 import Card from "@/components/Card";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { m } from "@localizations/messages.js";
@@ -171,16 +172,8 @@ export default function ConnectionSettings() {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {conn.name}
                       </h3>
-                      {isActive && (
-                        <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">
-                          {m.connection_connected()}
-                        </span>
-                      )}
-                      {conn.is_default && (
-                        <span className="rounded-full bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                          {m.connection_default()}
-                        </span>
-                      )}
+                      {isActive && <Pill theme="success">{m.connection_connected()}</Pill>}
+                      {conn.is_default && <Pill theme="info">{m.connection_default()}</Pill>}
                     </div>
                     <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{conn.url}</p>
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">

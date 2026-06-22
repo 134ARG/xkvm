@@ -1,10 +1,12 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, type ReactNode } from "react";
 
 import { SelectMenuBasic } from "@components/SelectMenuBasic";
 import { SettingsItem } from "@components/SettingsItem";
 import { SettingsPageHeader } from "@components/SettingsPageheader";
 import { Button } from "@components/Button";
 import ExtLink from "@components/ExtLink";
+import Pill, { PillTheme } from "@components/Pill";
+import LoadingSpinner from "@components/LoadingSpinner";
 import { useRTCStore } from "@/hooks/stores";
 import { isNative } from "@/main";
 import { BackendUpdateInfo, checkBackendUpdate, tryUpdateBackend } from "@/utils/jsonrpc";
@@ -176,15 +178,19 @@ function UpdateSection() {
 
   return (
     <div className="space-y-4">
-      <SettingsItem
-        title={m.general_backend_version({ version: info?.currentVersion || m.loading() })}
-        description={
+      <VersionRow
+        name={m.general_backend_name()}
+        version={info?.currentVersion}
+        status={
           updating
-            ? m.general_backend_updating()
+            ? { theme: "info", label: m.general_status_updating() }
             : info?.updateAvailable
-              ? m.general_update_available({ version: info.latestVersion })
-              : m.general_up_to_date()
+              ? { theme: "info", label: m.general_status_update_available() }
+              : info
+                ? { theme: "success", label: m.general_status_up_to_date() }
+                : undefined
         }
+        description={updating ? m.general_backend_updating() : undefined}
         loading={checking || updating}
       >
         {!updating && info?.updateAvailable ? (
@@ -198,15 +204,18 @@ function UpdateSection() {
         ) : !updating ? (
           <Button size="SM" theme="light" text={m.general_check_for_updates()} onClick={check} />
         ) : null}
-      </SettingsItem>
+      </VersionRow>
 
       {isNative && (
-        <SettingsItem
-          title={m.general_connector_version({ version: connectorVersion || m.loading() })}
-          description={
+        <VersionRow
+          name={m.general_connector_name()}
+          version={connectorVersion ?? undefined}
+          status={
             connectorUpdateAvailable
-              ? m.general_update_available({ version: info!.latestVersion })
-              : m.general_up_to_date()
+              ? { theme: "info", label: m.general_status_update_available() }
+              : connectorVersion
+                ? { theme: "success", label: m.general_status_up_to_date() }
+                : undefined
           }
         >
           {connectorUpdateAvailable && info ? (
@@ -214,8 +223,41 @@ function UpdateSection() {
               <Button size="SM" theme="light" text={m.general_download_update()} />
             </ExtLink>
           ) : null}
-        </SettingsItem>
+        </VersionRow>
       )}
+    </div>
+  );
+}
+
+function VersionRow({
+  name,
+  version,
+  status,
+  description,
+  loading,
+  children,
+}: {
+  name: string;
+  version?: string;
+  status?: { theme: PillTheme; label: string };
+  description?: string;
+  loading?: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-x-8">
+      <div className="space-y-1">
+        <div className="flex items-center gap-x-2">
+          <span className="text-base font-semibold text-black dark:text-white">{name}</span>
+          {version && <Pill theme="neutral">v{version}</Pill>}
+          {status && <Pill theme={status.theme}>{status.label}</Pill>}
+          {loading && <LoadingSpinner className="h-4 w-4 text-blue-500" />}
+        </div>
+        {description && (
+          <div className="text-sm text-slate-700 dark:text-slate-300">{description}</div>
+        )}
+      </div>
+      {children ? <div>{children}</div> : null}
     </div>
   );
 }
