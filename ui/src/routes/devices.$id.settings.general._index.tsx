@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useCallback, useRef, type ReactNode } fro
 import { SelectMenuBasic } from "@components/SelectMenuBasic";
 import { SettingsItem } from "@components/SettingsItem";
 import { SettingsPageHeader } from "@components/SettingsPageheader";
+import { SettingsSectionHeader } from "@components/SettingsSectionHeader";
 import { Button } from "@components/Button";
 import ExtLink from "@components/ExtLink";
 import Pill, { PillTheme } from "@components/Pill";
@@ -178,6 +179,21 @@ function UpdateSection() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-x-8">
+        <SettingsSectionHeader
+          title={m.general_versions_title()}
+          description={m.general_versions_description()}
+        />
+        <Button
+          size="SM"
+          theme="light"
+          text={m.general_check_for_updates()}
+          onClick={check}
+          loading={checking}
+          disabled={checking || updating}
+        />
+      </div>
+
       <VersionRow
         name={m.general_backend_name()}
         version={info?.currentVersion}
@@ -191,7 +207,7 @@ function UpdateSection() {
                 : undefined
         }
         description={updating ? m.general_backend_updating() : undefined}
-        loading={checking || updating}
+        loading={updating}
       >
         {!updating && info?.updateAvailable ? (
           info.canAutoUpdate ? (
@@ -201,8 +217,6 @@ function UpdateSection() {
               <Button size="SM" theme="light" text={m.general_download_update()} />
             </ExtLink>
           )
-        ) : !updating ? (
-          <Button size="SM" theme="light" text={m.general_check_for_updates()} onClick={check} />
         ) : null}
       </VersionRow>
 

@@ -260,6 +260,8 @@
     "general_status_update_available": "Update available",
     "general_status_updating": "Updating…",
     "general_update_now": "Update Now",
+    "general_versions_description": "Current versions and available updates.",
+    "general_versions_title": "Versions",
     "general_auto_update_description": "Automatically update the device to the latest version",
     "general_auto_update_error": "Failed to set auto-update: {error}",
     "general_auto_update_title": "Auto Update",

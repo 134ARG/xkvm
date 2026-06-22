@@ -298,6 +298,8 @@
     "general_status_update_available": "有可用更新",
     "general_status_updating": "正在更新……",
     "general_update_now": "立即更新",
+    "general_versions_description": "当前版本及可用更新。",
+    "general_versions_title": "版本",
     "general_auto_update_description": "自动将设备更新到最新稳定版本。",
     "general_auto_update_error": "设置自动更新失败：{error}",
     "general_auto_update_title": "自动更新",
