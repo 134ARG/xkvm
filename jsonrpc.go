@@ -1134,9 +1134,10 @@ var rpcHandlers = map[string]RPCHandler{
 	// OTA RPC handlers disabled (except getLocalVersion which just reads version info)
 	// "getDevChannelState":     {Func: rpcGetDevChannelState},
 	// "setDevChannelState":     {Func: rpcSetDevChannelState, Params: []string{"enabled"}},
-	"getLocalVersion":    {Func: rpcGetLocalVersion},
-	"checkBackendUpdate": {Func: rpcCheckBackendUpdate},
-	"tryUpdateBackend":   {Func: rpcTryUpdateBackend},
+	"getLocalVersion":     {Func: rpcGetLocalVersion},
+	"checkBackendUpdate":  {Func: rpcCheckBackendUpdate},
+	"tryUpdateBackend":    {Func: rpcTryUpdateBackend},
+	"cancelBackendUpdate": {Func: rpcCancelBackendUpdate},
 	// "getUpdateStatus":        {Func: rpcGetUpdateStatus},
 	// "checkUpdateComponents":  {Func: rpcCheckUpdateComponents, Params: []string{"params", "includePreRelease"}},
 	// "getUpdateStatusChannel": {Func: rpcGetUpdateStatusChannel},

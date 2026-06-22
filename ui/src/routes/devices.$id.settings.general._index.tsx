@@ -9,8 +9,14 @@ import ExtLink from "@components/ExtLink";
 import Pill, { PillTheme } from "@components/Pill";
 import LoadingSpinner from "@components/LoadingSpinner";
 import { useRTCStore } from "@/hooks/stores";
+import { useJsonRpc } from "@/hooks/useJsonRpc";
 import { isNative } from "@/main";
-import { BackendUpdateInfo, checkBackendUpdate, tryUpdateBackend } from "@/utils/jsonrpc";
+import {
+  BackendUpdateInfo,
+  cancelBackendUpdate,
+  checkBackendUpdate,
+  tryUpdateBackend,
+} from "@/utils/jsonrpc";
 import notifications from "@/notifications";
 import {
   getLocale,
@@ -21,7 +27,7 @@ import {
   localStorageKey,
 } from "@localizations/runtime.js";
 import { m } from "@localizations/messages.js";
-import { deleteCookie, map_locale_code_to_name } from "@/utils";
+import { deleteCookie, formatters, map_locale_code_to_name } from "@/utils";
 
 // JSON-RPC internal errors put the useful text in `data`; `message` is a
 // generic "Internal error".
@@ -31,9 +37,10 @@ function rpcErrorMessage(error: unknown): string {
   return e?.message || m.unknown_error();
 }
 
-// Backend restart + reconnect should complete well within this window; if not,
-// surface an error rather than spinning forever.
-const UPDATE_TIMEOUT_MS = 120000;
+// Inactivity watchdog: reset on every progress/installing event, so a slow but
+// moving download never trips it. Fires only when events stop arriving and the
+// connection hasn't cycled — i.e. something is genuinely stuck.
+const UPDATE_WATCHDOG_MS = 90000;
 
 export default function SettingsGeneralRoute() {
   const [currentLocale, setCurrentLocale] = useState(getLocale());
@@ -107,10 +114,66 @@ function UpdateSection() {
   const [info, setInfo] = useState<BackendUpdateInfo | null>(null);
   const [checking, setChecking] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const [progress, setProgress] = useState<{ downloaded: number; total: number } | null>(null);
   const [connectorVersion, setConnectorVersion] = useState<string | null>(null);
 
   const peerConnectionState = useRTCStore(s => s.peerConnectionState);
   const sawDisconnectRef = useRef(false);
+  const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const resetUpdate = useCallback(() => {
+    if (watchdogRef.current) clearTimeout(watchdogRef.current);
+    watchdogRef.current = null;
+    sawDisconnectRef.current = false;
+    setUpdating(false);
+    setInstalling(false);
+    setProgress(null);
+  }, []);
+
+  // Feed the inactivity watchdog; an update with no events and no reconnect for
+  // this long is treated as stuck.
+  const feedWatchdog = useCallback(() => {
+    if (watchdogRef.current) clearTimeout(watchdogRef.current);
+    watchdogRef.current = setTimeout(() => {
+      notifications.error(m.general_backend_update_timeout());
+      resetUpdate();
+    }, UPDATE_WATCHDOG_MS);
+  }, [resetUpdate]);
+
+  useEffect(() => () => clearTimeout(watchdogRef.current ?? undefined), []);
+
+  // Backend update lifecycle events: progress while downloading, then either a
+  // restart (installing) or a failure.
+  useJsonRpc(
+    useCallback(
+      payload => {
+        switch (payload.method) {
+          case "backendUpdateProgress":
+            setProgress(payload.params as { downloaded: number; total: number });
+            feedWatchdog();
+            break;
+          case "backendUpdateInstalling":
+            setInstalling(true);
+            setProgress(null);
+            feedWatchdog();
+            break;
+          case "backendUpdateFailed":
+            notifications.error(
+              m.updates_failed_check({
+                error: (payload.params as { error?: string })?.error || m.unknown_error(),
+              }),
+            );
+            resetUpdate();
+            break;
+          case "backendUpdateCanceled":
+            resetUpdate();
+            break;
+        }
+      },
+      [feedWatchdog, resetUpdate],
+    ),
+  );
 
   const check = useCallback(async () => {
     setChecking(true);
@@ -137,39 +200,37 @@ function UpdateSection() {
       .catch(() => setConnectorVersion(null));
   }, []);
 
-  // While a backend update is in progress, the service restarts and the
-  // connection drops; once it reconnects, force a full reload.
+  // Only once the install starts does the service restart and the connection
+  // drop; reload after it cycles. Gating on `installing` (not `updating`) avoids
+  // a transient WebRTC blip during the download triggering a premature reload.
   useEffect(() => {
-    if (!updating) return;
+    if (!installing) return;
     if (peerConnectionState && peerConnectionState !== "connected") {
       sawDisconnectRef.current = true;
     } else if (sawDisconnectRef.current && peerConnectionState === "connected") {
       window.location.reload();
     }
-  }, [updating, peerConnectionState]);
-
-  // If the install fails server-side or the new backend never comes back, the
-  // connection won't cycle — bail out with an error instead of hanging.
-  useEffect(() => {
-    if (!updating) return;
-    const timer = setTimeout(() => {
-      setUpdating(false);
-      sawDisconnectRef.current = false;
-      notifications.error(m.general_backend_update_timeout());
-    }, UPDATE_TIMEOUT_MS);
-    return () => clearTimeout(timer);
-  }, [updating]);
+  }, [installing, peerConnectionState]);
 
   const onUpdateNow = useCallback(async () => {
-    sawDisconnectRef.current = false;
     setUpdating(true);
+    feedWatchdog();
     try {
       await tryUpdateBackend();
     } catch (error) {
       notifications.error(m.updates_failed_check({ error: rpcErrorMessage(error) }));
-      setUpdating(false);
+      resetUpdate();
     }
-  }, []);
+  }, [feedWatchdog, resetUpdate]);
+
+  const onCancel = useCallback(async () => {
+    try {
+      await cancelBackendUpdate();
+    } catch {
+      // Best-effort; the backend may already be past the cancelable phase.
+    }
+    resetUpdate();
+  }, [resetUpdate]);
 
   const connectorUpdateAvailable =
     isNative &&
@@ -209,7 +270,13 @@ function UpdateSection() {
         description={updating ? m.general_backend_updating() : undefined}
         loading={updating}
       >
-        {!updating && info?.updateAvailable ? (
+        {updating ? (
+          // During the download the update button doubles as cancel; once
+          // installing there's no going back, so no button.
+          !installing ? (
+            <Button size="SM" theme="light" text={m.cancel()} onClick={onCancel} />
+          ) : null
+        ) : info?.updateAvailable ? (
           info.canAutoUpdate ? (
             <Button size="SM" theme="primary" text={m.general_update_now()} onClick={onUpdateNow} />
           ) : (
@@ -219,6 +286,8 @@ function UpdateSection() {
           )
         ) : null}
       </VersionRow>
+
+      {updating && <DownloadProgress progress={progress} />}
 
       {isNative && (
         <VersionRow
@@ -272,6 +341,37 @@ function VersionRow({
         )}
       </div>
       {children ? <div>{children}</div> : null}
+    </div>
+  );
+}
+
+function DownloadProgress({
+  progress,
+}: {
+  progress: { downloaded: number; total: number } | null;
+}) {
+  const hasTotal = !!progress && progress.total > 0;
+  const percent = hasTotal ? Math.min((progress.downloaded / progress.total) * 100, 100) : 0;
+
+  return (
+    <div className="space-y-1">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+        <div
+          className={
+            hasTotal
+              ? "h-2 bg-blue-700 transition-all duration-300 ease-out"
+              : "h-2 w-full animate-pulse bg-blue-700"
+          }
+          style={hasTotal ? { width: `${percent}%` } : undefined}
+        />
+      </div>
+      <div className="text-xs text-slate-600 dark:text-slate-300">
+        {progress
+          ? hasTotal
+            ? `${formatters.bytes(progress.downloaded)} / ${formatters.bytes(progress.total)} (${Math.round(percent)}%)`
+            : formatters.bytes(progress.downloaded)
+          : m.general_status_updating()}
+      </div>
     </div>
   );
 }

@@ -254,8 +254,21 @@ export async function checkBackendUpdate() {
 }
 
 export async function tryUpdateBackend() {
+  // Returns immediately: the backend runs the download/install in the background
+  // and reports progress and outcome via events.
   const response = await callJsonRpc<void>({
     method: "tryUpdateBackend",
+    maxAttempts: 1,
+    attemptTimeoutMs: UPDATE_STATUS_RPC_TIMEOUT_MS,
+  });
+  if (response.error) throw response.error;
+  return response.result;
+}
+
+export async function cancelBackendUpdate() {
+  // No-op on the backend once the install has started.
+  const response = await callJsonRpc<void>({
+    method: "cancelBackendUpdate",
     maxAttempts: 1,
     attemptTimeoutMs: UPDATE_STATUS_RPC_TIMEOUT_MS,
   });
