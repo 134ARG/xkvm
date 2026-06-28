@@ -12,8 +12,8 @@ import { NestedSettingsGroup } from "@components/NestedSettingsGroup";
 import { TextAreaWithLabel } from "@components/TextArea";
 import api from "@/api";
 import notifications from "@/notifications";
-import { DEVICE_API } from "@/ui.config";
-import { isOnDevice } from "@/main";
+import { getDeviceAPI } from "@/ui.config";
+import { isOnDevice, isNative } from "@/main";
 import { m } from "@localizations/messages.js";
 
 import { LocalDevice } from "./devices.$id";
@@ -25,9 +25,11 @@ export interface TLSState {
 }
 
 const loader: LoaderFunction = async () => {
-  if (isOnDevice) {
+  // On-device serves /device at the same origin; native (Tauri) reaches it via the
+  // configured connection URL. getDeviceAPI() returns "" on-device and that URL in native.
+  if (isOnDevice || isNative) {
     const status = await api
-      .GET(`${DEVICE_API}/device`)
+      .GET(`${getDeviceAPI()}/device`)
       .then(res => res.json() as Promise<LocalDevice>);
     return status;
   }
