@@ -701,6 +701,7 @@
     "network_ipv4_address": "IPv4 地址",
     "network_ipv4_address_information": "IPv4 地址信息",
     "network_ipv4_configuration": "IPv4 配置",
+    "network_ipv4_information": "IPv4 信息",
     "network_ipv4_dns": "IPv4 DNS",
     "network_ipv4_gateway": "IPv4 网关",
     "network_ipv4_invalid": "无效的 IPv4 地址",

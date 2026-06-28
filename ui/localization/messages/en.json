@@ -630,6 +630,7 @@
     "network_ipv4_address": "IPv4 Address",
     "network_ipv4_address_information": "IPv4 Address Information",
     "network_ipv4_configuration": "IPv4 Configuration",
+    "network_ipv4_information": "IPv4 Information",
     "network_ipv4_dns": "IPv4 DNS",
     "network_ipv4_gateway": "IPv4 Gateway",
     "network_ipv4_invalid": "Invalid IPv4 address",

@@ -696,18 +696,11 @@ export interface DhcpLease {
 export interface IPv6Address {
   address: string;
   prefix: string;
-  valid_lifetime: string;
-  preferred_lifetime: string;
-  scope: string;
-  flags: number;
-  flag_secondary?: boolean;
-  flag_permanent?: boolean;
-  flag_temporary?: boolean;
-  flag_stable_privacy?: boolean;
+  // Seconds remaining (not a timestamp); rendered relative to the client clock.
+  valid_lifetime?: number;
+  preferred_lifetime?: number;
   flag_deprecated?: boolean;
-  flag_optimistic?: boolean;
   flag_dad_failed?: boolean;
-  flag_tentative?: boolean;
 }
 
 export interface PublicIP {

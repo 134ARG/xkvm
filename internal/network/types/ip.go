@@ -66,20 +66,18 @@ type IPv6Address struct {
 	Scope             int        `json:"scope"`
 }
 
-// RpcIPv6Address is the RPC representation of an IPv6 address
+// RpcIPv6Address is the RPC representation of an IPv6 address. It carries only the
+// fields the UI renders — keeping the getNetworkState payload under the WebRTC SCTP
+// path-MTU (~1.2KB), which Firefox cannot reassemble when a message is fragmented.
 type RpcIPv6Address struct {
-	Address           string     `json:"address"`
-	Prefix            string     `json:"prefix"`
-	ValidLifetime     *time.Time `json:"valid_lifetime"`
-	PreferredLifetime *time.Time `json:"preferred_lifetime"`
-	Scope             int        `json:"scope"`
-	Flags             int        `json:"flags"`
-	FlagSecondary     bool       `json:"flag_secondary"`
-	FlagPermanent     bool       `json:"flag_permanent"`
-	FlagTemporary     bool       `json:"flag_temporary"`
-	FlagStablePrivacy bool       `json:"flag_stable_privacy"`
-	FlagDeprecated    bool       `json:"flag_deprecated"`
-	FlagOptimistic    bool       `json:"flag_optimistic"`
-	FlagDADFailed     bool       `json:"flag_dad_failed"`
-	FlagTentative     bool       `json:"flag_tentative"`
+	Address string `json:"address"`
+	Prefix  string `json:"prefix"`
+	// Lifetimes are seconds remaining (not absolute timestamps): the kernel reports them
+	// that way, and an integer is far smaller on the wire than an RFC3339 string — keeping
+	// the network-state payload within a single SCTP frame. The client renders them
+	// relative to its own clock.
+	ValidLifetime     *int64 `json:"valid_lifetime,omitempty"`
+	PreferredLifetime *int64 `json:"preferred_lifetime,omitempty"`
+	FlagDeprecated    bool   `json:"flag_deprecated"`
+	FlagDADFailed     bool   `json:"flag_dad_failed"`
 }

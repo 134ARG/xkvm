@@ -22,7 +22,8 @@ import { cx } from "@/cva.config";
 import { useUiStore, useFailsafeModeStore } from "@hooks/stores";
 import Card from "@components/Card";
 import { FailsafeModeBanner } from "@components/FailSafeModeBanner";
-import { FeatureFlag } from "@components/FeatureFlag";
+// Version gate disabled (see Paste text note below). Restore with the <FeatureFlag> wrapper.
+// import { FeatureFlag } from "@components/FeatureFlag";
 import { LinkButton } from "@components/Button";
 import { m } from "@localizations/messages.js";
 
@@ -147,16 +148,17 @@ export default function SettingsRoute() {
                     </div>
                   </NavLink>
                 </div>
-                <FeatureFlag minAppVersion="0.4.0" name="Paste text">
-                  <div className="shrink-0">
-                    <NavLink to="keyboard" className={({ isActive }) => (isActive ? "active" : "")}>
-                      <div className="flex items-center gap-x-2 rounded-md px-2.5 py-2.5 text-sm transition-colors hover:bg-slate-100 in-[.active]:bg-blue-50 in-[.active]:text-blue-700! md:in-[.active]:bg-transparent dark:hover:bg-slate-700 dark:in-[.active]:bg-blue-900 dark:in-[.active]:text-blue-200! dark:md:in-[.active]:bg-transparent">
-                        <LuKeyboard className="h-4 w-4 shrink-0" />
-                        <h1>{m.settings_keyboard()}</h1>
-                      </div>
-                    </NavLink>
-                  </div>
-                </FeatureFlag>
+                {/* Version gate disabled: this fork renumbered versions, so the jetkvm
+                    0.4.0 threshold incorrectly hid this. We support Paste text, so render
+                    it unconditionally. Restore by re-wrapping in <FeatureFlag minAppVersion="0.4.0" name="Paste text"> ... </FeatureFlag>. */}
+                <div className="shrink-0">
+                  <NavLink to="keyboard" className={({ isActive }) => (isActive ? "active" : "")}>
+                    <div className="flex items-center gap-x-2 rounded-md px-2.5 py-2.5 text-sm transition-colors hover:bg-slate-100 in-[.active]:bg-blue-50 in-[.active]:text-blue-700! md:in-[.active]:bg-transparent dark:hover:bg-slate-700 dark:in-[.active]:bg-blue-900 dark:in-[.active]:text-blue-200! dark:md:in-[.active]:bg-transparent">
+                      <LuKeyboard className="h-4 w-4 shrink-0" />
+                      <h1>{m.settings_keyboard()}</h1>
+                    </div>
+                  </NavLink>
+                </div>
                 <div
                   className={cx("shrink-0", {
                     "cursor-not-allowed opacity-50": isVideoDisabled,
