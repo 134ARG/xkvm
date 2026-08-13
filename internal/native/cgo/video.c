@@ -74,6 +74,7 @@
 // with NV12 4:2:0 on sharp desktop/video capture content.
 #define RK_PIXEL_FORMAT RK_FMT_YUV422_UYVY
 #define V4L2_PIXEL_FORMAT V4L2_PIX_FMT_UYVY
+#define CAPTURE_BUFFER_CAPACITY ((RK_U64)1920 * 1080 * 3)
 
 int sub_dev_fd = -1;
 #define VENC_CHANNEL 0
@@ -412,7 +413,7 @@ static int32_t buf_init()
 {
     MB_POOL_CONFIG_S stMbPoolCfg;
     memset(&stMbPoolCfg, 0, sizeof(MB_POOL_CONFIG_S));
-    stMbPoolCfg.u64MBSize = 1920 * 1080 * 3; // max resolution
+    stMbPoolCfg.u64MBSize = CAPTURE_BUFFER_CAPACITY;
     stMbPoolCfg.u32MBCnt = input_buffer_count;
     stMbPoolCfg.enAllocType = MB_ALLOC_TYPE_DMA;
     stMbPoolCfg.bPreAlloc = RK_TRUE;
@@ -593,6 +594,35 @@ bool get_streaming_stopped()
     return stopped;
 }
 
+static void report_capture_out_of_range(uint32_t width, uint32_t height)
+{
+    detected_signal = false;
+    video_report_format(false, "out_of_range", width, height, 0);
+}
+
+static void cleanup_capture_setup(int video_dev_fd, struct buffer buffers[])
+{
+    struct v4l2_requestbuffers req_free;
+    memset(&req_free, 0, sizeof(req_free));
+    req_free.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    req_free.memory = V4L2_MEMORY_DMABUF;
+
+    if (ioctl(video_dev_fd, VIDIOC_REQBUFS, &req_free) < 0)
+    {
+        log_error("Failed to free V4L2 buffers: %s", strerror(errno));
+    }
+
+    for (int i = 0; i < input_buffer_count; i++)
+    {
+        if (buffers[i].mb_blk != NULL)
+        {
+            RK_MPI_MB_ReleaseMB(buffers[i].mb_blk);
+        }
+    }
+
+    close(video_dev_fd);
+}
+
 void write_buffer_to_file(const uint8_t *buffer, size_t length, const char *filename)
 {
     FILE *file = fopen(filename, "wb");
@@ -654,7 +684,18 @@ void *run_video_stream(void *arg)
         uint32_t capture_vir_width = get_vir_width_from_bytesperline(width, capture_bytesperline);
         uint32_t capture_vir_height = get_vir_height_from_sizeimage(height, capture_bytesperline, capture_sizeimage);
 
+        if ((RK_U64)capture_sizeimage > CAPTURE_BUFFER_CAPACITY)
+        {
+            log_warn("video format %ux%u requires %u capture bytes; maximum is %llu",
+                     width, height, capture_sizeimage,
+                     (unsigned long long)CAPTURE_BUFFER_CAPACITY);
+            report_capture_out_of_range(width, height);
+            close(video_dev_fd);
+            continue;
+        }
+
         struct v4l2_buffer buf;
+        struct buffer buffers[3] = {};
 
         struct v4l2_requestbuffers req;
         memset(&req, 0, sizeof(req));
@@ -666,11 +707,10 @@ void *run_video_stream(void *arg)
         {
             log_error("VIDIOC_REQBUFS failed: %s", strerror(errno));
             close(video_dev_fd);
-            return (void *)errno;
+            goto stream_thread_exit;
         }
         log_info("VIDIOC_REQBUFS successful");
 
-        struct buffer buffers[3] = {};
         log_info("allocated buffers");
 
         for (int i = 0; i < input_buffer_count; i++)
@@ -688,9 +728,8 @@ void *run_video_stream(void *arg)
             if (-1 == ioctl(video_dev_fd, VIDIOC_QUERYBUF, &buf))
             {
                 log_error("VIDIOC_QUERYBUF failed: %s", strerror(errno));
-                req.count = i;
-                close(video_dev_fd);
-                return (void *)errno;
+                cleanup_capture_setup(video_dev_fd, buffers);
+                goto stream_thread_exit;
             }
             log_info("VIDIOC_QUERYBUF successful for buffer %d", i);
 
@@ -701,8 +740,8 @@ void *run_video_stream(void *arg)
             if (blk == NULL)
             {
                 log_error("get mb blk failed!");
-                close(video_dev_fd);
-                return (void *)errno;
+                cleanup_capture_setup(video_dev_fd, buffers);
+                goto stream_thread_exit;
             }
             log_info("Got memory block for buffer %d", i);
 
@@ -712,13 +751,14 @@ void *run_video_stream(void *arg)
             if (buf_fd < 0)
             {
                 log_error("RK_MPI_MB_Handle2Fd failed!");
-                close(video_dev_fd);
-                return (void *)errno;
+                cleanup_capture_setup(video_dev_fd, buffers);
+                goto stream_thread_exit;
             }
             log_info("Converted memory block to file descriptor for buffer %d", i);
             planes_buffer->m.fd = buf_fd;
         }
 
+        bool capture_out_of_range = false;
         for (int i = 0; i < input_buffer_count; ++i)
         {
             struct v4l2_buffer buf;
@@ -730,18 +770,33 @@ void *run_video_stream(void *arg)
             buf.m.planes = &buffers[i].plane_buffer;
             if (ioctl(video_dev_fd, VIDIOC_QBUF, &buf) < 0)
             {
-                log_error("VIDIOC_QBUF failed: %s", strerror(errno));
-                close(video_dev_fd);
-                return (void *)errno;
+                int qbuf_errno = errno;
+                log_error("VIDIOC_QBUF failed: %s", strerror(qbuf_errno));
+                if (qbuf_errno == EFAULT)
+                {
+                    report_capture_out_of_range(width, height);
+                }
+                cleanup_capture_setup(video_dev_fd, buffers);
+                if (qbuf_errno == EFAULT)
+                {
+                    capture_out_of_range = true;
+                    break;
+                }
+                goto stream_thread_exit;
             }
             log_info("VIDIOC_QBUF successful for buffer %d", i);
+        }
+
+        if (capture_out_of_range)
+        {
+            continue;
         }
 
         if (ioctl(video_dev_fd, VIDIOC_STREAMON, &type) < 0)
         {
             log_error("VIDIOC_STREAMON failed: %s", strerror(errno));
-            close(video_dev_fd);
-            return (void *)errno;
+            cleanup_capture_setup(video_dev_fd, buffers);
+            goto stream_thread_exit;
         }
 
         struct v4l2_plane tmp_plane;
@@ -875,6 +930,7 @@ void *run_video_stream(void *arg)
         close(video_dev_fd);
     }
 
+stream_thread_exit:
     log_info("video stream thread exiting");
 
     set_streaming_stopped(true);

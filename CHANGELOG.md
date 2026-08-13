@@ -2,6 +2,12 @@
 
 This document summarizes the major changes made to XKVM during its evolution from the original JetKVM embedded system to a full Linux-based KVM-over-IP solution.
 
+## Version 0.2.1 (2026-08-14)
+
+### Video
+- Fixed video capture becoming stuck after switching to an unsupported resolution
+- Restored automatic video streaming when the source returns to a supported resolution
+
 ## Version 0.2.0 (2026-06-22)
 
 ### Version Display and Auto-Update
